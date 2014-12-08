@@ -1,0 +1,26 @@
+---
+---
+
+html {
+    min-height: 100%;
+    font-family: 'Lora', serif;
+    font-size: 12pt;
+};
+
+body {
+    max-width: 400px;
+    width: 100%;
+    min-height: 100%;
+    margin: 0 auto;
+    border-left: 1px solid gray;
+    border-right: 1px solid gray;
+    padding: 0 5px;
+}
+
+code {
+    font-family: 'Ubuntu Mono', ;
+}
+
+div#header h1 {
+    margin-top: 0;
+}
