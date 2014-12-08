@@ -12,13 +12,22 @@ body {
     width: 100%;
     min-height: 100%;
     margin: 0 auto;
-    border-left: 1px solid gray;
-    border-right: 1px solid gray;
+    border-left: 1px solid #ddd;
+    border-right: 1px solid #ddd;
     padding: 0 5px;
 }
 
 code {
     font-family: 'Ubuntu Mono', ;
+}
+
+a {
+    text-decoration: none;
+    color: #00C5E3;
+
+    &:hover {
+        text-decoration: underline;
+    }
 }
 
 div#header h1 {
