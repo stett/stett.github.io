@@ -33,4 +33,4 @@ SITE_ID = 1
 
 When you run `python manage.py migrate`, the site will be automatically created.
 
-This may be considered by some to be somewhat counter to good practice, since we are now storing domain-specific information in the site code. I count this transgression to be minimal, however, compared to the convenience it provides, specifically for projects where separate settings files are used for different deployments.
+This may be considered by some to be somewhat counter to good practice, since we are now storing domain-specific information in the site code. I count this transgression to be minimal, however, compared to the convenience it provides, specifically for projects where separate settings files are used for different deployments, and where `SITE_ID` must be set anyway.

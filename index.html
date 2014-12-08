@@ -5,6 +5,7 @@ layout: base
 <ul>
     {% for post in site.posts %}
     <li>
+        <div class="date">{{ post.date|date:"%Y/%m/%d" }}</div>
         <a href="{{ post.url }}">{{ post.title }}</a>
     </li>
     {% endfor %}
