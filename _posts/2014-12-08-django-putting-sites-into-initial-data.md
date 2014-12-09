@@ -1,7 +1,8 @@
 ---
 title: Using Django Fixtures for Practical Site Instantiation
 layout: post
-categories: django
+tags: django
+comments: true
 ---
 
 When using Django, it is useful and sometimes necessary to install the [Sites Framework](https://docs.djangoproject.com/en/1.7/ref/contrib/sites/). However, it's a bit inconvenient to have to create a new Site object when creating new deployments of a project, especially if you want multiple deployments with different domains (ie. dev, stage, prod, etc).
@@ -33,4 +34,4 @@ SITE_ID = 1
 
 When you run `python manage.py migrate`, the site will be automatically created.
 
-This may be considered by some to be somewhat counter to good practice, since we are now storing domain-specific information in the site code. I count this transgression to be minimal, however, compared to the convenience it provides, specifically for projects where separate settings files are used for different deployments, and where `SITE_ID` must be set anyway.
+This may be considered by some to be somewhat counter to good practice, since we are now storing domain-specific information in site code. I count this transgression to be minimal, however, compared to the convenience it provides, specifically for projects where separate settings files are used for different deployments, and where `SITE_ID` must be set anyway.

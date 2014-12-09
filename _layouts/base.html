@@ -11,12 +11,31 @@
 
 <body>
 
-    <div id="header">
-        <a href="/"><h1>StettJ</h1></a>
-    </div>
+    {% comment %}
+    <nav>
+        <ul>
+            <li><a href="#">about</a></li>
+            <li><a href="#">contact</a></li>
+            <li><a href="#">projects</a></li>
+        </ul>
+    </nav>
+    {% endcomment %}
 
-    <div id="content">
-        {{ content }}
-    </div>
+    <main>
+        <div id="header">
+            <a href="/"><h1>StettJ</h1></a>
+        </div>
+        <div id="content">
+            {{ content }}
+        </div>
+    </main>
+
+    {% comment %}
+    <footer>
+        <ul>
+            <li><a href="">contact</a>
+        </ul>
+    </footer>
+    {% endcomment %}
 </body>
 </html>

@@ -8,3 +8,7 @@ layout: base
     </header>
     {{ content }}
 </article>
+
+{% if page.comments %}
+{% include disqus.html %}
+{% endif %}
