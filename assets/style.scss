@@ -42,8 +42,12 @@ footer {
 }
 
 article {
-    text-align: justify;
-    text-justify: auto;
+    //text-align: justify;
+    //text-justify: auto;
+
+    img {
+        max-width: 100%;
+    }
 }
 
 code {
