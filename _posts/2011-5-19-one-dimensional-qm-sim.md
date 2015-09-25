@@ -1,5 +1,5 @@
 ---
-title: Numerical Time Development Of One Dimensional Quantum Systems
+title: Time Development Of 1D Quantum Systems
 layout: post
 tags: [project, physics]
 comments: true
