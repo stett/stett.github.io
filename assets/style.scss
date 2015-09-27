@@ -99,6 +99,7 @@ div.preview {
 
     div.image {
         height: 45px;
+        overflow: hidden;
 
         img {
             max-width: 100%;
