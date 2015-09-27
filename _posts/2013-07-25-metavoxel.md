@@ -3,6 +3,7 @@ title: MetaVoxel
 layout: post
 tags: [project, c++, sdl]
 comments: true
+thumbnail: http://metavoxelgame.com/wp-content/themes/metavox/img/voxels/sun-room.png
 ---
 
 ![Sun Room](http://metavoxelgame.com/wp-content/themes/metavox/img/voxels/sun-room.png)

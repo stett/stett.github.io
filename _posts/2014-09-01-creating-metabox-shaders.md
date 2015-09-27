@@ -3,6 +3,7 @@ title: Making The MetaBox Shader
 layout: post
 tags: [c++, sfml]
 comments: true
+thumbnail: /assets/stretchy-graph.png
 ---
 
 A few weeks ago I entered [Look What I Made Weekend](http://lookwhatimadeweekend.com/) (check it out if you're into things like [Ludum Dare](http://ludumdare.com/compo/)) with the goal of writing a shader for one of my little pet projects. In this particular project, Metabox, the world is a tree structure of "recursive" 7x7 grids. That is, each level is a small box, containing other levels and various other elements. Each wall of a box can have a "meta-door" which, when open, creates a continuous connection between parent box and it's child box.
