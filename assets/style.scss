@@ -92,3 +92,16 @@ main>#content>h2 {
 span.tags {
     color: #D9D5D0;
 }
+
+div.preview {
+
+    margin-bottom: 10px;
+
+    div.image {
+        height: 45px;
+
+        img {
+            max-width: 100%;
+        }
+    }
+}
