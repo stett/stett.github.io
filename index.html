@@ -11,8 +11,7 @@ layout: base
         {% for tag in post.tags %}{{ tag }}{% if forloop.last == false %}, {% endif %}{% endfor %}
     </span>
 
-    {% assign image = post.images[0] %}
-    <div><img src="{{ image.url }}" /></div>
+    <div><img src="{{ site.url }}{{ post.thumbnail }}" /></div>
 </div>
 
 {% endfor %}
