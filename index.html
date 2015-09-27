@@ -12,11 +12,9 @@ layout: base
             {% for tag in post.tags %}{{ tag }}{% if forloop.last == false %}, {% endif %}{% endfor %}
         </span>
 
-        <div class="image">
-            {% if post.thumbnail %}
-            <img src="{{ site.url }}{{ post.thumbnail }}" />
-            {% endif %}
-        </div>
+        {% if post.thumbnail %}
+        <div class="image"><img src="{{ site.url }}{{ post.thumbnail }}" /></div>
+        {% endif %}
     </a>
 </div>
 
