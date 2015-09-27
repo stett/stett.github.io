@@ -98,8 +98,10 @@ div.preview {
     margin-bottom: 10px;
 
     div.image {
+        width: 100%;
         height: 45px;
         overflow: hidden;
+        background: #00C5EF;
 
         img {
             max-width: 100%;
