@@ -15,4 +15,7 @@ A challenging prototype for a western-themed board game. This prototype was deve
 
 ![Aaaaand here's what it ACTUALLY looks like so far]({{ site.url }}/assets/last-man-standin-1.jpg)
 
-It'll be way more fun once winning means looking at a field of bleeding, dead cowboys instead of boring glowy hexes.
+It'll be way more fun once winning means looking at a field of bleeding, dead cowboys instead of boring glowy hexes. The source (and the latest build) for the prototype can be found [here](https://github.com/stett/last-man-standin) on github.
+
+![A cowboy!]({{ site.url }}/assets/cowboy-0.jpg)
+![Another cowboy!]({{ site.url }}/assets/cowboy-1.jpg)
