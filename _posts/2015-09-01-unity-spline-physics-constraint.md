@@ -1,5 +1,5 @@
 ---
-title: Constrain Physics Along A Spline In Unity
+title: Constraining Physics Along A Spline In Unity
 layout: post
 tags: unity
 comments: true
@@ -7,7 +7,7 @@ comments: true
 
 Recently I had cause to constrain physics forces along a spline in Unity. In my first attempt, my approach was to constrain the position so that it was to constrain an object's velocity by projecting it along the closest tangent on the spline, and to set the position to closest point on the spline after updating phyiscs.
 
-This approach is a hack, and is frought with error. The cases are few where you should continuously be *continually* setting first order physics properties (position, velocity) on an object which is already governed by a physics engine (maybe I'll talk about why later).
+This approach is a hack, and is frought with error. The cases are few where you should *continuously* be setting low-order physics properties (position, velocity) on an object which is already governed by a physics engine (maybe I'll talk about why later).
 
 Fortunately, Unity provides the [ConfigurableJoint](http://docs.unity3d.com/Manual/class-ConfigurableJoint.html), although by itself this is not quite enough. What we need is a ConfigurableJoint which can be tweaked to get the client however high he or she wishes with a good Indica / Sativa balance. Terrible joke. Moving on.
 
