@@ -3,7 +3,6 @@ title: Time Development Of 1D Quantum Systems
 layout: post
 tags: [project, physics]
 comments: true
-thumbnail: {{ site.url }}/assets/chebychev.png
 ---
 
 ![Chebychev]({{ site.url }}/assets/chebychev.png)
