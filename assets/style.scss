@@ -94,17 +94,16 @@ span.tags {
 }
 
 div.preview {
-
+    position: relative;
     margin-bottom: 10px;
 
-    div.image {
-        width: 100%;
-        height: 45px;
-        overflow: hidden;
-        background: #00C5EF;
+    span.date {
+        position: absolute;
+        right: 410px;
+        display: none;
+    }
 
-        img {
-            max-width: 100%;
-        }
+    &:hover {
+        span.date { display: inline; }
     }
 }
