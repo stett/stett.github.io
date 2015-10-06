@@ -58,7 +58,7 @@ code {
 
 a {
     text-decoration: none;
-    color: #00C5EF;
+    color: #00addf;
 
     &:hover {
         text-decoration: underline;
@@ -85,7 +85,7 @@ div#disqus_thread {
 }
 
 main>#content>h2 {
-    border-bottom: 1px dashed #D9D5D0;
+    border-bottom: 1px dashed #00addf;
     margin-bottom: 0;
 }
 
@@ -100,6 +100,10 @@ div.preview {
     span.date {
         position: absolute;
         right: 410px;
+        background-color: #FCFAF7;
+        border: 1px solid #ddd;
+        border-radius: 2px;
+        padding: 2px;
         display: none;
     }
 
