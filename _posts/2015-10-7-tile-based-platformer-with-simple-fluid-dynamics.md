@@ -19,5 +19,6 @@ I can't post the code since it was a school project, but I can describe the gene
 
 2) Each update step, accelerate each particle towards the average position of its neighbors. To facilitate "dripping", I also check to see if the collision cell below this fluid cell is open and the fluid array inside this cell is dropped the the one below. The result is that a pool of fluid on a ledge with drip to the surface below when it reaches the edge.
 
+![More Bloody Mess!]({{ site.url }}/assets/blood-2.png)
 
 Game elements which should interact with the fluid can either set the position or velocity of the fluid at any point on the screen. 
