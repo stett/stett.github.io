@@ -8,3 +8,5 @@ thumbnail: /assets/blood-1.png
 
 ![Bloody Mess!]({{ site.url }}/assets/blood-1.png)
 
+
+This one may have been a bit of overkill...
