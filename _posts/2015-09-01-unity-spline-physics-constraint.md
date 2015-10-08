@@ -9,7 +9,7 @@ Recently I had cause to constrain physics forces along a spline in Unity. In my 
 
 This approach is a hack, and is frought with error. The cases are few where you should *continuously* be setting low-order physics properties (position, velocity) on an object which is already governed by a physics engine (maybe I'll talk about why later).
 
-Fortunately, Unity provides the [ConfigurableJoint](http://docs.unity3d.com/Manual/class-ConfigurableJoint.html), although by itself this is not quite enough. What we need is a ConfigurableJoint which can be tweaked to get the client however high he or she wishes with a good Indica / Sativa balance. Terrible joke. Moving on.
+Fortunately, Unity provides the [ConfigurableJoint](http://docs.unity3d.com/Manual/class-ConfigurableJoint.html). This is a joint which can be dynamically adjusted to provide the user with their preferred Indica / Sativa balance. Terrible joke. Moving on. It's actually a highly generalized physics constraint - a perfect candidate for our purpose.
 
 What we *actually* need is a ConfigurableJoint which will lock itself to motion along a straight line - this line is must be updated every step to be tangent to the closest point on the spline. Once this joint is in place, the actuation of the object itself is left up to the physics engine so that it may remain consistent.
 
