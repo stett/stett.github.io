@@ -1,5 +1,5 @@
 ---
-title: A(nother) Subtle Danger Of Macro Expansion
+title: A Subtle Sin Of Macro Expansion
 layout: post
 tags: [c, c++]
 comments: true
