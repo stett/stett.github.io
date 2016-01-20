@@ -7,7 +7,7 @@ comments: true
 
 In classic DigiPen throwing-people-in-the-deep-end-to-see-if-they-can-swim style, I had an assignment which required me to build a basic game engine from scratch, and then a game to demonstrate it's capabilities, in a little less than half a semester.
 
-In this video you can watch me play a bit of the game. In it, I shoot down a few pixely planes with rockets and machinegun before getting hit by a missile from a helicopter. The more damaged I become, the more difficult it is to control, and I eventually crash and burn.
+In this video you can watch me play a bit of the game. In it, I shoot down a few pixely planes with rockets and machinegun before getting hit by a missile from a helicopter. The more damaged I become, the more difficult it is to control, and I eventually crash and burn. I highly recommend upping the quality to 480p at least, in order ot really see what's going on.
 
 <iframe width="420" height="360" src="https://www.youtube.com/embed/aA3th1K6wno" frameborder="0" allowfullscreen></iframe>
 
