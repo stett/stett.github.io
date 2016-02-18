@@ -17,4 +17,4 @@ So I added two behavior scripts, one called SplineData, and one called SplineCon
 
 The code is [here](https://github.com/stett/unity-physics-splines/tree/e37a267d8b962517d958c7b31ca50655604d665f) on github. The result? Nice, consistent physics, but constrained along a spline:
 
-<iframe width="400" height="315" src="https://www.youtube.com/embed/qiUhr-Hkic0" frameborder="0" allowfullscreen></iframe>
+<iframe width="100%" height="315" src="https://www.youtube.com/embed/qiUhr-Hkic0" frameborder="0" allowfullscreen></iframe>
