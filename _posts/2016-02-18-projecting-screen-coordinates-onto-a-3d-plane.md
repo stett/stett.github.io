@@ -13,4 +13,4 @@ Before the OpenGL programmable pipeline, there was a nice little function called
 
 ## Intersection of a Ray with a Plane
 
-First we'll find the intersection of the ray which starts at point \[\vec{a}\] in the direction \[\hat{n}\] with the plane which includes the point \[\vec{b}\] and has the surface normal \[\hat{m}\]
+First we'll find the intersection of the ray which starts at point $$\vec{a}$$ in the direction $$\hat{n}$$ with the plane which includes the point $$\vec{b}$$ and has the surface normal $$\hat{m}$$.
