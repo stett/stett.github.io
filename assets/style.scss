@@ -44,12 +44,13 @@ footer {
 }
 
 article {
-    //text-align: justify;
-    //text-justify: auto;
-
     img {
         max-width: 100%;
     }
+}
+
+figure {
+    margin: 0;
 }
 
 code {
