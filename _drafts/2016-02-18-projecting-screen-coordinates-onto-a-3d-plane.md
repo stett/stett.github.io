@@ -8,7 +8,7 @@ math: true
 
 ## Brief
 
-Before the OpenGL programmable pipeline, there was a nice little function called [`gluUnProject`](http://nehe.gamedev.net/article/using_gluunproject/16013/) which could be used to conveniently turn screen coordinates into 3D coordinates. But in the programmable pipeline, in many respsects, OpenGL leaves the programmer to do much of the mathematical work. In this post I'll work through the math used to project the mouse's coordinates onto an arbitrary plane in 3D, using [raycasting](https://en.wikipedia.org/wiki/Ray_casting).
+Before the OpenGL programmable pipeline, there was a nice little function called [`gluUnProject`](http://nehe.gamedev.net/article/using_gluunproject/16013/) which could be used to conveniently turn screen coordinates into 3D coordinates. But in many respsects the OpenGL programmable pipeline leaves the programmer to do much of the mathematical work. In this post I'll work through the math used to project the mouse's coordinates onto an arbitrary plane in 3D, using [raycasting](https://en.wikipedia.org/wiki/Ray_casting).
 
 
 ## Intersection of a Ray with a Plane
@@ -20,7 +20,7 @@ Then a point along the ray $$\vec{p}$$ and a point on the plane $$\vec{q}$$ are 
 $$
 \begin{align*}
     \vec{p} &= \vec{a} + t \hat{n}\\
-    \left( \vec{q} - \vec{b} \right) \cdot \hat{m} &= 0
+    0 &= \left( \vec{q} - \vec{b} \right) \cdot \hat{m}
 \end{align*}
 $$
 
@@ -30,7 +30,10 @@ $$
 \begin{align*}
     0 &= \left( \vec{a} + t \hat{n} - \vec{b} \right) \cdot \hat{m}\\
       &= \left( \vec{a} - \vec{b} \right) \cdot \hat{m} + t \hat{n} \cdot \hat{m}\\
-    t &= \frac{\left( \vec{b} - \vec{a} \right) \cdot \hat{m}}{ \hat{n} - \hat{m} }\\
-    \vec{p_0} &= \vec{a} + \left( \frac{\left( \vec{b} - \vec{a} \right) \cdot \hat{m}}{ \hat{n} - \hat{m} } \right) \hat{n}
+    t &= \frac{\left( \vec{b} - \vec{a} \right) \cdot \hat{m}}{ \hat{n} - \hat{m} }
 \end{align*}
 $$
+
+
+## The Homogeneous Multiplication
+
