@@ -21,14 +21,14 @@ We begin by getting the inverse of the matrix transform $$T$$ from world to homo
 
 The following code sample is a function to convert from homogeneous screen coordinates to world space, given the perspective and view transform matrices.
 
-    {% highlight c++ %}
-    void homo_to_world(vec3 &world, const vec3 &homo, const mat4 &projection, const mat4 &view)
-    {
-        mat4 transform = inverse(projection * view);
-        vec4 _world = transform * vec4(homo, 1.0f);
-        world *= (1.0f / _world.w);
-    }
-    {% endhighlight %}
+{% highlight c++ %}
+void homo_to_world(vec3 &world, const vec3 &homo, const mat4 &projection, const mat4 &view)
+{
+    mat4 transform = inverse(projection * view);
+    vec4 _world = transform * vec4(homo, 1.0f);
+    world *= (1.0f / _world.w);
+}
+{% endhighlight %}
 
 
 ## Intersection of a Ray with a Plane
@@ -60,15 +60,17 @@ Note that $$t < 0$$ indicates that the ray projects away from the plane.
 
 This is enough to construct a function which will give us the world coordinates of a screen point projected onto a plane, given a point on the plane and the surface normal.
 
-    bool project_screen_to_plane(vec3 point, const vec2 &screen, const vec3 &plane_point, const vec3 &plane_normal, const mat4 &projection, const mat4 &view)
-    {
-        vec3 p0, p1;
-        homo_to_world(p0, vec3(screen, 0.0f), projection, view);
-        homo_to_world(p1, vec3(screen, 0.0f), projection, view);
+{% highlight c++ %}
+bool project_screen_to_plane(vec3 point, const vec2 &screen, const vec3 &plane_point, const vec3 &plane_normal, const mat4 &projection, const mat4 &view)
+{
+    vec3 p0, p1;
+    homo_to_world(p0, vec3(screen, 0.0f), projection, view);
+    homo_to_world(p1, vec3(screen, 0.0f), projection, view);
 
-        glm::vec3 ray_normal = glm::normalize(ray_end - ray_origin);
-        float t = dot(plane_point - ray_origin, plane_normal) / dot(ray_normal, plane_normal);
-        point = ray_origin + t * ray_normal;
+    glm::vec3 ray_normal = glm::normalize(ray_end - ray_origin);
+    float t = dot(plane_point - ray_origin, plane_normal) / dot(ray_normal, plane_normal);
+    point = ray_origin + t * ray_normal;
 
-        return t >= 0.0f;
-    }
+    return t >= 0.0f;
+}
+{% endhighlight %}
