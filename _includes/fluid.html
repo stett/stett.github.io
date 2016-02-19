@@ -1,4 +1,4 @@
-<script>
+<script type="text/javascript">
 
 var canvas = document.getElementById('canvas');
 var context = canvas.getContext('2d');
@@ -26,9 +26,10 @@ function mouse_move(e) {
         var y = data.height[i];
         var dx = mouse_x - x;
         var dy = mouse_y - y;
-        var distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < 100) {
-            data.velocity[i] += 1000 * mouse_dy / (distance * data.size);
+        var distance_sq = dx * dx + dy * dy;
+        var max_distance = 100;
+        if (distance < max_distance * max_distance) {
+            data.velocity[i] += 1000 * mouse_dy / (Math.sqrt(distance) * data.size);
         }
     }
 }
