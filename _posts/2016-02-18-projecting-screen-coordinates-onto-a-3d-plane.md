@@ -6,7 +6,7 @@ comments: true
 math: true
 ---
 
-Before the OpenGL programmable pipeline, there was a nice little function called [`gluUnProject`](http://nehe.gamedev.net/article/using_gluunproject/16013/) which could be used to conveniently turn screen coordinates into 3D coordinates. But in many respsects the OpenGL programmable pipeline leaves the programmer to do much of the mathematical work. In this post I'll work through the math used to project the mouse's coordinates onto an arbitrary plane in 3D, using [raycasting](https://en.wikipedia.org/wiki/Ray_casting).
+Before the OpenGL programmable pipeline, there was a nice little function called [`gluUnProject`](http://nehe.gamedev.net/article/using_gluunproject/16013/) which could be used to conveniently turn screen coordinates into 3D coordinates. But in many respects the OpenGL programmable pipeline leaves the programmer to do much of the mathematical work. In this post I'll work through the math used to project the mouse's coordinates onto an arbitrary plane in 3D, using [raycasting](https://en.wikipedia.org/wiki/Ray_casting).
 
 Note that in my code I'll use vector and matrix structures and operations from the [glm](http://glm.g-truc.net/0.9.7/index.html) math libraries. For code clarity, I've left out the `glm::` scope resolution where applicable.
 
