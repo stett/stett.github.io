@@ -1,2 +1,5 @@
-highlighter: 'pygments'
+highlighter: 'rouge'
 permalink: /:title
+markdown: kramdown
+kramdown:
+  input: GFM

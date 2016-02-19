@@ -19,7 +19,7 @@ body {
 
 main {
     text-align: left;
-    max-width: 400px;
+    max-width: 460px;
     width: 100%;
     min-height: 100%;
     border-left: 1px solid #ddd;
@@ -44,12 +44,13 @@ footer {
 }
 
 article {
-    //text-align: justify;
-    //text-justify: auto;
-
     img {
         max-width: 100%;
     }
+}
+
+figure {
+    margin: 0;
 }
 
 code {
@@ -99,7 +100,7 @@ div.preview {
 
     span.date {
         position: absolute;
-        right: 410px;
+        right: 470px;
         background-color: #FCFAF7;
         border: 1px solid #ddd;
         border-radius: 2px;
