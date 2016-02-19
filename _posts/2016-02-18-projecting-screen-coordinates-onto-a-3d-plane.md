@@ -13,11 +13,11 @@ Note that in my code I'll use vector and matrix structures and operations from t
 
 ## The Inverse View and Projection Transform
 
-On the graphics card, all visible coordinates are represented in homogeneous coordinates, a bounded volume $$\left[-1,1\right]\times\left[-1,1\right]\times\left[-1,1\right]$$. So in homogeneous "screen" coordinates a point on the screen $$\left(x_s,y_s\right)$$ is a straight line segment along the z-axis.
+On the graphics card, all visible coordinates are represented in [homogeneous space](https://en.wikipedia.org/wiki/Homogeneous_coordinates), which has the bounds $$\left[-1,1\right]\times\left[-1,1\right]\times\left[-1,1\right]$$. So in homogeneous "screen" coordinates a point on the screen $$\left(x_s,y_s\right)$$ is a straight line segment along the z-axis.
 
 On the graphics card, the near clipping plane maps to $$z=0$$ and the far clipping plane to $$z=1$$. So our strategy is to transform the points $$\vec{p_0}=\left(x_s,y_s,0\right)$$ and $$\vec{p_1}=\left(x_s,y_s,1\right)$$ from homogeneous coordinates to world coordinates, cast a ray from $$\vec{p_0}$$ to $$\vec{p_1}$$, and find its intersection with the plane.
 
-We begin by getting the inverse of the matrix transform $$T$$ from world to homogeneous spaces. One step that OpenGL *does* take care of for us when we are sending vertices to the screen is the [homogeneous division](https://en.wikipedia.org/wiki/Homogeneous_coordinates). After applying $$T$$, OpenGL will multiply each vector by its fourth element $$w$$, which is the first step in converting to homogeneous coordinates. To reverse this, as our final step in converting from homogeneous to world coordinates, we will divide by $$w$$.
+We begin by getting the inverse of the matrix transform $$T$$ from world to homogeneous spaces, which is the combination of the camera's orientation and the projection matrix. After we apply this matrix to a point, we will perform the [homogeneous division](http://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/).
 
 The following code sample is a function to convert from homogeneous screen coordinates to world space, given the perspective and view transform matrices.
 
