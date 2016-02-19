@@ -28,8 +28,8 @@ function mouse_move(e) {
         var dy = mouse_y - y;
         var distance_sq = dx * dx + dy * dy;
         var max_distance = 100;
-        if (distance < max_distance * max_distance) {
-            data.velocity[i] += 1000 * mouse_dy / (Math.sqrt(distance) * data.size);
+        if (distance_sq < max_distance * max_distance) {
+            data.velocity[i] += 1000 * mouse_dy / (Math.sqrt(distance_sq) * data.size);
         }
     }
 }
