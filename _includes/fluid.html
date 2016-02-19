@@ -80,7 +80,7 @@ function update() {
         var spring_force = k * diff;
 
         // Apply some damping
-        var damping = 0.2;
+        var damping = 0.5;
         var damping_force = -data.velocity[i] * damping;
 
         // Accelerate
