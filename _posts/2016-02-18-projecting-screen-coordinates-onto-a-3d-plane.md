@@ -61,13 +61,13 @@ Note that $$t < 0$$ indicates that the ray projects away from the plane.
 This is enough to construct a function which will give us the world coordinates of a screen point projected onto a plane, given a point on the plane and the surface normal.
 
 {% highlight c++ %}
-bool project_screen_to_plane(vec3 point, const vec2 &screen, const vec3 &plane_point, const vec3 &plane_normal, const mat4 &projection, const mat4 &view)
+bool project_screen_onto_plane(vec3 &point, const vec2 &screen, const vec3 &plane_point, const vec3 &plane_normal, const mat4 &projection, const mat4 &view)
 {
-    vec3 p0, p1;
-    homo_to_world(p0, vec3(screen, 0.0f), projection, view);
-    homo_to_world(p1, vec3(screen, 0.0f), projection, view);
+    vec3 ray_origin, ray_end;
+    homo_to_world(ray_origin, vec3(screen, 0.0f), projection, view);
+    homo_to_world(ray_end, vec3(screen, 1.0f), projection, view);
 
-    glm::vec3 ray_normal = glm::normalize(ray_end - ray_origin);
+    vec3 ray_normal = normalize(ray_end - ray_origin);
     float t = dot(plane_point - ray_origin, plane_normal) / dot(ray_normal, plane_normal);
     point = ray_origin + t * ray_normal;
 
