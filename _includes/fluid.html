@@ -39,8 +39,10 @@ function initialize() {
     data.size = 256;
     data.height = [];
     data.velocity = [];
+    var frequency_0 = 10 + Math.random() * 40;
+    var frequency_1 = 10 + Math.random() * 40;
     for (var i = 0; i < data.size; i++) {
-        data.height[i] = 2 * Math.sin(i * 30 / data.size) + 1 * Math.cos(i * 20 / data.size);
+        data.height[i] = 2 * Math.sin(i * frequency_0 / data.size) + 1 * Math.cos(i * frequency_1 / data.size);
         data.velocity[i] = 0;
     }
 
