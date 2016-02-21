@@ -37,7 +37,7 @@ function mouse_move(e) {
 function initialize() {
 
     // Initialize simulation data
-    data.size = 256;
+    data.size = 128;
     data.height = [];
     data.velocity = [];
     var frequency_0 = 10 + Math.random() * 40;
@@ -80,7 +80,7 @@ function update() {
         var spring_force = k * diff;
 
         // Apply some damping
-        var damping = 0.2;
+        var damping = 0.5;
         var damping_force = -data.velocity[i] * damping;
 
         // Accelerate
