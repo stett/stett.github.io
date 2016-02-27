@@ -26,7 +26,7 @@ void homo_to_world(vec3 &world, const vec3 &homo, const mat4 &projection, const 
 {
     mat4 transform = inverse(projection * view);
     vec4 _world = transform * vec4(homo, 1.0f);
-    world *= (1.0f / _world.w);
+    world = vec3(_world) * (1.0f / _world.w);
 }
 {% endhighlight %}
 
