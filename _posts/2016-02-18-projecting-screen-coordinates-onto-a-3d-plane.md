@@ -22,10 +22,10 @@ We begin by getting the inverse of the matrix transform $$T$$ from world to homo
 The following code sample is a function to convert from homogeneous screen coordinates to world space, given the perspective and view transform matrices.
 
 {% highlight c++ %}
-void homogeneous_to_world(vec3 &world, const vec3 &homo, const mat4 &projection, const mat4 &view)
+void homogeneous_to_world(vec3 &world, const vec3 &homogeneous, const mat4 &projection, const mat4 &view)
 {
     mat4 transform = inverse(projection * view);
-    vec4 _world = transform * vec4(homo, 1.0f);
+    vec4 _world = transform * vec4(homogeneous, 1.0f);
     world = vec3(_world) * (1.0f / _world.w);
 }
 {% endhighlight %}
