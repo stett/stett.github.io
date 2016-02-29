@@ -11,21 +11,16 @@ The problem is that git provides no simple way to print a cumulative report of c
 
 The following code is a short C++ script to parse the output of `git log --numstat --pretty="%n"`, sum the insertions and deletions for each file, and print a summary. It was written in heed of [this advice](http://stackoverflow.com/a/1265229/1432965).
 
-{% highlight c++ %}
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <map>
-#include <utility>
-#include <iomanip>
+Check out my code below, or download the gist [here](https://gist.githubusercontent.com/stett/14fc781cffd90bebde51/raw/5c3a2f9a4523d822c5610efafe875feb0697211d/accum.cpp).
 
+{% highlight c++ %}
 /*
     This is a command-line program to sum up and print all
     line insertions and deletions listed by the statistical
-    git log command. Where "accumulate" is the compiled program,
+    git log command. Where "accum" is the compiled program,
     it can be used with a "|" as follows:
 
-        git log --numstat --pretty="%n" | accumulate
+        git log --numstat --pretty="%n" | accum
 
     Git log results may be filtered by a number of parameters.
     Notably, the --author="..." and --since="../../...." can be
@@ -36,6 +31,13 @@ The following code is a short C++ script to parse the output of `git log --numst
     02-29-2015: Thus far it has only been tested on Cygwin,
                 built with g++, with the -std=c++0x flag.
 */
+
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <map>
+#include <utility>
+#include <iomanip>
 
 int main(int argc, char **argv) {
 
