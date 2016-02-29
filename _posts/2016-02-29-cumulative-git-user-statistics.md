@@ -11,7 +11,7 @@ The problem is that git provides no simple way to print a cumulative report of c
 
 The following code is a short C++ script to parse the output of `git log --numstat --pretty="%n"`, sum the insertions and deletions for each file, and print a summary. It was written in heed of [this advice](http://stackoverflow.com/a/1265229/1432965).
 
-Check out my code below, or download the gist [here](https://gist.githubusercontent.com/stett/14fc781cffd90bebde51/raw/5c3a2f9a4523d822c5610efafe875feb0697211d/accum.cpp).
+If this seems useful to you, check out my code below, or [grab the gist](https://gist.github.com/stett/14fc781cffd90bebde51).
 
 {% highlight c++ %}
 /*
