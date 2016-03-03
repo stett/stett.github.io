@@ -5,9 +5,7 @@ tags: [git, c++]
 comments: true
 ---
 
-### The Problem
-
-The problem is that git provides no simple way to print a cumulative report of changes which can be easily filtered by author or date range.
+Git provides a `log` function with numerous options for viewing and filtering repository data. But it gives no simple way to print a report of cumulative changes per-file.
 
 The following code is a short C++ script to parse the output of `git log --numstat --pretty="%n"`, sum the insertions and deletions for each file, and print a summary. It was written in heed of [this advice](http://stackoverflow.com/a/1265229/1432965).
 
