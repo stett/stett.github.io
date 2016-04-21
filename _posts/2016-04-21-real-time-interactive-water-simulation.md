@@ -1,5 +1,5 @@
 ---
-title: Real Time Interactive Water Simulation With Finite Differencing
+title: Interactive Water Simulation With Finite Differencing
 layout: post
 tags: [project, c++]
 comments: true
