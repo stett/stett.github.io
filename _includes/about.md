@@ -1,13 +1,21 @@
 Who I Am
-========
-I'm a software engineer with an artist's soul.
+--------
+I'm Stett. I am a software engineer with a background in physics and a constant itch to produce art.
 
 What I'm Doing
-==============
+--------------
 Working on my masters in computer science at a weird little school called [DigiPen](https://www.digipen.edu/), and writing code for an indie game studio called [Strange Loop Games](http://www.strangeloopgames.com/).
 
+Predilections (Speculative)
+---------------------------
+This is a minimal list of things (or, I guess, the types of things) I like.
+
+* Producing stuff (paintings! sculptures! programs!).
+
+* Observing stuff (physics! visual art! music!).
+
 Ideologies (Abstract)
-=====================
+---------------------
 These are written in the first person because they are my own, and I do not think of them as objective or expect others to adopt them (although this would, of course, delight me :)).
 
 * No person exists who is not worth my friendship.
@@ -33,7 +41,7 @@ These are written in the first person because they are my own, and I do not thin
 * Every action is a form of expression which reflects the active system. As an individual, every action I take can inform me about myself.
 
 Goals (Concrete)
-================
+----------------
 These are my current top personal goals. What I am doing with my life at any time ought to be determined by filtering this goals through the above ideologies.
 
 * To publish and sell a videogame of my own design.
