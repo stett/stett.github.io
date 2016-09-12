@@ -14,4 +14,4 @@ Anyway, it ain't pretty, but here's what I've got so far:
 
 ![Infinite Resolution Plane]({{ site.url }}/assets/inf-res-plane-0.png)
 
-Clearly, my shader is *far* too sensitive to depth at the moment. It's kind of a neat effect to see the transitions in grid resolution between phases, but way too exaggerated.
+Clearly, my shader is not yet correctly choosing a grid "power" based on depth. It's kind of a neat effect to see the transitions in grid resolution between phases, but at the moment it is way too exaggerated. Once I've got this problem wrangled, I'll post my solution.
