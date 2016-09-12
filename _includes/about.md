@@ -6,6 +6,7 @@ What I'm Doing
 --------------
 Working on my masters in computer science at a weird little school called [DigiPen](https://www.digipen.edu/), and writing code for an indie game studio called [Strange Loop Games](http://www.strangeloopgames.com/).
 
+<!--
 Predilections (Speculative)
 ---------------------------
 This is a minimal list of things (or, I guess, the types of things) I like.
@@ -13,6 +14,7 @@ This is a minimal list of things (or, I guess, the types of things) I like.
 * Producing stuff (paintings! sculptures! programs!).
 
 * Observing stuff (physics! visual art! music!).
+-->
 
 Ideologies (Abstract)
 ---------------------
