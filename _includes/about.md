@@ -42,7 +42,7 @@ These are written in the first person because they are my own, and I do not thin
 
 Goals (Concrete)
 ----------------
-These are my current top personal goals. What I am doing with my life at any time ought to be determined by filtering this goals through the above ideologies.
+These are my current top personal goals. What I am doing with my life at any time ought to be determined by filtering these goals through the above ideologies.
 
 * To publish and sell a videogame of my own design.
 
