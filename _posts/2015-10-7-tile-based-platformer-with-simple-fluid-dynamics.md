@@ -1,5 +1,5 @@
 ---
-title: Simple Fluid Dynamics in a 2D Tile Based Platformer
+title: Super Simple Fluid Dynamics in a 2D Tile Based Platformer
 layout: post
 tags: [homework, c, opengl]
 comments: true
