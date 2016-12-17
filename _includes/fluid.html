@@ -3,7 +3,7 @@
 var canvas = document.getElementById('canvas');
 var context = canvas.getContext('2d');
 var time_prev = Date.now();
-var max_dt = 1/60;
+var max_dt = 1/120;
 var mouse_x_prev, mouse_y_prev;
 var data = {};
 
@@ -13,17 +13,17 @@ function resize() {
     draw();
 }
 
-function mouse_move(e) {
-    var mouse_x = event.pageX;
-    var mouse_y = event.pageY - canvas.height * 0.5;
+function mouse_move(event) {
+    var mouse_x = event.x;
+    var mouse_y = event.y;
     var mouse_dx = mouse_x - mouse_x_prev;
     var mouse_dy = mouse_y - mouse_y_prev;
     mouse_x_prev = mouse_x;
     mouse_y_prev = mouse_y;
-    
+
     for (var i = 1; i < data.size - 1; i++) {
         var x = canvas.width * i / data.size;
-        var y = data.height[i];
+        var y = data.height[i] + canvas.height * 0.5;
         var dx = mouse_x - x;
         var dy = mouse_y - y;
         var distance_sq = dx * dx + dy * dy;
@@ -43,7 +43,7 @@ function initialize() {
     var frequency_0 = 10 + Math.random() * 40;
     var frequency_1 = 10 + Math.random() * 40;
     for (var i = 0; i < data.size; i++) {
-        data.height[i] = 2 * Math.sin(i * frequency_0 / data.size) + 1 * Math.cos(i * frequency_1 / data.size);
+        data.height[i] = 0;//2 * Math.sin(i * frequency_0 / data.size) + 1 * Math.cos(i * frequency_1 / data.size);
         data.velocity[i] = 0;
     }
 
@@ -61,7 +61,7 @@ function initialize() {
 function update() {
 
     var time_now = Date.now();
-    var dt = Math.min((time_now - time_prev) / 1000, max_dt);
+    var dt = max_dt;//Math.min((time_now - time_prev) / 1000, max_dt);
     time_prev = time_now;
 
 
@@ -109,9 +109,8 @@ function draw() {
 
     // Render the data
     context.fillStyle="#009DCF";
-    context.strokeStyle="#00ADDF";
     context.strokeStyle="#FCFAF7";
-    context.lineWidth=1;
+    context.lineWidth=2;
     context.beginPath();
     moveTo(0, data.height[0] + canvas.height / 2);
     for (var i = 0; i < data.size; i++) {
@@ -120,7 +119,16 @@ function draw() {
     context.lineTo(canvas.width, canvas.height);
     context.lineTo(0, canvas.height);
     context.fill();
+    //context.stroke();
+
+    /*
+    // Draw the mouse position
+    context.beginPath();
+    context.fillStyle="#FFFFFF";
+    context.strokeStyle="#FFFFFF";
+    context.arc(mouse_x_prev, mouse_y_prev, 10, 0, 2*Math.PI);
     context.stroke();
+    */
 }
 
 // Start the canvas drawing
