@@ -25,7 +25,15 @@ layout: base
             -->
         </a>
         </header>
+
+        {% if forloop.index < 5 %}
         {{ post.content }}
+        {% else %}
+        {{ post.excerpt }}
+        [<a href="{{ post.url }}">
+        Continue Reading
+        </a>]
+        {% endif %}
     </article>
 </div>
 
