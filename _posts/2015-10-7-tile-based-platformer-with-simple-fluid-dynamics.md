@@ -4,12 +4,15 @@ layout: post
 tags: [homework, c, opengl]
 comments: true
 thumbnail: /assets/blood-1.png
+excerpt_separator: <!-- more -->
 ---
 
 ![Bloody Mess!]({{ site.url }}/assets/blood-1.png)
 
 
 This one may have been a bit of overkill...
+
+<!-- more -->
 
 I was given an assignment to write a 2D platformer, optionally with "extra features". So for my extra features I wrote a simple fluid dynamics simulator and made the enemy's drop copious amounts of persistent blood when they die.
 
