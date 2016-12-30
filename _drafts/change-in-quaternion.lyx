@@ -1,0 +1,277 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\begin_preamble
+\date{}
+\end_preamble
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 2cm
+\topmargin 2cm
+\rightmargin 2cm
+\bottommargin 3cm
+\headheight 2cm
+\headsep 2cm
+\footskip 1.5cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+When working with numeric rigid body physics simulations in 2D, it's as
+ straightforward to update the rotation of a body as it is its linear position.
+ In 3D, it's not *difficult* per se, but it can be much less immediately
+ clear how to go about it, particularly if your basic transform is stored
+ as a quaternion.
+ This was a sticking point for me when developing the demo in the video
+ above.
+\end_layout
+
+\begin_layout Standard
+Below I'll derive the change-in matrix, and then the change-in quaternion.
+ The methods result in similar performance when used with the matching rotation
+ representation.
+ Note that I'm only developing this mathematically for explicit, Euler integrato
+rs, although it could be pretty simply adapted to other forms of integration.
+\end_layout
+
+\begin_layout Subsection*
+Matrix
+\end_layout
+
+\begin_layout Standard
+If the positions of a vertex in local and world space are 
+\begin_inset Formula $\vec{q}$
+\end_inset
+
+ and 
+\begin_inset Formula $\vec{r}$
+\end_inset
+
+, and the center of rotation of the body to which it belongs is 
+\begin_inset Formula $\vec{c}$
+\end_inset
+
+, then they are related by
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\vec{r}\left(t\right)=R\left(t\right)\vec{q}+\vec{c}\left(t\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where 
+\begin_inset Formula $R\left(t\right)$
+\end_inset
+
+ is the rotation matrix of the body.
+ The linear velocity of the vertex 
+\begin_inset Formula $\dot{\vec{r}}$
+\end_inset
+
+ is easy to find, and involves a term 
+\begin_inset Formula $\dot{R}$
+\end_inset
+
+, which is the 
+\begin_inset Quotes eld
+\end_inset
+
+change-in
+\begin_inset Quotes erd
+\end_inset
+
+ matrix which we're looking for.
+ Recall that the linear velocity of a point on a rotating body is also given
+ by the cross product of the angular velocity 
+\begin_inset Formula $\omega\left(t\right)$
+\end_inset
+
+ with it's position relative to the center of rotation and making use of
+ the [cross product matrix](https://en.wikipedia.org/wiki/Cross_product#Conversion
+_to_matrix_multiplication), 
+\begin_inset Formula $\dot{R}$
+\end_inset
+
+ can be quickly identified.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray*}
+\dot{\vec{r}}\left(t\right) & = & \dot{R}\left(t\right)\vec{q}+\dot{\vec{c}}\left(t\right)\\
+ & = & \omega\left(t\right)\times R\left(t\right)\vec{q}+\dot{\vec{c}}\left(t\right)\\
+ & = & \left[\omega\left(t\right)\right]_{\times}R\left(t\right)\vec{q}+\dot{\vec{c}}\left(t\right)
+\end{eqnarray*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where 
+\begin_inset Formula $\left[\omega\left(t\right)\right]_{\times}$
+\end_inset
+
+ is the cross product matrix of 
+\begin_inset Formula $\omega\left(t\right)$
+\end_inset
+
+.
+ Then 
+\begin_inset Formula $\dot{R}\left(t\right)=\left[\omega\left(t\right)\right]_{\times}R\left(t\right)$
+\end_inset
+
+, and the integration step to update the rotation matrix is pretty simple:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray*}
+R\left(t+\Delta t\right) & = & R\left(t\right)+\Delta t\dot{R}\left(t\right)\\
+ & = & R\left(t\right)+\left[\omega\left(t\right)\right]_{\times}R\left(t\right)
+\end{eqnarray*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Easy peasy! Right?
+\end_layout
+
+\begin_layout Subsection*
+Quaternion
+\end_layout
+
+\begin_layout Standard
+We'll develop the quaternion solution in essentially the same way, taking
+ 
+\begin_inset Formula $Q\left(t\right)$
+\end_inset
+
+ to be the rotation quaternion of the body.
+ Remember that to [orient a point with a quaternion](https://en.wikipedia.org/wiki
+/Quaternions_and_spatial_rotation#Orientation) the point is reinterpreted
+ as a quaternion with a zero scalar value and it is multiplied by the rotation
+ on one side and its conjugate on the other.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\vec{r}\left(t\right)=Q\left(t\right)\vec{q}Q^{-1}\left(t\right)+\vec{c}\left(t\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+An equivalent operation to the angular velocity cross product which we used
+ to find the change-in matrix is the [angle-axis formula for quaternions](https:
+//en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Unit_quaternions).
+ Then the change-in quaternion can be found by similar identification.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray*}
+\dot{\vec{r}}\left(t\right) & = & \dot{Q}\left(t\right)\vec{q}\dot{Q}^{-1}\left(t\right)+\vec{c}\left(t\right)\\
+ & = & Q_{\times}\left(\vec{\omega}\Delta t\right)\left(\vec{q}\right)Q_{\times}^{-1}\left(\vec{\omega}\Delta t\right)+\vec{c}\left(t\right)
+\end{eqnarray*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where 
+\begin_inset Formula $Q_{\times}$
+\end_inset
+
+ represents the angle-axis quaternion, whose scalar and vector parts are
+ given by
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+Q_{\times}\left(\vec{\omega}\right)=\left[\cos\left(\frac{\left|\vec{\omega}\right|}{2}\right),\frac{\vec{\omega}}{\left|\vec{\omega}\right|}\sin\left(\frac{\left|\vec{\omega}\right|}{2}\right)\right]
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Then to update the body's quaternion, 
+\end_layout
+
+\end_body
+\end_document
