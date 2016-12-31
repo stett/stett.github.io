@@ -1,5 +1,5 @@
 ---
-title: Finding The "Change In Rotation" Quaternion (plus a springy demo with boxes!)
+title: Finding The "Change In Rotation" Quaternion
 layout: post
 tags: [math, physics]
 comments: true
@@ -15,9 +15,7 @@ Below I'll derive the change-in matrix, and then the change-in quaternion. The m
 If the positions of a vertex in local and world space are $$\vec{q}$$ and $$\vec{r}$$, and the center of rotation of the body to which it belongs is $$\vec{c}$$, then they are related by
 
 $$
-\[
 \vec{r}\left(t\right)=R\left(t\right)\vec{q}+\vec{c}\left(t\right)
-\]
 $$
 
 where $$R\left(t\right)$$ is the rotation matrix of the body. The linear
@@ -36,3 +34,72 @@ $$
  & = & \left[\omega\left(t\right)\right]_{\times}R\left(t\right)\vec{q}+\dot{\vec{c}}\left(t\right)
 \end{eqnarray*}
 $$
+
+Where $$\left[\omega\left(t\right)\right]_{\times}$$ is the cross product
+matrix of $$\omega\left(t\right)$$. Then $$\dot{R}\left(t\right)=\left[\omega\left(t\right)\right]_{\times}R\left(t\right)$$,
+and the integration step to update the rotation matrix is pretty simple:
+
+$$
+\begin{eqnarray*}
+R\left(t+\Delta t\right) & = & R\left(t\right)+\Delta t\dot{R}\left(t\right)\\
+ & = & R\left(t\right)+\left[\omega\left(t\right)\right]_{\times}R\left(t\right)
+\end{eqnarray*}
+$$
+
+In a program using [GLM](http://glm.g-truc.net/0.9.8/index.html),
+this is what the code for the final update step might look like.
+
+{% highlight c++ %}
+rotation += glm::matrixCross4(angular_velocity * dt) * rotation;
+{% endhighlight %}
+
+Easy peasy! Right? Right.
+
+![Easy Peasy]({{ site.url }}/assets/easy-peasy.jpg)
+
+### Quaternion
+
+We'll develop the quaternion solution in essentially the same way,
+taking $$Q\left(t\right)$$ to be the rotation quaternion of the body.
+Remember that to [orient a point with a quaternion](https://en.wikipedia.org/wiki/Quaternions\_and\_spatial\_rotation\#Orientation)
+the point is reinterpreted as a quaternion with a zero scalar value
+and it is multiplied by the rotation on one side and its conjugate
+on the other.
+
+$$
+\vec{r}\left(t\right)=Q\left(t\right)\vec{q}Q^{-1}\left(t\right)+\vec{c}\left(t\right)
+$$
+
+An equivalent operation to the angular velocity cross product which
+we used to find the change-in matrix is the [angle-axis formula
+for quaternions](https://en.wikipedia.org/wiki/Axis\%E2\%80\%93angle\_representation\#Unit\_quaternions). Then the change-in quaternion can be found by similar identification.
+
+$$
+\begin{eqnarray*}
+\dot{\vec{r}}\left(t\right) & = & \dot{Q}\left(t\right)\left(Q\left(t\right)\vec{q}\right)\dot{Q}^{-1}\left(t\right)+\vec{c}\left(t\right)\\
+ & = & Q_{\times}\left(\vec{\omega}\Delta t\right)\left(Q\left(t\right)\vec{q}\right)Q_{\times}^{-1}\left(\vec{\omega}\Delta t\right)+\vec{c}\left(t\right)
+\end{eqnarray*}
+$$
+
+where $$Q_{\times}$$ represents the angle-axis quaternion, whose scalar
+and vector parts are given by
+
+$$
+Q_{\times}\left(\vec{\omega}\Delta t\right)=\left[\cos\left(\frac{\left|\vec{\omega}\right|}{2}\Delta t\right),\frac{\vec{\omega}}{\left|\vec{\omega}\right|}\sin\left(\frac{\left|\vec{\omega}\right|}{2}\Delta t\right)\right]
+$$
+
+Then the quaternion rotation update step would be
+
+$$
+Q\left(t+\Delta t\right)=Q\left(t\right)+Q_{\times}\left(\vec{\omega}\Delta t\right)Q\left(t\right)
+$$
+
+And this is what the code for the final rotation update using quaternions
+might look like.
+
+{% highlight c++ %}
+float angle = glm::length(angular_velocity);
+glm::vec3 axis = angular_velocity / angle;
+glm::quat axis_angle(glm::cos(angle * 0.5f), axis * glm::sin(angle * 0.5f));
+rotation = normalize(rotation + axis_angle * rotation);
+{% endhighlight %}
