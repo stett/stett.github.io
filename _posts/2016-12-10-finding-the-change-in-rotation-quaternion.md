@@ -15,10 +15,4 @@ Below I'll derive the change-in matrix, and then the change-in quaternion. The m
 Matrix
 ------
 
-If the positions of a vertex in local and world space are $\vec{q}$ and $\vec{r}$, and the center of rotation of the body to which it belongs is $\vec{c}$, then they are related by
-
-$$
-\vec{r}\left(t\right)=R\left(t\right)\vec{q}+\vec{c}\left(t\right)
-$$
-
-stuff
+If the positions of a vertex in local and world space are $$\vec{q}$$ and $$\vec{r}$$, and the center of rotation of the body to which it belongs is $$\vec{c}$$, then they are related by
