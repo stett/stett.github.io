@@ -6,6 +6,8 @@ comments: true
 math: true
 ---
 
+<iframe width="100%" height="315" src="https://www.youtube.com/embed/W7skyIjoF2k" frameborder="0" allowfullscreen></iframe>
+
 When working with numeric rigid body physics simulations in 2D, it's as straightforward to update the rotation of a body as it is its linear position. In 3D, it's not *difficult* per se, but it can be much less immediately clear how to go about it, particularly if your basic transform is stored as a quaternion. This was a sticking point for me when developing the demo in the video above.
 
 Below I'll derive the change-in matrix, and then the change-in quaternion. The methods result in similar performance when used with the matching rotation representation. Note that I'm only developing this mathematically for explicit, Euler integrators, although it could be pretty simply adapted to other forms of integration.
