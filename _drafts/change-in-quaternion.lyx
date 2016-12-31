@@ -199,7 +199,27 @@ R\left(t+\Delta t\right) & = & R\left(t\right)+\Delta t\dot{R}\left(t\right)\\
 \end_layout
 
 \begin_layout Standard
-Easy peasy! Right?
+In a program using [GLM](http://glm.g-truc.net/0.9.8/index.html), this is what
+ the code for the final update step might look like.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+rotation += glm::matrixCross4(angular_velocity * dt) * rotation;
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Easy peasy!
 \end_layout
 
 \begin_layout Subsection*
@@ -240,8 +260,8 @@ An equivalent operation to the angular velocity cross product which we used
 \begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray*}
-\dot{\vec{r}}\left(t\right) & = & \dot{Q}\left(t\right)\vec{q}\dot{Q}^{-1}\left(t\right)+\vec{c}\left(t\right)\\
- & = & Q_{\times}\left(\vec{\omega}\Delta t\right)\left(\vec{q}\right)Q_{\times}^{-1}\left(\vec{\omega}\Delta t\right)+\vec{c}\left(t\right)
+\dot{\vec{r}}\left(t\right) & = & \dot{Q}\left(t\right)\left(Q\left(t\right)\vec{q}\right)\dot{Q}^{-1}\left(t\right)+\vec{c}\left(t\right)\\
+ & = & Q_{\times}\left(\vec{\omega}\Delta t\right)\left(Q\left(t\right)\vec{q}\right)Q_{\times}^{-1}\left(\vec{\omega}\Delta t\right)+\vec{c}\left(t\right)
 \end{eqnarray*}
 
 \end_inset
@@ -261,7 +281,7 @@ where
 \begin_layout Standard
 \begin_inset Formula 
 \[
-Q_{\times}\left(\vec{\omega}\right)=\left[\cos\left(\frac{\left|\vec{\omega}\right|}{2}\right),\frac{\vec{\omega}}{\left|\vec{\omega}\right|}\sin\left(\frac{\left|\vec{\omega}\right|}{2}\right)\right]
+Q_{\times}\left(\vec{\omega}\Delta t\right)=\left[\cos\left(\frac{\left|\vec{\omega}\right|}{2}\Delta t\right),\frac{\vec{\omega}}{\left|\vec{\omega}\right|}\sin\left(\frac{\left|\vec{\omega}\right|}{2}\Delta t\right)\right]
 \]
 
 \end_inset
@@ -270,7 +290,53 @@ Q_{\times}\left(\vec{\omega}\right)=\left[\cos\left(\frac{\left|\vec{\omega}\rig
 \end_layout
 
 \begin_layout Standard
-Then to update the body's quaternion, 
+Then the quaternion rotation update step would be
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+Q\left(t+\Delta t\right)=Q\left(t\right)+Q_{\times}\left(\vec{\omega}\Delta t\right)Q\left(t\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This is what the code for the final rotation update using quaternions might
+ look like.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+float angle = glm::length(angular_velocity);
+\end_layout
+
+\begin_layout Plain Layout
+
+glm::vec3 axis = angular_velocity / angle;
+\end_layout
+
+\begin_layout Plain Layout
+
+glm::quat axis_angle(glm::cos(angle * 0.5f), axis * glm::sin(angle * 0.5f));
+\end_layout
+
+\begin_layout Plain Layout
+
+rotation = normalize(rotation + axis_angle * rotation);
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \end_body
