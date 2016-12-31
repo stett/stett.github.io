@@ -3,3 +3,4 @@ permalink: /:title
 markdown: kramdown
 kramdown:
   input: GFM
+google_analytics: UA-89661602-1
