@@ -13,3 +13,26 @@ Below I'll derive the change-in matrix, and then the change-in quaternion. The m
 ### Matrix
 
 If the positions of a vertex in local and world space are $$\vec{q}$$ and $$\vec{r}$$, and the center of rotation of the body to which it belongs is $$\vec{c}$$, then they are related by
+
+$$
+\[
+\vec{r}\left(t\right)=R\left(t\right)\vec{q}+\vec{c}\left(t\right)
+\]
+$$
+
+where $$R\left(t\right)$$ is the rotation matrix of the body. The linear
+velocity of the vertex $$\dot{\vec{r}}$$ is easy to find, and involves
+a term $$\dot{R}$$, which is the ``change-in'' matrix which we're
+looking for. Recall that the linear velocity of a point on a rotating
+body is also given by the cross product of the angular velocity $$\omega\left(t\right)$$
+with it's position relative to the center of rotation and making use
+of the [cross product matrix](https://en.wikipedia.org/wiki/Cross\_product\#Conversion\_to\_matrix\_multiplication),
+$$\dot{R}$$ can be quickly identified.
+
+$$
+\begin{eqnarray*}
+\dot{\vec{r}}\left(t\right) & = & \dot{R}\left(t\right)\vec{q}+\dot{\vec{c}}\left(t\right)\\
+ & = & \omega\left(t\right)\times R\left(t\right)\vec{q}+\dot{\vec{c}}\left(t\right)\\
+ & = & \left[\omega\left(t\right)\right]_{\times}R\left(t\right)\vec{q}+\dot{\vec{c}}\left(t\right)
+\end{eqnarray*}
+$$
