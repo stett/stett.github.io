@@ -55,8 +55,6 @@ this is what the code for the final update step might look like.
 rotation += glm::matrixCross4(angular_velocity * dt) * rotation;
 {% endhighlight %}
 
-![Easy Peasy! Right? Right.]({{ site.url }}/assets/easy-peasy.jpg)
-
 ### Quaternion
 
 We'll develop the quaternion solution in essentially the same way,
