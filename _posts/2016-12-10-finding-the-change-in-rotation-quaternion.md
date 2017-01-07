@@ -1,5 +1,5 @@
 ---
-title: Finding The "Change In Rotation" Quaternion
+title: The Change-In-Rotation Quaternion
 layout: post
 tags: [math, physics]
 comments: true
