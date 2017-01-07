@@ -6,7 +6,7 @@ comments: true
 math: true
 ---
 
-<iframe width="100%" height="315" src="https://www.youtube.com/embed/W7skyIjoF2k" frameborder="0" allowfullscreen></iframe>
+<iframe width="100%" height="315" src="https://www.youtube.com/embed/iN3QMKPdZw0" frameborder="0" allowfullscreen></iframe>
 
 When working with numeric rigid body physics simulations in 2D, it's as straightforward to update the rotation of a body as it is its linear position. In 3D, it's not *difficult* per se, but it can be much less immediately clear how to go about it, particularly if your basic transform is stored as a quaternion. This was a sticking point for me when developing the demo in the video above.
 
