@@ -5,7 +5,7 @@ tags: [ik]
 comments: true
 ---
 
-For an assignment on IK algorithms, I whipped up a system for making geometry based constraints for a CCD solution, based on some of the notes presented by Jonathan Blow [here](http://number-none.com/product/IK%20with%20Quaternion%20Joint%20Limits/). In the video clip, an arm with 15 constrained ball joints tracks a target placed by the mouse. Each joint is constrained by a circular geometry, but any convex shape could have been used.
+The following video demos a system for making geometry based constraints for a CCD solution, based on some of the notes and ideas presented by Jonathan Blow [here](http://number-none.com/product/IK%20with%20Quaternion%20Joint%20Limits/). In the clip, an arm with 15 constrained ball joints tracks a target placed by the mouse. Each joint is constrained by a polygonal geometry approximating a circle, but any convex 2D shape could have been used.
 
 <iframe width="100%" height="315" src="https://www.youtube.com/embed/mkH-GxfQnsQ" frameborder="0" allowfullscreen></iframe>
 
@@ -59,4 +59,4 @@ void constrain(Link& link) {
 
 The closest-point math is the result of a pen and paper calculation and could stand a bit of optimization. I've left it the way it is to make it a bit easier to see what's going on.
 
-In the last line, the quaternion constructor `quat(next, limit)` is the minimal rotation from the vector `next` to `limit`, something like what Blow presents in his article.
+In the last line, the quaternion constructor `quat(next, limit)` is the minimal rotation from the vector `next` to `limit`, something like what Blow presents near the end of his article.
