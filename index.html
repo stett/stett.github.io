@@ -28,6 +28,7 @@ layout: base
 
         {% if forloop.index < 5 %}
         {{ post.content }}
+        [<a href="{{ post.url }}#comments">Comment</a>]
         {% else %}
         {{ post.excerpt }}
         [<a href="{{ post.url }}">
