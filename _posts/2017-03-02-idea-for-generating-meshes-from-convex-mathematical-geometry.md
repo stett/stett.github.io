@@ -15,6 +15,10 @@ My idea is to use an algorithm similar to an [icosphere generator](https://schne
 
 In this shot, three different geometries were meshed using this method - they are drawn using white wireframes. A cube, a sphere, and a sphere-swept cube (which is just the [Minkowski sum](https://en.wikipedia.org/wiki/Minkowski_addition) of the two). The wireframe for the plain old sphere is mostly masked by its non-debug mesh in this picture :P
 
+Here are a few more.
+
+![Some interfering objects]({{ site.url }}/assets/sphere-swept-shapes.png)
+
 #### Notes:
 
 * The `find_furthest(direction)` functions are fairly simple, especially with the convention that `direction` is given in the space of the object. For a point primitive, for example, `find_furthest` will always return the origin. For a line segment, it will always return one of the endpoints (whichever is most aligned with `direction`). For a sphere, it will return a vector of the length of its radius, aligned with `direction`.
