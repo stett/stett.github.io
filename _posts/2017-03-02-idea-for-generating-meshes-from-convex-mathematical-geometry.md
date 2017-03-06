@@ -16,6 +16,8 @@ My idea is to use an algorithm similar to an [icosphere generator](https://schne
 3. For each pair of vertexes which are closer than some maximum, combine them into one.
 4. Repeat steps 2 & 3 until step 2 produces no triangles.
 
+The only subtlety is in step 2, where I subdivide based on the "normalized" vertexes of the shape (which are just the vertexes of triangles on a unit icosphere).
+
 The idea is to quickly generate a mesh which fills in high-detail areas with more polygons and leaves planar areas simple. It *should* result in a mesh with higher poly count in areas of higher detail.
 
 [![A Meshed Minkowski Sum][1]][1]
