@@ -1,5 +1,5 @@
 ---
-title: 3D Physics Engine - Week 7
+title: Physics Engine - Week 7
 layout: post
 tags: [physics]
 comments: true
