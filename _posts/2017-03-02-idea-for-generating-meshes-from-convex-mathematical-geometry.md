@@ -25,7 +25,7 @@ Here are a few more. Pay no heed to the intersecting cubes. Nor the tiny icosahe
 
 * Minkowski sums are easily obtained by simply adding the results of the `find_furthest` functions of two primitives.
 
-* I'm not sure this is the best way to achieve good debug meshes for geometry defined with a `find_furthest` function. Please comment if you've got an idea or know a better way :)
+* I'm not sure this is the best way to achieve debug meshes for geometry defined with a `find_furthest` function, but it's my best idea for now. Please comment if you've got an idea or know a better way :)
 
 [1]: {{ site.url }}/assets/convex-geometric-volumes.png
 [2]: {{ site.url }}/assets/sphere-swept-shapes.png
