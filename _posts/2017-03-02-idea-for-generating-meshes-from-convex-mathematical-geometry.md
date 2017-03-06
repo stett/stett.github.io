@@ -1,5 +1,5 @@
 ---
-title: Generating Quick & Dirty Meshes From Convex Mathematical Geometry
+title: Generating Quick & Dirty Debug Meshes From Convex Mathematical Geometry
 layout: post
 tags: [physics, graphics]
 comments: true
@@ -15,7 +15,7 @@ My idea is to use an algorithm similar to an [icosphere generator](https://schne
 
 In this shot, three different geometries were meshed using this method - they are drawn using white wireframes. A cube, a sphere, and a sphere-swept cube (which is just the [Minkowski sum](https://en.wikipedia.org/wiki/Minkowski_addition) of the two). The wireframe for the plain old sphere is mostly masked by its non-debug mesh in this picture :P
 
-Here are a few more. Pay no heed to the intersecting cubes.
+Here are a few more. Pay no heed to the intersecting cubes. Nor the tiny icosahedrons inside the capsule shapes.
 
 [![Some interfering objects][2]][2]
 
@@ -24,6 +24,8 @@ Here are a few more. Pay no heed to the intersecting cubes.
 * The `find_furthest(direction)` functions are fairly simple, especially with the convention that `direction` is given in the space of the object. For a point primitive, for example, `find_furthest` will always return the origin. For a line segment, it will always return one of the endpoints (whichever is most aligned with `direction`). For a sphere, it will return a vector of the length of its radius, aligned with `direction`.
 
 * Minkowski sums are easily obtained by simply adding the results of the `find_furthest` functions of two primitives.
+
+* I'm not sure this is the best way to achieve good debug meshes for geometry defined with a `find_furthest` function. Please comment if you've got an idea or know a better way :)
 
 [1]: {{ site.url }}/assets/convex-geometric-volumes.png
 [2]: {{ site.url }}/assets/sphere-swept-shapes.png
