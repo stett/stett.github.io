@@ -9,7 +9,14 @@ Last week I worked on an implementation of the [GJK](https://en.wikipedia.org/wi
 
 While this is a nice and useful way to define geometry for those particular interference algorithms, it would be really nice to be able to actually *see* the geometry for debugging. To do this, a mesh approximation must be generated using only a `find_furthest` function.
 
-My idea is to use an algorithm similar to an [icosphere generator](https://schneide.wordpress.com/2016/07/15/generating-an-icosphere-in-c/). I start with an icosahedron and push each vertex to the extents of the object. On each iteration, subdivide any triangles which have some minium area (or in which any two of the vertexes are beyond some threshold distance to each other), and combine any vertexes which are within a threshold distance of each other. The idea is to quickly generate a mesh which fills in high-detail areas with more polygons and leaves planar areas simple.
+My idea is to use an algorithm similar to an [icosphere generator](https://schneide.wordpress.com/2016/07/15/generating-an-icosphere-in-c/). Here's an outline of the modified algorithm:
+
+1. Start with an icosahedron and push each vertex to the extents of the object.
+2. For each triangle, if it has an area larger than some minimum, subdivide it into four triangles.
+3. For each pair of vertexes which are closer than some maximum, combine them into one.
+4. Repeat steps 2 & 3 until step 2 produces no triangles.
+
+The idea is to quickly generate a mesh which fills in high-detail areas with more polygons and leaves planar areas simple. It *should* result in a mesh with higher poly count in areas of higher detail.
 
 [![A Meshed Minkowski Sum][1]][1]
 
@@ -25,7 +32,7 @@ Here are a few more. Pay no heed to the intersecting cubes. Nor the tiny icosahe
 
 * Minkowski sums are easily obtained by simply adding the results of the `find_furthest` functions of two primitives.
 
-* I have not yet implemented the idea in full - my current implementation results in some overlapping vertexes and duplicate triangles. I'll post some code once I give it another pass.
+* I have not yet implemented the idea in full - my current implementation is naive and results in some overlapping vertexes and duplicate triangles. I might post some code once I give it another pass.
 
 * I'm not sure this is the best way to achieve debug meshes for geometry defined with a `find_furthest` function, but it's my best idea for now. Please comment if you've got an idea or know a better way :)
 
