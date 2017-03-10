@@ -1,22 +1,25 @@
 Who I Am
 --------
-I'm Stett. I am a software engineer with a background in physics and a constant itch to make stuff.
+I'm Stett. I am a software engineer with a background in physics an itch to make cool stuff, and a hankering for indie games.
 
 
-What I'm Doing
---------------
+What I'm Up To These Days
+-------------------------
 Working on my masters in computer science at a weird little school called [DigiPen](https://www.digipen.edu/), and writing code for an indie game studio called [Strange Loop Games](http://www.strangeloopgames.com/).
 
 
 <!--
+
+Oh! Hello! I didn't think you were gonna look at the source for my page. Ah well. Here are some the extremely intimate details of my life.
+
+
 Predilections (Speculative)
 ---------------------------
-This is a minimal list of things (or, I guess, the types of things) I like.
+This is an extremely minimal and general list of the types of things I like.
 
 * Producing stuff (paintings! sculptures! programs!).
 
 * Observing stuff (physics! visual art! music!).
--->
 
 
 Ideologies (Abstract)
@@ -59,3 +62,5 @@ Goals (Concrete)
 * To become a practiced lead climber.
 
 * To become proficient at basic motorcycle maintenance.
+
+-->

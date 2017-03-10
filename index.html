@@ -28,12 +28,12 @@ layout: base
 
         {% if forloop.index < 5 %}
         {{ post.content }}
-        [<a href="{{ post.url }}#comments">Comment</a>]
+        [ <a href="{{ post.url }}#comments">Comment</a> ]
         {% else %}
         {{ post.excerpt }}
-        [<a href="{{ post.url }}">
+        [ <a href="{{ post.url }}">
         Read More
-        </a>]
+        </a> ]
         {% endif %}
     </article>
 </div>
