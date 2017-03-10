@@ -22,3 +22,5 @@ So far the features I have are:
 All those yellow and blue lines indicate the barycentric coordinates that are used to reconstruct contact points on the hulls of interfering objects. At the moment, the blue contact point is actually the one which is chosen to do the response impulse computation.
 
 Next I gotta stress test all this stuff. I know my intersection cache and dynamic AABB tree can handle several hundred interfering objects without breaking a sweat, but I haven't profiled huge scenes like that since adding EPA or contact manifolds. EPA is a huge pain in the ass, and I'm betting that's gonna be my new bottleneck, which means it'll be time for some cladding.
+
+Also this week going to see if I can't get stuff to sit stably on a surface. Sounds simple. Is harder than it sounds. Necesary prerequisite feature for stable stacking.
