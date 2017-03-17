@@ -1,15 +1,19 @@
 ---
-title: Physics Engine - Week 5
+title: Physics Engine - Week 5: Dynamic AABB Tree
 layout: post
 tags: [physics]
 comments: true
 ---
 
-This is a retro-active post on the state of my physics engine (from a few weeks ago), because progress since week 7 has been pretty minimal. Here's something I didn't show in the last video.
+This is a retro-active post on the state of my physics engine (from a few weeks ago), because progress since week 7 has been pretty minimal due to crunch time at work.
+
+Here's something I didn't show in the last video:
 
 <iframe width="100%" height="300" src="https://www.youtube.com/embed/D0Ag8vO0TeM" frameborder="0" allowfullscreen></iframe>
 
 It's a bit difficult to see the outlines due to the quality of the video, but in it I show the borders of a dynamic AABB structure, based somewhat on the method described by [Randy Gaul](http://www.randygaul.net/2013/08/06/dynamic-aabb-tree/).
+
+And here's a short technical description of how indexing and padding work in the tree. Maybe I'll come back later with more details.
 
 Each node in the AABB tree has a unique index. When nodes are removed, instead of clearing the data,
 the erased node's index is removed from a list of active indexes. When an object is added to the tree, the
