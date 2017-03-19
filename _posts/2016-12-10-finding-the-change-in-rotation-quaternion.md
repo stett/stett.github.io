@@ -26,7 +26,7 @@ a term $$\dot{R}$$, which is the ``change-in'' matrix which we're
 looking for. Recall that the linear velocity of a point on a rotating
 body is also given by the cross product of the angular velocity $$\omega\left(t\right)$$
 with it's position relative to the center of rotation and making use
-of the [cross product matrix](https://en.wikipedia.org/wiki/Cross\_product\#Conversion\_to\_matrix\_multiplication),
+of the [cross product matrix](https://en.wikipedia.org/wiki/Cross_product#Conversion_to_matrix_multiplication),
 $$\dot{R}$$ can be quickly identified.
 
 $$
