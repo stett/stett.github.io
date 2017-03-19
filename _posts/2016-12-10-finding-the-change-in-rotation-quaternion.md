@@ -59,7 +59,7 @@ rotation += glm::matrixCross4(angular_velocity * dt) * rotation;
 
 We'll develop the quaternion solution in essentially the same way,
 taking $$Q\left(t\right)$$ to be the rotation quaternion of the body.
-Remember that to [orient a point with a quaternion](https://en.wikipedia.org/wiki/Quaternions\_and\_spatial\_rotation\#Orientation)
+Remember that to [orient a point with a quaternion](https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation#Orientation)
 the point is reinterpreted as a quaternion with a zero scalar value
 and it is multiplied by the rotation on one side and its conjugate
 on the other.
