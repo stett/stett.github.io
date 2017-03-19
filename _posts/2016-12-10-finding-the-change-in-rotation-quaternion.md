@@ -70,7 +70,7 @@ $$
 
 An equivalent operation to the angular velocity cross product which
 we used to find the change-in matrix is the [angle-axis formula
-for quaternions](https://en.wikipedia.org/wiki/Axis\%E2\%80\%93angle\_representation\#Unit\_quaternions). Then the change-in quaternion can be found by similar identification.
+for quaternions](https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation#Unit_quaternions). Then the change-in quaternion can be found by similar identification.
 
 $$
 \begin{eqnarray*}
