@@ -1,5 +1,5 @@
 ---
-title: Physics Engine - Week 5: Dynamic AABB Tree
+title: Physics Engine, Week 5 - Dynamic AABB Tree
 layout: post
 tags: [physics]
 comments: true
