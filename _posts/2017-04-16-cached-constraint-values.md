@@ -5,7 +5,7 @@ tags: [physics]
 comments: true
 ---
 
-<iframe width="100%" height="300" src="https://www.youtube.com/embed/fMWOUx76eNs" frameborder="0" allowfullscreen></iframe>
+<iframe width="100%" height="300" src="https://www.youtube.com/embed/fMWOUx76eNs?t=40s" frameborder="0" allowfullscreen></iframe>
 
 
 The Jenga tower on the left uses a warm starting technique which begins the MLCP solver with the results from the previous frame. The tower on the right begins from zero each frame.
