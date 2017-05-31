@@ -18,7 +18,7 @@ I've also created specializations of the base tensor class, `vector` and `matrix
 Here's the sort of thing I aim to do.
 
 {% highlight c++ %}
-weyl::tensor<float, 3, 3, 4> a({ ... });
+weyl::tensor<float, 3, 3, 5> a({ ... });
 weyl::tensor<float, 2, 5, 4> b({ ... });
 weyl::tensor<float, 3, 3, 2, 4> c = weyl::sum<2, 1>(a, b);
 {% endhighlight %}
