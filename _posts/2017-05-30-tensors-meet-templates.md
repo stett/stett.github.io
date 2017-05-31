@@ -5,7 +5,7 @@ tags: [math, c++, templates, project]
 comments: true
 ---
 
-Last year I faced a problem which required me to compute products ("convolutions") between vectors, matrixes, vectors of matrixes (rank-3 tensors).
+Last year I faced a problem which required me to compute products (convolutions) between vectors, matrixes, vectors of matrixes (rank-3 tensors).
 
 I wanted to do this in C++ and the best option I could find seemed to be [FTensor](https://bitbucket.org/wlandry/ftensor). Although it probably would have worked for my particular case, FTensor seems to have been written in an older style which failed to make use of variadics, and I wanted something a bit more generic.
 
