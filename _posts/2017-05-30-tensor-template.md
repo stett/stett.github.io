@@ -1,5 +1,5 @@
 ---
-title: Tensors, Meet Templates
+title: Inline Tensor Convolution Using Template Expansion
 layout: post
 tags: [math, c++, templates, project]
 comments: true
