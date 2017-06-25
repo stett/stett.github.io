@@ -5,7 +5,9 @@ I'm Stett. I am a software engineer with a background in physics an itch to make
 
 What I'm Up To These Days
 -------------------------
-Working on my masters in computer science at a weird little school called [DigiPen](https://www.digipen.edu/), and writing code for an indie game studio called [Strange Loop Games](http://www.strangeloopgames.com/).
+Working on my masters in computer science at a weird little school called [DigiPen](https://www.digipen.edu/), and writing code for the Minecraft team at Microsoft.
+
+Previously I worked for a kick-ass indie game studio called [Strange Loop Games](http://www.strangeloopgames.com/).
 
 
 <!--
