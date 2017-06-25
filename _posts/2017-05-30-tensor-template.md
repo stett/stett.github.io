@@ -13,8 +13,6 @@ In a quest for further flexibility I began to work on my own tensor library, [We
 
 Weyl is header only and contains just one core class, `tensor`, whose entire source code is very short (at the moment, 367 lines including comments). Thanks to fancy-pants template expansion, large tensor convolutions are (usually!) compiled into a list of simple add and multiply operations.
 
-I've also created specializations of the base tensor class, `vector` and `matrix`, and I plan to add some others like `quaternion` and possibly `affine`, but I may remove those in order to maintain the purity of the library. I'm always torn about that sort of thing &#x1F613;.
-
 Here's the sort of thing I aim to do.
 
 {% highlight c++ %}
