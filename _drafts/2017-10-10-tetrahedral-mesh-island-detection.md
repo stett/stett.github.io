@@ -19,6 +19,16 @@ For mesh traversal, some adjacency information is needed between tetrahedrons. I
 
 The other method is to track tetrahedron face adjacencies. Since each tetrahedron has at most four face-adjacencies, tetrahedron and node data can still be packed tightly in memory with a predictable stride.
 
-## Algorithm ##
+## Algorithms ##
 
-Traversing the structure is fairly straight forward. I use a stack rather than recursion, and record the indexes of traversed tetraheda and nodes using two large bitmasks.
+Removal of a tetrahedron is simple, and can be done in constant time. The removal of tetrahedron `i` is performed by moving the last tetrahedron (indexed by `n-1` where `n` is the number of tetrahedra) into slot `i`, and correcting it's neighboring tetrahedra' adjacencies. This can be done in constant time.
+
+Traversing the structure for the detection and removal of an island is fairly straight forward. I use a stack rather than recursion, and record the indexes of traversed tetraheda and nodes using two large bitmasks.
+
+When a node is copied into a new mesh, it's index will have changed, and so the indexes stored in each copied tetrahedron which references that node must also change. A simple array of integers, constructed during node-copy, can be used to map the old indexes to the new ones.
+
+Tetrahedron indexes will also change. The same index-mapping method is used to update tetrahedron neighbors in the new mesh.
+
+Each of the traversal/island removal phases has a complexity of `O(N)` where `N` is the number of nodes.
+
+
