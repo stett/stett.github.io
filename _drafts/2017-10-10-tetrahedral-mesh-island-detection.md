@@ -29,6 +29,12 @@ When a node is copied into a new mesh, it's index will have changed, and so the 
 
 Tetrahedron indexes will also change. The same index-mapping method is used to update tetrahedron neighbors in the new mesh.
 
-Each of the traversal/island removal phases has a complexity of `O(N)` where `N` is the number of nodes.
+Each of the traversal/island removal phases has a complexity of `O(N)` where `N` is the number of nodes. If `M` elements are deleted, then in the worst case `N*M*4` islands might be generated, so complete island separation has a complexity of `O(N*M)`.
 
+## Summary ##
 
+The main purpose of this approach is to keep connected tetrahedral mesh data contiguous in memory.
+
+There are faster ways to split tetrahedral meshes (for example, keeping a node pool instead of allowing a single mesh to "own" its nodes' memory, and adding an inverted node-tetrahedron relationship).
+
+However, the method I described here will result in a memory layout which is close to ideal for doing per-mesh calculations such as those which are optimal in FEM techniques. Furthermore, mesh breakage will not happen at every frame, but stress calculations will.
