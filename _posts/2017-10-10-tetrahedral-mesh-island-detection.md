@@ -5,7 +5,7 @@ tags: []
 comments: true
 ---
 
-In the following video a teapot made from 149210 tetrahedra is generated from a regular surface-bounded mesh. Fifty tetrahedra are removed each frame. After each removal the mesh is traversed in search of "islands" - groups of adjacent tetrahedra which share no faces with other groups - which are indicated by color.
+In the following video a teapot made of 149210 tetrahedra is generated from a regular surface-bounded mesh. Fifty tetrahedra are removed each frame. After each removal the mesh is traversed in search of "islands" - groups of adjacent tetrahedra which share no faces with other groups - which are indicated by color.
 
 <iframe width="100%" height="300" src="https://www.youtube.com/embed/BwP3SIjHfZw" frameborder="0" allowfullscreen></iframe>
 
