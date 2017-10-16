@@ -1,7 +1,7 @@
 ---
 title: Detecting Islands in Tetrahedral Meshes
 layout: post
-tags: []
+tags: [project, physics]
 comments: true
 ---
 
