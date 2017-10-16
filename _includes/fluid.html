@@ -1,5 +1,6 @@
 <script type="text/javascript">
 
+var initialized = false;
 var canvas = document.getElementById('canvas');
 var context = canvas.getContext('2d');
 var time_prev = Date.now();
@@ -14,6 +15,10 @@ function resize() {
 }
 
 function mouse_move(event) {
+    if (initialized == false) {
+        return;
+    }
+
     var mouse_x = event.x;
     var mouse_y = event.y;
     var mouse_dx = mouse_x - mouse_x_prev;
@@ -54,6 +59,9 @@ function initialize() {
     // Handle mouse click event
     window.addEventListener('mousemove', mouse_move, false);
 
+    // Mark the fluid system as initialized
+    initialized = true;
+
     // Start the update loop
     update();
 }
@@ -64,13 +72,21 @@ function update() {
     var dt = max_dt;//Math.min((time_now - time_prev) / 1000, max_dt);
     time_prev = time_now;
 
-
     //
     // Update simulation
     //
 
     // Update velocities
     for (var i = 1; i < data.size-1; i++) {
+
+        // Correction for JS wierdness?
+        if (isNaN(data.velocity[i])) {
+            data.velocity[i] = 0;
+        }
+
+        if (isNaN(data.height[i])) {
+            data.height[i] = 0;
+        }
 
         // Calculate spring force towards average position of neighboring points
         var target = (data.height[i-1] + data.height[i+1]) * 0.5;
@@ -107,10 +123,14 @@ function draw() {
     context.fillStyle="#00ADDF";
     context.fillRect(0, 0, canvas.width, canvas.height);
 
+    if (initialized == false) {
+        return;
+    }
+
     // Render the data
     context.fillStyle="#009DCF";
     context.strokeStyle="#FCFAF7";
-    context.lineWidth=2;
+    context.lineWidth=1;
     context.beginPath();
     moveTo(0, data.height[0] + canvas.height / 2);
     for (var i = 0; i < data.size; i++) {
@@ -120,15 +140,6 @@ function draw() {
     context.lineTo(0, canvas.height);
     context.fill();
     //context.stroke();
-
-    /*
-    // Draw the mouse position
-    context.beginPath();
-    context.fillStyle="#FFFFFF";
-    context.strokeStyle="#FFFFFF";
-    context.arc(mouse_x_prev, mouse_y_prev, 10, 0, 2*Math.PI);
-    context.stroke();
-    */
 }
 
 // Start the canvas drawing
