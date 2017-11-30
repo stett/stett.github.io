@@ -3,6 +3,7 @@ title: Inline Tensor Convolution Using Template Expansion
 layout: post
 tags: [math, c++, templates, project]
 comments: true
+math: true
 ---
 
 Last year I faced a problem which required me to compute products (convolutions) between vectors, matrixes, vectors of matrixes (rank-3 tensors).
