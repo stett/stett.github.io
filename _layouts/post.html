@@ -9,10 +9,6 @@ layout: base
     {{ content }}
 </article>
 
-{% if page.math %}
-{% include mathjax.html %}
-{% endif %}
-
 {% if page.comments %}
 {% include disqus.html %}
 {% endif %}

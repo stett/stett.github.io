@@ -11,6 +11,20 @@
     <!--[if lt IE 9]>
     <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
     <![endif]-->
+
+    <!-- JQuery -->
+    {% if page.jquery %}
+    {% if jekyll.environment == 'production' %}
+    <script type="text/javascript" src="{{ site.url }}/assets/jquery.min.js"></script>
+    {% else %}
+    <script type="text/javascript" src="{{ site.url }}/assets/jquery.min.js"></script>
+    {% endif %}
+    {% endif %}
+
+    <!-- Mathjax -->
+    {% if page.math %}
+    {% include mathjax.html %}
+    {% endif %}
 </head>
 
 <body>
