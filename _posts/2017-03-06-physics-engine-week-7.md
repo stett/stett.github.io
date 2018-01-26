@@ -1,5 +1,5 @@
 ---
-title: Physics Engine, Week 7
+title: Rigidbody Physics Engine - Log 1
 layout: post
 tags: [physics]
 comments: true

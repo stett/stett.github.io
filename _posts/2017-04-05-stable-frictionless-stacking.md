@@ -1,5 +1,5 @@
 ---
-title: Physics Engine, Week 11 - Box Stacking
+title: Rigidbody Physics Engine - Log 5 - Box Stacking
 layout: post
 tags: [physics]
 comments: true

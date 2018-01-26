@@ -1,5 +1,5 @@
 ---
-title: Physics Engine, Week 9 - Beginnings of MLCP Solver
+title: Rigidbody Physics Engine - Log 3 - MLCP Solver
 layout: post
 tags: [physics]
 comments: true
