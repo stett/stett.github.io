@@ -108,8 +108,17 @@ span.tags {
 
 div.preview {
     position: relative;
-    //margin-bottom: 10px;
-    margin-bottom: 30px;
+
+    &.post {
+        margin-bottom: 30px;
+    }
+
+    &.archive {
+        margin-bottom: 10px;
+        border: 1px dashed #D9D5D0;
+        border-radius: 2px;
+        padding: 3px;
+    }
 
     span.date {
         position: absolute;
