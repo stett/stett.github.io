@@ -25,6 +25,11 @@
     {% if page.math %}
     {% include mathjax.html %}
     {% endif %}
+
+    <!-- ThreeJS -->
+    {% if page.threejs %}
+    <script type="text/javascript" src="{{ site.url }}/assets/three.min.js"></script>
+    {% endif %}
 </head>
 
 <body>
