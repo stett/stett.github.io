@@ -14,21 +14,17 @@
 
     <!-- JQuery -->
     {% if page.jquery %}
-    {% if jekyll.environment == 'production' %}
     <script type="text/javascript" src="{{ site.url }}/assets/jquery.min.js"></script>
-    {% else %}
-    <script type="text/javascript" src="{{ site.url }}/assets/jquery.min.js"></script>
-    {% endif %}
-    {% endif %}
-
-    <!-- Mathjax -->
-    {% if page.math %}
-    {% include mathjax.html %}
     {% endif %}
 
     <!-- ThreeJS -->
     {% if page.threejs %}
     <script type="text/javascript" src="{{ site.url }}/assets/three.min.js"></script>
+    {% endif %}
+
+    <!-- Mathjax -->
+    {% if page.math %}
+    {% include mathjax.html %}
     {% endif %}
 </head>
 
