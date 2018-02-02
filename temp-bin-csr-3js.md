@@ -1,0 +1,387 @@
+---
+title: The BIN-CSR Sparse Matrix Format
+layout: post
+tags: [math, physics]
+comments: false
+math: false
+jquery: true
+threejs: true
+---
+
+<style>
+div.container-3js canvas {
+    background-color: #000;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    position: static;
+    /*border: 1px dashed #D9D5D0;*/
+}
+
+#original-matrix {
+    height: 128px;
+}
+
+#bin-csr-intermediate {
+    height: 256px;
+}
+
+div.centered {
+    text-align: center;
+}
+
+</style>
+
+The BIN-CSR format is a sparse matrix format, originally described by Daniel Weber et. al [in their 2012 paper](http://onlinelibrary.wiley.com/doi/10.1111/j.1467-8659.2012.03227.x/full). BIN-CSR is intended for use with matrices which are sparse, symmetric, and with nonzero diagonal values. The WebGL demos on this page aim to demonstrate the construction of a BIN-CSR matrix in an interactive way.
+
+The following is a dramatically over-engineered representation of our original matrix. Drag the slider to change the dimensions of the matrix.
+
+<div class="container-3js" id="original-matrix"></div>
+<div class="centered">
+<input type="range" min="2" max="20" step="1" value="8" onchange="interactResizeMatrix(this.value)">
+</div>
+
+The elements of this matrix are packed into padded _bins_. Each bin contains a set number of rows worth of data. The number of rows contained in a bin is called the _bin width_. The following is an illustration of bin data packing. The slider can be used to adjust the bin width.
+
+<div class="container-3js" id="bin-csr-intermediate"></div>
+<div class="centered">
+<input type="range" min="1" max="20" step="1" value="3" onchange="interactResizeBin(this.value)">
+</div>
+
+<script type="text/javascript">
+
+//
+// BIN-CSR
+//
+
+class BinIntermediate {
+    constructor() {
+        this.val = [];
+        this.col = [];
+    }
+}
+
+class BinCSRIntermediate {
+    constructor(width, matrix=[[]]) {
+        this.width = width;
+        this.bins = [];
+        this.diag = [];
+        this.set_matrix(matrix);
+    }
+
+    set_matrix(matrix) {
+
+        // Add each row to its bin
+        var bin_index = -1;
+        for (var row = 0; row < matrix.length; ++row) {
+
+            // Make a new bin if needed
+            if (row % this.width == 0) {
+                ++bin_index;
+                this.bins.push(new BinIntermediate());
+            }
+
+            // Add the data to the bin
+            var bin = this.bins[bin_index];
+            var vals = [];
+            var cols = [];
+            for (var col = 0; col < matrix.length; ++col) {
+                var val = matrix[row][col];
+                if (row == col) {
+                    this.diag.push(val);
+                } else if (val != 0) {
+                    vals.push(val);
+                    cols.push(col);
+                }
+            }
+
+            bin.val.push(vals);
+            bin.col.push(cols);
+        }
+    }
+}
+
+class BinCSR {
+    constructor(width, matrix=[[]]) {
+        this.width = width;
+        this.size = 0;
+        this.ptr = [];
+        this.col = [];
+        this.val = [];
+        this.dia = [];
+        this.set_matrix(matrix);
+    }
+
+    set_matrix(matrix) {
+        this.size = matrix.length;
+        for (var i = 0; i < this.size; ++i) {
+            this.ptr.push(0);
+            this.dia.push(matrix[i][i]);
+        }
+    }
+}
+
+
+//
+// Actors
+//
+
+class Actor {
+    update() {}
+}
+
+var actors = [];
+
+class SceneActor extends Actor {
+    constructor(container, height=5) {
+        super();
+        this.container = container;
+        var containerWidth = container.width();
+        var containerHeight = container.height();
+        this.aspect = containerWidth / containerHeight;
+        this.cameraHeight = height;
+        this.cameraHeightTarget = height;
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.OrthographicCamera( -height*this.aspect, height*this.aspect, -height, height, 1, 1000);
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setSize( containerWidth, containerHeight );
+        this.renderer.setClearColor(0xFCFAF7, 1);
+        this.camera.position.z = 50;
+        container.get(0).appendChild( this.renderer.domElement );
+    }
+
+    update() {
+        this.cameraHeight += (this.cameraHeightTarget - this.cameraHeight) * 0.1;
+        this.camera.left = -this.cameraHeight * this.aspect;
+        this.camera.right = this.cameraHeight * this.aspect;
+        this.camera.top = -this.cameraHeight;
+        this.camera.bottom = this.cameraHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.render( this.scene, this.camera );
+    }
+}
+
+var cellGeometry = new THREE.BoxGeometry( 1, 1, .01 );
+var zeroMaterial = new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } );
+var nonzeroMaterial = new THREE.MeshBasicMaterial( { color: 0x000000 } );
+var diagMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
+
+class MatrixQuadActor extends Actor {
+    constructor(scene, matrix=[[]]) {
+        super();
+        this.scene = scene;
+        this.object = null;
+        this.height = 0;
+        this.staystill = false;
+        this.set_matrix(matrix);
+    }
+
+    set_matrix(matrix) {
+        if (this.object) {
+            this.scene.remove(this.object);
+        }
+
+        this.object = new THREE.Object3D();
+        this.rotation = 0;
+        this.height = matrix.length / 2;
+        for (var i = 0; i < matrix.length; ++i) {
+            for (var j = 0; j < matrix.length; ++j) {
+                var value = matrix[i][j];
+                var material = i == j ? diagMaterial : value == 0 ? zeroMaterial : nonzeroMaterial;
+                var mesh = new THREE.Mesh( cellGeometry, material );
+                mesh.position.set(i - (matrix.length/2), j - (matrix.length/2), 0);
+                this.object.add(mesh);
+            }
+        }
+        this.scene.add( this.object );
+    }
+
+    update() {
+        if (this.staystill == false) {
+            this.rotation += 0.015;
+            var axis = new THREE.Vector3(1, 1, 0).normalize();
+            var quat = new THREE.Quaternion().setFromAxisAngle( axis, this.rotation );
+            this.object.rotation.setFromQuaternion( quat );
+        } else {
+            this.rotation = 0;
+            var quatTarget = new THREE.Quaternion().set(0, 0, 0, 1).normalize();
+            THREE.Quaternion.slerp(this.object.quaternion, quatTarget, this.object.quaternion, 0.1);
+        }
+    }
+}
+
+class BinCSRIntermediateQuadActor extends Actor {
+    constructor(scene, inter) {
+        super();
+        this.scene = scene;
+        this.bin_object = null;
+        this.diag_object = null;
+        this.height = 0;
+        this.set_inter(inter);
+    }
+
+    set_inter(inter) {
+
+        if (this.bin_object != null) {
+            this.scene.remove(this.bin_object);
+        }
+
+        if (this.diag_object != null) {
+            this.scene.remove(this.diag_object);
+        }
+
+        this.inter = inter;
+        this.bin_object = new THREE.Object3D();
+        this.diag_object = new THREE.Object3D();
+
+        // Build up the bin and diag objects
+        this.height = inter.bins.length + (1 + inter.bins[0].val.length);
+        for (var bin_index = 0; bin_index < inter.bins.length; ++bin_index) {
+            var bin = inter.bins[bin_index];
+
+            // Compute the length of this bin
+            var bin_length = 0;
+            var width = Math.min(inter.width, bin.val.length);
+            for (var row_local = 0; row_local < width; ++row_local) {
+                if (bin.val[row_local].length > bin_length) {
+                    bin_length = bin.val[row_local].length;
+                }
+            }
+
+            // Make a bunch of fucking cubes
+            for (var row_local = 0; row_local < width; ++row_local) {
+                var row = (bin_index * inter.width) + row_local;
+
+                // Add the diagonal element
+                {
+                    var mesh = new THREE.Mesh( cellGeometry, diagMaterial );
+                    mesh.position.set(0, bin_index + row - this.height, 0);
+                    this.diag_object.add(mesh);
+                }
+
+                // Add elements to the bin
+                for (var i = 0; i < bin_length; ++i) {
+                    var material = i < bin.val[row_local].length ? nonzeroMaterial : zeroMaterial;
+                    var mesh = new THREE.Mesh( cellGeometry, material );
+                    mesh.position.set(i + 2, bin_index + row - this.height, 0);
+                    this.bin_object.add(mesh);
+                }
+            }
+        }
+        this.scene.add( this.bin_object );
+        this.scene.add( this.diag_object );
+    }
+
+    update() {
+    }
+}
+
+//
+// Global Data (shhh! don't tell anyone)
+//
+
+var matrix = [
+    [1, 1, 0, 2, 0, 0, 4, 0],
+    [1, 2, 0, 3, 3, 0, 2, 0],
+    [0, 0, 3, 3, 5, 8, 6, 9],
+    [2, 3, 3, 4, 3, 0, 0, 0],
+    [0, 3, 5, 3, 5, 0, 0, 0],
+    [0, 0, 8, 0, 0, 6, 2, 1],
+    [4, 2, 6, 0, 0, 2, 7, 0],
+    [0, 0, 9, 0, 0, 1, 0, 8]
+];
+var matrix_size = 8;
+var sparsity = 0.4;
+var bin_size = 3;
+var matrixQuadActor;
+var bincsrIntermediate = new BinCSRIntermediate(bin_size, matrix);
+var bincsrIntermediateQuadActor;
+var bincsr = new BinCSR(matrix);
+var originalMatrixScene;
+var bincsrIntermediateScene;
+
+//
+// Interaction callbacks
+//
+
+function interactResizeMatrix(size) {
+    matrix_size = size;
+    interactUpdateMatrix();
+}
+
+function interactResizeBin(size) {
+    bin_size = size;
+    interactUpdateMatrix();
+}
+
+function interactUpdateMatrix() {
+
+    // Resize the matrix with random values.
+    while (matrix_size < matrix.length) {
+        matrix.pop();
+        for (var i = 0; i < matrix.length; ++i) {
+            matrix[i].pop();
+        }
+    }
+    while (matrix_size > matrix.length) {
+        var new_row = [];
+        for (var i = 0; i < matrix.length; ++i) {
+            var dice = Math.random();
+            var val = dice < sparsity ? 1 + Math.floor(Math.random() * Math.floor(9)) : 0;
+            matrix[i].push(val);
+            new_row.push(val);
+        }
+        new_row.push(1 + Math.floor(Math.random() * Math.floor(8)));
+        matrix.push(new_row);
+    }
+
+    // Update the actors in the world with the new matrix
+    matrixQuadActor.set_matrix(matrix);
+    bincsrIntermediate = new BinCSRIntermediate(bin_size, matrix);
+    bincsrIntermediateQuadActor.set_inter(bincsrIntermediate);
+
+    // Update the scene cameras to contain the entire quads
+    originalMatrixScene.cameraHeightTarget = matrixQuadActor.height+1;
+    bincsrIntermediateScene.cameraHeightTarget = bincsrIntermediateQuadActor.height+1;
+}
+
+$(document).ready(function() {
+
+    //
+    // Set up scenes
+    //
+
+    {
+        var container = $("#original-matrix");
+        originalMatrixScene = new SceneActor(container, 5);
+        actors.push(originalMatrixScene);
+        matrixQuadActor = new MatrixQuadActor(originalMatrixScene.scene, matrix);
+        container.mouseenter(function() { matrixQuadActor.staystill = true; });
+        container.mouseleave(function() { matrixQuadActor.staystill = false; });
+        actors.push(matrixQuadActor);
+    }
+
+    {
+        var container = $("#bin-csr-intermediate");
+        bincsrIntermediateScene = new SceneActor(container, 8);
+        actors.push(bincsrIntermediateScene);
+        bincsrIntermediateQuadActor = new BinCSRIntermediateQuadActor(bincsrIntermediateScene.scene, bincsrIntermediate);
+        actors.push(bincsrIntermediateQuadActor);
+    }
+
+
+    //
+    // Loop
+    //
+
+    var update = function () {
+        requestAnimationFrame( update );
+        for (var i = 0, len = actors.length; i < len; ++i) {
+            actors[i].update();
+        }
+    };
+
+    update();
+});
+</script>
