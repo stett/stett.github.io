@@ -235,8 +235,24 @@ class BinCSRIntermediateQuadActor extends Actor {
         this.bin_object = new THREE.Object3D();
         this.diag_object = new THREE.Object3D();
 
+        // Determine the total dimensions
+        this.width = 0;
+        this.height = inter.bins.length - 1;
+        for (var bin_index = 0; bin_index < inter.bins.length; ++bin_index) {
+            bin = inter.bins[bin_index];
+            this.height += bin.val.length;
+            var bin_length = 0;
+            var width = Math.min(inter.width, bin.val.length);
+            for (var row_local = 0; row_local < width; ++row_local) {
+                if (bin.val[row_local].length > bin_length) {
+                    bin_length = bin.val[row_local].length;
+                }
+            }
+            this.width = Math.max(this.width, width);
+        }
+
         // Build up the bin and diag objects
-        this.height = Number(inter.bins.length) * (1 + Number(inter.width));
+        //this.height = Number(inter.bins.length) * (1 + Number(inter.width));
         for (var bin_index = 0; bin_index < inter.bins.length; ++bin_index) {
             var bin = inter.bins[bin_index];
 
@@ -256,7 +272,7 @@ class BinCSRIntermediateQuadActor extends Actor {
                 // Add the diagonal element
                 {
                     var mesh = new THREE.Mesh( cellGeometry, diagMaterial );
-                    mesh.position.set(0, bin_index + row - (this.height/2), 0);
+                    mesh.position.set(-this.width/2, bin_index + row - (this.height/2), 0);
                     this.diag_object.add(mesh);
                 }
 
@@ -264,7 +280,7 @@ class BinCSRIntermediateQuadActor extends Actor {
                 for (var i = 0; i < bin_length; ++i) {
                     var material = i < bin.val[row_local].length ? nonzeroMaterial : zeroMaterial;
                     var mesh = new THREE.Mesh( cellGeometry, material );
-                    mesh.position.set(i + 2, bin_index + row - (this.height/2), 0);
+                    mesh.position.set(i + 2 - (this.width/2), bin_index + row - (this.height/2), 0);
                     this.bin_object.add(mesh);
                 }
             }
