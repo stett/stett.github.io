@@ -20,7 +20,7 @@ div.container-3js canvas {
 }
 
 #original-matrix {
-    height: 128px;
+    height: 200px;
 }
 
 #bin-csr-intermediate {
@@ -236,7 +236,7 @@ class BinCSRIntermediateQuadActor extends Actor {
         this.diag_object = new THREE.Object3D();
 
         // Build up the bin and diag objects
-        this.height = inter.bins.length + (1 + inter.bins[0].val.length);
+        this.height = Number(inter.bins.length) * (1 + Number(inter.width));
         for (var bin_index = 0; bin_index < inter.bins.length; ++bin_index) {
             var bin = inter.bins[bin_index];
 
@@ -256,7 +256,7 @@ class BinCSRIntermediateQuadActor extends Actor {
                 // Add the diagonal element
                 {
                     var mesh = new THREE.Mesh( cellGeometry, diagMaterial );
-                    mesh.position.set(0, bin_index + row - this.height, 0);
+                    mesh.position.set(0, bin_index + row - (this.height/2), 0);
                     this.diag_object.add(mesh);
                 }
 
@@ -264,7 +264,7 @@ class BinCSRIntermediateQuadActor extends Actor {
                 for (var i = 0; i < bin_length; ++i) {
                     var material = i < bin.val[row_local].length ? nonzeroMaterial : zeroMaterial;
                     var mesh = new THREE.Mesh( cellGeometry, material );
-                    mesh.position.set(i + 2, bin_index + row - this.height, 0);
+                    mesh.position.set(i + 2, bin_index + row - (this.height/2), 0);
                     this.bin_object.add(mesh);
                 }
             }
@@ -343,7 +343,7 @@ function interactUpdateMatrix() {
 
     // Update the scene cameras to contain the entire quads
     originalMatrixScene.cameraHeightTarget = matrixQuadActor.height+1;
-    bincsrIntermediateScene.cameraHeightTarget = bincsrIntermediateQuadActor.height+1;
+    bincsrIntermediateScene.cameraHeightTarget = (bincsrIntermediateQuadActor.height/2)+1;
 }
 
 $(document).ready(function() {
