@@ -26,6 +26,10 @@ div.container-3js canvas {
     height: 256px;
 }
 
+#bin-csr {
+    height: 200px;
+}
+
 div.centered {
     text-align: center;
 }
@@ -47,10 +51,14 @@ The elements of this matrix are packed into padded _bins_. Each bin contains a s
 
 <div class="container-3js" id="bin-csr-intermediate"></div>
 <div class="centered">
-<input type="range" min="1" max="20" step="1" value="3" oninput="interactResizeBin(this.value)">
+<input type="range" min="1" max="32" step="1" value="3" oninput="interactResizeBin(this.value)">
 </div>
 
 The diagonal elements of the matrix are stored separately, to enable fast [_preconditioning_](https://en.wikipedia.org/wiki/Preconditioner) of the matrix. Preconditioning is a step which allows for faster convergence when performing a system solving method like the [conjugate gradient method](https://en.wikipedia.org/wiki/Conjugate_gradient_method), which is the target application for this format.
+
+The above visual shows the theoretical grouping of the data. The actual layout of the data in memory is optimized for [coallesced memory access on the GPU](https://mc.stanford.edu/cgi-bin/images/0/0a/M02_4.pdf). In actuality, the data is stored in four separate arrays, visualized here:
+
+<div class="container-3js" id="bin-csr"></div>
 
 <script type="text/javascript">
 
@@ -62,18 +70,21 @@ class BinIntermediate {
     constructor() {
         this.val = [];
         this.col = [];
+        this.length = 0;
     }
 }
 
 class BinCSRIntermediate {
     constructor(width, matrix=[[]]) {
         this.width = width;
-        this.bins = [];
-        this.diag = [];
         this.set_matrix(matrix);
     }
 
     set_matrix(matrix) {
+
+        this.bins = [];
+        this.diag = [];
+        this.size = matrix.length;
 
         // Add each row to its bin
         var bin_index = -1;
@@ -101,26 +112,51 @@ class BinCSRIntermediate {
 
             bin.val.push(vals);
             bin.col.push(cols);
+            bin.length = Math.max(bin.length, vals.length);
         }
     }
 }
 
 class BinCSR {
-    constructor(width, matrix=[[]]) {
-        this.width = width;
-        this.size = 0;
+    constructor(width, inter) {
+        this.set_inter(inter);
+    }
+
+    set_inter(inter) {
+        this.width = inter.width;
         this.ptr = [];
         this.col = [];
         this.val = [];
         this.dia = [];
-        this.set_matrix(matrix);
-    }
 
-    set_matrix(matrix) {
-        this.size = matrix.length;
-        for (var i = 0; i < this.size; ++i) {
+        // Initialize the ptr array, with a zero for each row.
+        // Also, do the diagonals while we're at it.
+        for (var i = 0; i < inter.rows; ++i) {
             this.ptr.push(0);
-            this.dia.push(matrix[i][i]);
+            this.dia.push(inter.diag[i]);
+        }
+
+        // Add bin data to arrays
+        for (var bin_index = 0; bin_index < inter.bins.length; ++bin_index) {
+            var bin = inter.bins[bin_index];
+
+            for (var row_local = 0; row_local < bin.val.length; ++row_local) {
+                var row = (bin * this.width) + row_local;
+
+                for (var i = 0; i < bin.length; ++i) {
+                    var index = row + (i * this.width);
+                    var val = i < bin.val[row_local].length ? bin.val[row_local][i] : 0;
+                    var col = i < bin.col[row_local].length ? bin.col[row_local][i] : 0;
+
+                    // Pad the val and col arrays
+                    while (this.val.length < index + 1) { this.val.push(0); }
+                    while (this.col.length < index + 1) { this.col.push(0); }
+
+                    // Insert the data
+                    this.val[index] = val;
+                    this.col[index] = val;
+                }
+            }
         }
     }
 }
@@ -201,6 +237,7 @@ class MatrixQuadActor extends Actor {
     }
 
     update() {
+        /*
         if (this.staystill == false) {
             this.rotation += 0.015;
             var axis = new THREE.Vector3(1, 1, 0).normalize();
@@ -211,6 +248,7 @@ class MatrixQuadActor extends Actor {
             var quatTarget = new THREE.Quaternion().set(0, 0, 0, 1).normalize();
             THREE.Quaternion.slerp(this.object.quaternion, quatTarget, this.object.quaternion, 0.1);
         }
+        */
     }
 }
 
@@ -244,14 +282,7 @@ class BinCSRIntermediateQuadActor extends Actor {
         for (var bin_index = 0; bin_index < inter.bins.length; ++bin_index) {
             bin = inter.bins[bin_index];
             this.height += bin.val.length;
-            var bin_length = 0;
-            var width = Math.min(inter.width, bin.val.length);
-            for (var row_local = 0; row_local < width; ++row_local) {
-                if (bin.val[row_local].length > bin_length) {
-                    bin_length = bin.val[row_local].length;
-                }
-            }
-            this.width = Math.max(this.width, width);
+            this.width = Math.max(this.width, Math.min(inter.width, bin.length));
         }
 
         // Build up the bin and diag objects
@@ -259,17 +290,8 @@ class BinCSRIntermediateQuadActor extends Actor {
         for (var bin_index = 0; bin_index < inter.bins.length; ++bin_index) {
             var bin = inter.bins[bin_index];
 
-            // Compute the length of this bin
-            var bin_length = 0;
-            var width = Math.min(inter.width, bin.val.length);
-            for (var row_local = 0; row_local < width; ++row_local) {
-                if (bin.val[row_local].length > bin_length) {
-                    bin_length = bin.val[row_local].length;
-                }
-            }
-
             // Make a bunch of fucking cubes
-            for (var row_local = 0; row_local < width; ++row_local) {
+            for (var row_local = 0; row_local < bin.val.length; ++row_local) {
                 var row = (bin_index * inter.width) + row_local;
 
                 // Add the diagonal element
@@ -280,7 +302,7 @@ class BinCSRIntermediateQuadActor extends Actor {
                 }
 
                 // Add elements to the bin
-                for (var i = 0; i < bin_length; ++i) {
+                for (var i = 0; i < bin.length; ++i) {
                     var material = i < bin.val[row_local].length ? nonzeroMaterial : zeroMaterial;
                     var mesh = new THREE.Mesh( cellGeometry, material );
                     mesh.position.set(i + 2 - (this.width/2), bin_index + row - (this.height/2), 0);
@@ -292,9 +314,22 @@ class BinCSRIntermediateQuadActor extends Actor {
         this.scene.add( this.diag_object );
     }
 
-    update() {
-    }
+    update() {}
 }
+
+class BinCSRQuadActor extends Actor {
+    constructor(scene, bincsr) {
+        super();
+        this.scene = scene;
+        this.set_bincsr(bincsr);
+    }
+
+    set_bincsr(bincsr) {
+        this.bincsr = bincsr;
+    }
+
+    update() {}
+};
 
 //
 // Global Data (shhh! don't tell anyone)
@@ -311,14 +346,15 @@ var matrix = [
     [0, 0, 9, 0, 0, 1, 0, 8]
 ];
 var matrix_size = 8;
-var sparsity = 0.4;
+var sparsity = 0.2;
 var bin_size = 3;
 var matrixQuadActor;
 var bincsrIntermediate = new BinCSRIntermediate(bin_size, matrix);
 var bincsrIntermediateQuadActor;
-var bincsr = new BinCSR(matrix);
+var bincsr = new BinCSR(bin_size, bincsrIntermediate);
 var originalMatrixScene;
 var bincsrIntermediateScene;
+var bincsrScene;
 
 //
 // Interaction callbacks
@@ -389,6 +425,13 @@ $(document).ready(function() {
         actors.push(bincsrIntermediateQuadActor);
     }
 
+    {
+        var container = $("#bin-csr");
+        bincsrScene = new SceneActor(container);
+        actors.push(bincsrScene);
+        bincsrQuadActor = new BinCSRQuadActor(bincsrScene.scene, bincsr);
+        actors.push(bincsrQuadActor);
+    }
 
     //
     // Loop
