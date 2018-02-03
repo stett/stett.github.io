@@ -1,7 +1,7 @@
 Who I Am
 --------
-I'm Stett. I am a software engineer with a background in physics an itch to make cool stuff, and a hankering for indie games.
-
+I'm this guy:
+![Dragons!]({{ site.url }}/assets/thats-me.png)
 
 What I'm Up To These Days
 -------------------------
