@@ -27,7 +27,7 @@ div.container-3js canvas {
 }
 
 #bin-csr {
-    height: 200px;
+    height: 128px;
 }
 
 div.centered {
@@ -60,6 +60,8 @@ The above visual shows the theoretical grouping of the data. The actual layout o
 
 <div class="container-3js" id="bin-csr"></div>
 
+The values in the pointer array (gray) are indices into the value and column arrays (black), indicating the starting index for each row. The pointer values are represented by gray connecting lines.
+
 <script type="text/javascript">
 
 //
@@ -82,13 +84,14 @@ class BinCSRIntermediate {
 
     set_matrix(matrix) {
 
+        this.rows = matrix.length;
         this.bins = [];
         this.diag = [];
         this.size = matrix.length;
 
         // Add each row to its bin
         var bin_index = -1;
-        for (var row = 0; row < matrix.length; ++row) {
+        for (var row = 0; row < this.rows; ++row) {
 
             // Make a new bin if needed
             if (row % this.width == 0) {
@@ -118,7 +121,7 @@ class BinCSRIntermediate {
 }
 
 class BinCSR {
-    constructor(width, inter) {
+    constructor(inter) {
         this.set_inter(inter);
     }
 
@@ -137,14 +140,22 @@ class BinCSR {
         }
 
         // Add bin data to arrays
+        var bin_pos = 0; // position of the beginning of the current bin in the val and col arrays
         for (var bin_index = 0; bin_index < inter.bins.length; ++bin_index) {
             var bin = inter.bins[bin_index];
 
             for (var row_local = 0; row_local < bin.val.length; ++row_local) {
-                var row = (bin * this.width) + row_local;
+                var row = (bin_index * this.width) + row_local;
+
+                // Store a pointer to the beginning of this row
+                var row_pos = bin_pos + row_local;
+                this.ptr[row] = row_pos;
+                //console.log("Row: " + row);
+                //console.log("Bin pos: " + bin_pos);
+                //console.log("Row pos: " + row_pos);
 
                 for (var i = 0; i < bin.length; ++i) {
-                    var index = row + (i * this.width);
+                    var index = row_pos + (i * this.width);
                     var val = i < bin.val[row_local].length ? bin.val[row_local][i] : 0;
                     var col = i < bin.col[row_local].length ? bin.col[row_local][i] : 0;
 
@@ -154,9 +165,12 @@ class BinCSR {
 
                     // Insert the data
                     this.val[index] = val;
-                    this.col[index] = val;
+                    this.col[index] = col;
                 }
             }
+
+            // 
+            bin_pos += bin.length * this.width;
         }
     }
 }
@@ -202,9 +216,11 @@ class SceneActor extends Actor {
 }
 
 var cellGeometry = new THREE.BoxGeometry( 1, 1, .01 );
-var zeroMaterial = new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } );
-var nonzeroMaterial = new THREE.MeshBasicMaterial( { color: 0x000000 } );
-var diagMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
+var zeroMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true });
+var nonzeroMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+var diagMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+var ptrMaterial = new THREE.MeshBasicMaterial({ color: 0x777777 });
+var curveMaterial = new THREE.LineBasicMaterial({ color: 0x777777 });
 
 class MatrixQuadActor extends Actor {
     constructor(scene, matrix=[[]]) {
@@ -321,11 +337,94 @@ class BinCSRQuadActor extends Actor {
     constructor(scene, bincsr) {
         super();
         this.scene = scene;
+        this.ptr_obj = null;
+        this.dia_obj = null;
+        this.col_obj = null;
+        this.val_obj = null;
+        this.ptr_curves = [];
         this.set_bincsr(bincsr);
     }
 
     set_bincsr(bincsr) {
+        if (this.ptr_obj != null) { this.scene.remove(this.ptr_obj); this.ptr_obj = null; }
+        if (this.dia_obj != null) { this.scene.remove(this.dia_obj); this.dia_obj = null; }
+        if (this.col_obj != null) { this.scene.remove(this.col_obj); this.col_obj = null; }
+        if (this.val_obj != null) { this.scene.remove(this.val_obj); this.val_obj = null; }
+        while (this.ptr_curves.length > 0) {
+            var curve = this.ptr_curves.pop();
+            this.scene.remove(curve);
+        }
+        this.ptr_obj = new THREE.Object3D();
+        this.dia_obj = new THREE.Object3D();
+        this.col_obj = new THREE.Object3D();
+        this.val_obj = new THREE.Object3D();
+
         this.bincsr = bincsr;
+
+        var dia_y = 4;
+        var ptr_y = 2;
+        var val_y = -4;
+
+        var val_meshes = [];
+
+        // Generate meshes
+        for (var i = 0; i < bincsr.val.length; ++i) {
+            var val = bincsr.val[i];
+            var material = val == 0 ? zeroMaterial : nonzeroMaterial;
+
+            // val
+            {
+                var mesh = new THREE.Mesh( cellGeometry, material );
+                mesh.position.set(i - (bincsr.val.length/2), val_y, 0);
+                this.val_obj.add(mesh);
+                val_meshes.push(mesh);
+            }
+
+            // col
+            //{
+            //    var mesh = new THREE.Mesh( cellGeometry, material );
+            //    mesh.position.set(i - (bincsr.val.length/2), val_y, 0);
+            //    this.val_obj.add(mesh);
+            //}
+        }
+
+        for (var row = 0; row < bincsr.ptr.length; ++row) {
+
+            {
+                // dia
+                var mesh = new THREE.Mesh( cellGeometry, diagMaterial );
+                mesh.position.set(row - (bincsr.ptr.length/2), dia_y, 0);
+                this.dia_obj.add(mesh);
+            }
+
+            {
+                // ptr
+                var mesh = new THREE.Mesh( cellGeometry, ptrMaterial );
+                mesh.position.set(row - (bincsr.ptr.length/2), ptr_y, 0);
+                this.ptr_obj.add(mesh);
+
+                // arrow
+                var index = bincsr.ptr[row];
+                if (index < val_meshes.length) {
+                    var pos = mesh.position;
+                    var pos0 = new THREE.Vector3(pos.x, pos.y - .5, pos.z);
+                    var pos1 = new THREE.Vector3(pos.x, pos.y - 1, pos.z);
+                    pos = val_meshes[index].position;
+                    var pos2 = new THREE.Vector3(pos.x, pos.y + 1, pos.z);
+                    var pos3 = new THREE.Vector3(pos.x, pos.y + .5, pos.z);
+                    var points = [ pos0, pos1, pos2, pos3 ];
+                    var curve_geometry = new THREE.BufferGeometry().setFromPoints(points);
+                    var curve_object = new THREE.Line(curve_geometry, curveMaterial);
+                    this.ptr_curves.push(curve_object);
+                    this.scene.add(curve_object);
+                }
+            }
+        }
+
+        this.scene.add( this.val_obj );
+        this.scene.add( this.col_obj );
+        this.scene.add( this.ptr_obj );
+        this.scene.add( this.dia_obj );
     }
 
     update() {}
@@ -335,6 +434,7 @@ class BinCSRQuadActor extends Actor {
 // Global Data (shhh! don't tell anyone)
 //
 
+// Raw data
 var matrix = [
     [1, 1, 0, 2, 0, 0, 4, 0],
     [1, 2, 0, 3, 3, 0, 2, 0],
@@ -348,10 +448,15 @@ var matrix = [
 var matrix_size = 8;
 var sparsity = 0.2;
 var bin_size = 3;
-var matrixQuadActor;
 var bincsrIntermediate = new BinCSRIntermediate(bin_size, matrix);
+var bincsr = new BinCSR(bincsrIntermediate);
+
+// Actor references
+var matrixQuadActor;
 var bincsrIntermediateQuadActor;
-var bincsr = new BinCSR(bin_size, bincsrIntermediate);
+var bincsrQuadActor;
+
+// Scene references
 var originalMatrixScene;
 var bincsrIntermediateScene;
 var bincsrScene;
@@ -395,6 +500,8 @@ function interactUpdateMatrix() {
     matrixQuadActor.set_matrix(matrix);
     bincsrIntermediate = new BinCSRIntermediate(bin_size, matrix);
     bincsrIntermediateQuadActor.set_inter(bincsrIntermediate);
+    bincsr = new BinCSR(bincsrIntermediate);
+    bincsrQuadActor.set_bincsr(bincsr);
 
     // Update the scene cameras to contain the entire quads
     originalMatrixScene.cameraHeightTarget = matrixQuadActor.height+1;
@@ -427,9 +534,10 @@ $(document).ready(function() {
 
     {
         var container = $("#bin-csr");
-        bincsrScene = new SceneActor(container);
+        bincsrScene = new SceneActor(container, 6);
         actors.push(bincsrScene);
         bincsrQuadActor = new BinCSRQuadActor(bincsrScene.scene, bincsr);
+
         actors.push(bincsrQuadActor);
     }
 
