@@ -47,6 +47,8 @@ class Tetmesh {
             [1, 3, 2, 0]
         ];
 
+        var norms = [];
+
         for (var i = 0; i < 4; ++i) {
 
             // Get the normal of this triangle, and project the excluded
@@ -54,9 +56,6 @@ class Tetmesh {
             // face is inverted. We can fix this by swapping any two points
             // in the tetrahedron that are included in this face.
             var tri = tris[i];
-            console.log(tri);
-            console.log(this.vertices);
-            console.log(this.vertices[tri[0]]);
             var a = this.vertices[tri[0]];
             var b = this.vertices[tri[1]];
             var c = this.vertices[tri[2]];
@@ -65,6 +64,7 @@ class Tetmesh {
             var ac = c - a;
             var ad = d - a;
             var n = new THREE.Vector3();
+            norms.push(n);
             n.crossVectors(ac, ab);
             if (n.dot(ad) > 0) {
                 var tmp = tet[tri[0]];
@@ -73,7 +73,28 @@ class Tetmesh {
             }
         }
 
+        // Store the new tet
         this.tetrahedra.push(tet);
+    }
+
+    is_inside(point) {
+
+        // If this point is on the back face of all 
+        for (var i = 0; i < this.tetrahedra.length; ++i) {
+            var inside = true;
+            for (var j = 0; j < 4; ++j) {
+                var tri = tris[j];
+                var n = norms[j];
+                var a = this.vertices[tri[0]];
+                var av = point - a;
+                var proj = n.dot(av);
+                if (proj > 0) {
+                    inside = false;
+                    break;
+                }
+            }
+        }
+        return inside;
     }
 
     randomize() {
@@ -89,32 +110,6 @@ class Tetmesh {
 
         // Add a couple tets
         this.add_tet([ 0, 1, 2, 3 ]);
-        //this.tetrahedra.push([0, 1, 2, 3]);
-        /*
-        {
-            vert = this.vertices[3];
-            var a = new THREE.Vector3(vert[0], vert[1], vert[2]);
-            vert = this.vertices[1];
-            var b = new THREE.Vector3(vert[0], vert[1], vert[2]);
-            vert = this.vertices[2];
-            var c = new THREE.Vector3(vert[0], vert[1], vert[2]);
-            vert = this.vertices[0];
-            var d = new THREE.Vector3(vert[0], vert[1], vert[2]);
-            var vect = new THREE.Vector3(vert[0], vert[1], vert[2]);
-            var ba = a - b;
-            var bc = c - b;
-            var n = ba.cross(bc);
-            var side = n.dot(d - a) > 0;
-            for (var i = 1; i < this.vertices.length; ++i) {
-                vert = this.vertices[i];
-                var this_side = n.dot(vert - a) > 0;
-                if (side != this_side) {
-                    this.vertices.push(vert);
-                    break;
-                }
-            }
-        }
-        */
     }
 }
 
@@ -162,12 +157,13 @@ var pointMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 var tetMaterial = new THREE.MeshNormalMaterial();//{ side: THREE.DoubleSide });
 
 class TetmeshActor extends Actor {
-    constructor(scene, tetmesh) {
+    constructor(scene, tetmesh, mouse) {
         super();
         this.scene = scene;
         this.tetmesh = tetmesh;
         this.set_tetmesh(tetmesh);
         this.mouseInteraction = false;
+        this.mouse = mouse;
         this.obj;
     }
 
@@ -228,11 +224,28 @@ class TetmeshActor extends Actor {
         this.obj.rotation.y += 0.005 * multiplier;
         this.obj.rotation.z += 0.001 * multiplier;
     }
+
+    mouseMove(event) {
+
+        // calculate mouse position in normalized device coordinates
+        // (-1 to +1) for both components
+
+        mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+        mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+        // Cast to each point
+        var raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera( mouse, tetmeshScene.camera );
+        var intersects = raycaster.intersectObjects(this.obj, true);
+        console.log(intersects);
+    }
 }
 
 //
 // Global Data (shhh! don't tell anyone)
 //
+
+var mouse = new THREE.Vector2();
 
 // Scene references
 var tetmeshScene;
@@ -253,10 +266,11 @@ $(document).ready(function() {
         actors.push(tetmeshScene);
         var tetmesh = new Tetmesh();
         tetmesh.randomize();
-        var tetmeshActor = new TetmeshActor(tetmeshScene.scene, tetmesh);
+        var tetmeshActor = new TetmeshActor(tetmeshScene.scene, tetmesh, mouse);
         actors.push(tetmeshActor);
         container.mouseenter(function() { tetmeshActor.mouseInteraction = true; });
         container.mouseleave(function() { tetmeshActor.mouseInteraction = false; });
+        container.mousemove(tetmeshActor.mouseMove);
     }
 
     //
