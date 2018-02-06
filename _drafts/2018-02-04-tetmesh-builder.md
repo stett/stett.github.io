@@ -38,6 +38,44 @@ class Tetmesh {
         this.tetrahedra = [];
     }
 
+    add_tet(tet) {
+
+        var tris = [
+            [0, 3, 1, 2], // The last element in each triangle array is
+            [0, 1, 2, 3], // the index of the EXCLUDED point!
+            [0, 2, 3, 1],
+            [1, 3, 2, 0]
+        ];
+
+        for (var i = 0; i < 4; ++i) {
+
+            // Get the normal of this triangle, and project the excluded
+            // point onto it. If they have a positive projection, then the
+            // face is inverted. We can fix this by swapping any two points
+            // in the tetrahedron that are included in this face.
+            var tri = tris[i];
+            console.log(tri);
+            console.log(this.vertices);
+            console.log(this.vertices[tri[0]]);
+            var a = this.vertices[tri[0]];
+            var b = this.vertices[tri[1]];
+            var c = this.vertices[tri[2]];
+            var d = this.vertices[tri[3]];
+            var ab = b - a;
+            var ac = c - a;
+            var ad = d - a;
+            var n = new THREE.Vector3();
+            n.crossVectors(ac, ab);
+            if (n.dot(ad) > 0) {
+                var tmp = tet[tri[0]];
+                tet[tri[0]] = tet[tri[1]];
+                tet[tri[1]] = tmp;
+            }
+        }
+
+        this.tetrahedra.push(tet);
+    }
+
     randomize() {
 
         // Add some verts
@@ -50,7 +88,8 @@ class Tetmesh {
         }
 
         // Add a couple tets
-        this.tetrahedra.push([0, 1, 2, 3]);
+        this.add_tet([ 0, 1, 2, 3 ]);
+        //this.tetrahedra.push([0, 1, 2, 3]);
         /*
         {
             vert = this.vertices[3];
@@ -120,7 +159,7 @@ class SceneActor extends Actor {
 
 var pointGeometry = new THREE.SphereGeometry( .5, 32, 32 );
 var pointMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-var tetMaterial = new THREE.MeshNormalMaterial({ side: THREE.DoubleSide });
+var tetMaterial = new THREE.MeshNormalMaterial();//{ side: THREE.DoubleSide });
 
 class TetmeshActor extends Actor {
     constructor(scene, tetmesh) {
@@ -169,10 +208,10 @@ class TetmeshActor extends Actor {
             for (var i = 0; i < tetmesh.tetrahedra.length; ++i) {
                 var tet = tetmesh.tetrahedra[i];
                 console.log(tet);
+                tetGeo.faces.push(new THREE.Face3(tet[0], tet[3], tet[1]));
                 tetGeo.faces.push(new THREE.Face3(tet[0], tet[1], tet[2]));
-                tetGeo.faces.push(new THREE.Face3(tet[1], tet[2], tet[3]));
-                tetGeo.faces.push(new THREE.Face3(tet[0], tet[1], tet[3]));
                 tetGeo.faces.push(new THREE.Face3(tet[0], tet[2], tet[3]));
+                tetGeo.faces.push(new THREE.Face3(tet[1], tet[3], tet[2]));
             }
             tetGeo.computeBoundingSphere();
             tetGeo.computeFaceNormals();
