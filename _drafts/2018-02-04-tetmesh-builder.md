@@ -43,8 +43,27 @@ class Tet {
     constructor(indices, vertices) {
         this.indices = indices;
         this.vertices = vertices;
+        this.compute_normals();
 
-        // compute normals
+        // If any normal is inverted, swap two
+        // vertex indices and invert all of the normals.
+        {
+            var a = this.get_vert(0, 0);
+            var d = this.get_vert(0, 3);
+            var n = this.get_norm(0);
+            var ad = new THREE.Vector3();
+            ad.subVectors(d, a);
+            if (n.dot(ad) > 0) {
+                console.log("INVERT");
+                var temp = this.indices[0];
+                this.indices[0] = this.indices[1];
+                this.indices[1] = temp;
+                this.compute_normals();
+            }
+        }
+    }
+
+    compute_normals() {
         this.normals = [];
         for (var i = 0; i < 4; ++i) {
             var tri = this.get_tri(i);
@@ -59,26 +78,6 @@ class Tet {
             n.crossVectors(ac, ab);
             this.normals.push(n);
         }
-
-        // If any normal is inverted, swap two
-        // vertex indices and invert all of the normals.
-        {
-            var a = this.get_vert(0, 0);
-            var d = this.get_vert(0, 3);
-            var n = this.get_norm(0);
-            var ad = new THREE.Vector3();
-            ad.subVectors(d, a);
-            if (n.dot(ad) > 0) {
-                var temp = this.indices[0];
-                this.indices[0] = this.indices[1];
-                this.indices[1] = temp;
-                for (var i = 0; i < 4; ++i) {
-                    this.normals[i].x = -this.normals[i].x;
-                    this.normals[i].y = -this.normals[i].y;
-                    this.normals[i].z = -this.normals[i].z;
-                }
-            }
-        }
     }
 
     get_tri(index) {
@@ -92,6 +91,13 @@ class Tet {
     get_vert(tri_index, vert_index) {
         var tri = this.get_tri(tri_index);
         return this.vertices[tri[vert_index]];
+    }
+
+    get_verts(tri_index) {
+        return [
+            this.get_vert(tri_index, 0),
+            this.get_vert(tri_index, 1),
+            this.get_vert(tri_index, 1)];
     }
 
     get_norm(index) {
@@ -202,6 +208,7 @@ var pointGeometry = new THREE.SphereGeometry( .5, 32, 32 );
 var pointMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
 var pointMaterialActive = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 var tetMaterial = new THREE.MeshNormalMaterial();
+var tetMaterialPreview = new THREE.MeshBasicMaterial({ color: 0x777777, wireframe: true });
 
 class TetmeshActor extends Actor {
     constructor(scene, camera, tetmesh, mouse) {
@@ -211,7 +218,10 @@ class TetmeshActor extends Actor {
         this.mouseInteraction = false;
         this.mouse = mouse;
         this.obj = null;
+        this.preview_obj = null;
         this.active_point = null;
+        this.tetmesh = null;
+        this.preview_tet = null;
         this.set_tetmesh(tetmesh);
     }
 
@@ -232,6 +242,7 @@ class TetmeshActor extends Actor {
                 var vert = tetmesh.vertices[i];
                 var mesh = new THREE.Mesh(pointGeometry, pointMaterial);
                 mesh.position.set(vert.x, vert.y, vert.z);
+                mesh.index = i;
                 points_obj.add(mesh);
                 this.points.push(mesh);
             }
@@ -268,18 +279,60 @@ class TetmeshActor extends Actor {
         }
 
         // Color the current active point
+        this.active_point = new_active_point;
         this.active_point.material = pointMaterialActive;
 
-        // Figure out which face this point will be extending
-        for (var i = 0; i < this.tetmesh.tetrahedra.length; ++i) {
-            var tet = this.tetmesh.tetrahedra[i];
-            for (var j = 0; j < 4; ++j) {
-                var tri = tetTris[j];
-
-                //
-                // TODO
-                //
+        // Figure out which face this point will be extending.
+        // We pick the "closest" one which faces the point.
+        var indices = [];
+        {
+            var active_index = this.active_point.index;
+            var min_proj = -1;
+            for (var i = 0; i < this.tetmesh.tetrahedra.length; ++i) {
+                var tet = this.tetmesh.tetrahedra[i];
+                for (var j = 0; j < 4; ++j) {
+                    var tri = tet.get_tri(j);
+                    var n = tet.get_norm(j);
+                    var a = this.tetmesh.vertices[tri[0]];
+                    var p = this.tetmesh.vertices[active_index];
+                    var ap = new THREE.Vector3();
+                    ap.subVectors(p, a);
+                    var proj = n.dot(ap);
+                    //console.log(proj);
+                    if (0 < proj && (min_proj < 0 || proj < min_proj)) {
+                        min_proj = proj;
+                        indices = [ tri[0], tri[1], tri[2], active_index];
+                    }
+                }
             }
+        }
+
+        // Delete the old preview tet 3js obj
+        if (this.preview_obj != null) {
+            this.obj.remove(this.preview_obj);
+        }
+
+        // Make a new preview tet 3js obj
+        {
+            var tetGeo = new THREE.Geometry();
+            for (var i = 0; i < this.tetmesh.vertices.length; ++i) {
+                var vert = this.tetmesh.vertices[i];
+                tetGeo.vertices.push(vert);
+            }
+
+            for (var i = 0; i < 4; ++i) {
+                var tri = [
+                    indices[tet_tris[i][0]],
+                    indices[tet_tris[i][1]],
+                    indices[tet_tris[i][2]]
+                ];
+                var face = new THREE.Face3(tri[0], tri[1], tri[2]);
+                tetGeo.faces.push(face);
+            }
+
+            tetGeo.computeBoundingSphere();
+            this.preview_obj = new THREE.Mesh(tetGeo, tetMaterialPreview);
+            this.obj.add(this.preview_obj);
         }
     }
 
@@ -290,14 +343,12 @@ class TetmeshActor extends Actor {
         this.obj.rotation.z += 0.001 * multiplier;
 
         // Raycast to each point, "activate" the first one
-        /*
         var raycaster = new THREE.Raycaster();
         raycaster.setFromCamera( this.mouse, this.camera );
         var intersects = raycaster.intersectObjects(this.points, true);
         if (intersects.length > 0) {
             this.set_active_point(intersects[0].object);
         }
-        */
     }
 }
 
