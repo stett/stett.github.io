@@ -24,9 +24,22 @@ div.centered {
 
 </style>
 
+In a simulation of solid mechanics, the shape of an object is usually discretized into geometric regions which share faces and nodes. Especially in FEM, it is common to use tetrahedra for the element shape due to the simple interpolating functions that result.
+
+The following widget allows you to make simple tweaks to a random tetrahedral mesh. By clicking unconnected nodes, you can add tetrahedra to the mesh.
+
 <div class="container-3js" id="{{ page.title | slugify }}-tetmesh" style="height:300px;"></div>
 
+A network of connected nodes represents the tetrahedral regions of a solid object. The connectivity of the network along with the material properties of the object determine the physical reaction to stresses and strains.
+
+The stress/strain relationship between every pair of nodes can be represented as a square, symmetric matrix, called the _stiffness matrix_. The purpose of the WebGL demos in this article are to visually demonstrate how changing the connectivity of a tetrahedral mesh changes the matrix representation of the stiffness matrix.
+
 <script type="text/javascript">
+
+//
+// Dear lord, please save my soul. I knoweth the horrors of this code
+// which I have brought up, yet I have done nothing to correct it.
+//
 
 //
 // Data Structures
@@ -54,7 +67,6 @@ class Tet {
             var ad = new THREE.Vector3();
             ad.subVectors(d, a);
             if (n.dot(ad) > 0) {
-                console.log("INVERT");
                 var temp = this.indices[0];
                 this.indices[0] = this.indices[1];
                 this.indices[1] = temp;
@@ -206,7 +218,8 @@ class SceneActor extends Actor {
 
 var pointGeometry = new THREE.SphereGeometry( .5, 32, 32 );
 var pointMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-var pointMaterialActive = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+var pointMaterialAddActive = new THREE.MeshBasicMaterial({ color: 0x00addf });
+var pointMaterialSplitActive = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 var tetMaterial = new THREE.MeshNormalMaterial();
 var tetMaterialPreview = new THREE.MeshBasicMaterial({ color: 0x777777, wireframe: true });
 
@@ -221,7 +234,7 @@ class TetmeshActor extends Actor {
         this.preview_obj = null;
         this.active_point = null;
         this.tetmesh = null;
-        this.preview_tet = null;
+        this.active_indices = null;
         this.set_tetmesh(tetmesh);
     }
 
@@ -233,7 +246,7 @@ class TetmeshActor extends Actor {
         }
 
         this.obj = new THREE.Object3D();
-        this.points = [];
+        this.add_points = [];
 
         // Add new points
         {
@@ -244,7 +257,11 @@ class TetmeshActor extends Actor {
                 mesh.position.set(vert.x, vert.y, vert.z);
                 mesh.index = i;
                 points_obj.add(mesh);
-                this.points.push(mesh);
+
+                // The first four points belong to a tet already, so don't add them
+                if (i > 3) {
+                    this.add_points.push(mesh);
+                }
             }
             this.obj.add(points_obj);
         }
@@ -253,8 +270,7 @@ class TetmeshActor extends Actor {
         {
             var tetGeo = new THREE.Geometry();
             for (var i = 0; i < tetmesh.vertices.length; ++i) {
-                var vert = tetmesh.vertices[i];
-                tetGeo.vertices.push(vert);
+                tetGeo.vertices.push(tetmesh.vertices[i]);
             }
             for (var i = 0; i < tetmesh.tetrahedra.length; ++i) {
                 var tet = tetmesh.tetrahedra[i];
@@ -262,6 +278,7 @@ class TetmeshActor extends Actor {
                     tetGeo.faces.push(tet.make_face(j));
                 }
             }
+
             tetGeo.computeBoundingSphere();
             tetGeo.computeFaceNormals();
             var mesh = new THREE.Mesh(tetGeo, tetMaterial);
@@ -278,13 +295,23 @@ class TetmeshActor extends Actor {
             this.active_point.material = pointMaterial;
         }
 
-        // Color the current active point
+        // Delete the old preview tet 3js obj
+        if (this.preview_obj != null) {
+            this.obj.remove(this.preview_obj);
+        }
+
+        // Select the new active point
         this.active_point = new_active_point;
-        this.active_point.material = pointMaterialActive;
+        if (!this.active_point) {
+            return;
+        }
+
+        // Color the current active point
+        this.active_point.material = pointMaterialAddActive;
 
         // Figure out which face this point will be extending.
         // We pick the "closest" one which faces the point.
-        var indices = [];
+        this.active_indices = [];
         {
             var active_index = this.active_point.index;
             var min_proj = -1;
@@ -301,38 +328,59 @@ class TetmeshActor extends Actor {
                     //console.log(proj);
                     if (0 < proj && (min_proj < 0 || proj < min_proj)) {
                         min_proj = proj;
-                        indices = [ tri[0], tri[1], tri[2], active_index];
+                        this.active_indices = [ tri[0], tri[1], tri[2], active_index];
                     }
                 }
             }
-        }
-
-        // Delete the old preview tet 3js obj
-        if (this.preview_obj != null) {
-            this.obj.remove(this.preview_obj);
         }
 
         // Make a new preview tet 3js obj
         {
             var tetGeo = new THREE.Geometry();
             for (var i = 0; i < this.tetmesh.vertices.length; ++i) {
-                var vert = this.tetmesh.vertices[i];
-                tetGeo.vertices.push(vert);
+                tetGeo.vertices.push(this.tetmesh.vertices[i]);
             }
-
             for (var i = 0; i < 4; ++i) {
-                var tri = [
-                    indices[tet_tris[i][0]],
-                    indices[tet_tris[i][1]],
-                    indices[tet_tris[i][2]]
-                ];
-                var face = new THREE.Face3(tri[0], tri[1], tri[2]);
-                tetGeo.faces.push(face);
+                var tri = [this.active_indices[tet_tris[i][0]], this.active_indices[tet_tris[i][1]], this.active_indices[tet_tris[i][2]] ];
+                tetGeo.faces.push(new THREE.Face3(tri[0], tri[1], tri[2]));
             }
-
             tetGeo.computeBoundingSphere();
             this.preview_obj = new THREE.Mesh(tetGeo, tetMaterialPreview);
             this.obj.add(this.preview_obj);
+        }
+    }
+
+    add_active_tet() {
+        if (this.active_point) {
+
+            // Add the geometry to the tetmesh and the 3js obj
+            {
+                this.tetmesh.add_tet(this.active_indices);
+                var tet = this.tetmesh.tetrahedra[this.tetmesh.tetrahedra.length - 1];
+                var tetGeo = new THREE.Geometry();
+                for (var i = 0; i < this.tetmesh.vertices.length; ++i) {
+                    tetGeo.vertices.push(this.tetmesh.vertices[i]);
+                }
+                for (var i = 0; i < 4; ++i) {
+                    var tri = [this.active_indices[tet_tris[i][0]], this.active_indices[tet_tris[i][1]], this.active_indices[tet_tris[i][2]] ];
+                    tetGeo.faces.push(new THREE.Face3(tri[0], tri[1], tri[2]));
+                }
+                tetGeo.computeBoundingSphere();
+                tetGeo.computeFaceNormals();
+                var mesh = new THREE.Mesh(tetGeo, tetMaterial);
+                this.obj.add(mesh);
+            }
+
+            // remove from the add points list so it won't be cast against any more
+            {
+                var old_idx = 0;
+                for (; old_idx < this.add_points.length; ++old_idx) {
+                    if (this.add_points[old_idx] == this.active_point) {
+                        break;
+                    }
+                }
+                this.add_points.splice(old_idx, 1);
+            }
         }
     }
 
@@ -345,9 +393,11 @@ class TetmeshActor extends Actor {
         // Raycast to each point, "activate" the first one
         var raycaster = new THREE.Raycaster();
         raycaster.setFromCamera( this.mouse, this.camera );
-        var intersects = raycaster.intersectObjects(this.points, true);
+        var intersects = raycaster.intersectObjects(this.add_points, true);
         if (intersects.length > 0) {
             this.set_active_point(intersects[0].object);
+        } else {
+            this.set_active_point(null);
         }
     }
 }
@@ -385,11 +435,15 @@ $(document).ready(function() {
         actors.push(tetmeshActor);
         container.mouseenter(function() { tetmeshActor.mouseInteraction = true; });
         container.mouseleave(function() { tetmeshActor.mouseInteraction = false; });
-        container.mousemove(function(e) { 
+        container.mousemove(function(e) {
             // calculate mouse position in normalized device coordinates
             // (-1 to +1) for both components
-            tetmeshMouse.x = ( (event.clientX - container[0].offsetLeft) / container.width() ) * 2 - 1;
-            tetmeshMouse.y = -( (event.clientY - container[0].offsetTop) / container.height() ) * 2 + 1;
+            var rect = container[0].getBoundingClientRect();
+            tetmeshMouse.x = ( (event.clientX - rect.left) / container.width() ) * 2 - 1;
+            tetmeshMouse.y = -( (event.clientY - rect.top) / container.height() ) * 2 + 1;
+        });
+        container.mousedown(function(e) {
+            tetmeshActor.add_active_tet();
         });
     }
 
