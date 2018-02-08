@@ -124,7 +124,7 @@ class Actor {
 var actors = [];
 
 class SceneActor extends Actor {
-    constructor(container, height=5) {
+    constructor(container, height=5, perspective=false) {
         super();
         this.container = container;
         var containerWidth = container.width();
@@ -133,7 +133,13 @@ class SceneActor extends Actor {
         this.cameraHeight = height;
         this.cameraHeightTarget = height;
         this.scene = new THREE.Scene();
-        this.camera = new THREE.OrthographicCamera( -height*this.aspect, height*this.aspect, -height, height, 1, 1000);
+
+        if (perspective) {
+            this.camera = new THREE.PerspectiveCamera(45, this.aspect, 0.1, 1000);
+        } else {
+            this.camera = new THREE.OrthographicCamera( -height*this.aspect, height*this.aspect, -height, height, 1, 1000);
+        }
+
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setSize( containerWidth, containerHeight );
         this.renderer.setClearColor(0xFCFAF7, 1);
@@ -152,33 +158,31 @@ class SceneActor extends Actor {
     }
 }
 
-var pointGeometry = new THREE.SphereGeometry( .5, 32, 32 );
-var pointMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+var pointGeometry = new THREE.SphereGeometry( .75, 32, 32 );
+var pointMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+var pointMaterialHover = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 var tetMaterial = new THREE.MeshNormalMaterial();//{ side: THREE.DoubleSide });
 
 class TetmeshActor extends Actor {
-    constructor(scene, tetmesh, mouse) {
+    constructor(scene, camera, tetmesh, mouse) {
         super();
         this.scene = scene;
-        this.tetmesh = tetmesh;
-        this.set_tetmesh(tetmesh);
+        this.camera = camera;
         this.mouseInteraction = false;
         this.mouse = mouse;
-        this.obj;
+        this.obj = null;
+        this.set_tetmesh(tetmesh);
     }
 
     set_tetmesh(tetmesh) {
         this.tetmesh = tetmesh;
+
+        if (this.obj != null) {
+            this.scene.remove(this.obj);
+        }
+
         this.obj = new THREE.Object3D();
-
-        // Delete existing point data
-        if (this.points_obj != null) {
-            this.scene.remove(this.points_obj);
-        }
-
-        if (this.tets_obj != null) {
-            this.scene.remove(this.tets_obj);
-        }
+        this.points = [];
 
         // Add new points
         {
@@ -188,6 +192,7 @@ class TetmeshActor extends Actor {
                 var mesh = new THREE.Mesh(pointGeometry, pointMaterial);
                 mesh.position.set(vert[0], vert[1], vert[2]);
                 points_obj.add(mesh);
+                this.points.push(mesh);
             }
             this.obj.add(points_obj);
         }
@@ -199,11 +204,9 @@ class TetmeshActor extends Actor {
                 var vert = tetmesh.vertices[i];
                 var vect = new THREE.Vector3(vert[0], vert[1], vert[2]);
                 tetGeo.vertices.push(vect);
-                console.log(vect);
             }
             for (var i = 0; i < tetmesh.tetrahedra.length; ++i) {
                 var tet = tetmesh.tetrahedra[i];
-                console.log(tet);
                 tetGeo.faces.push(new THREE.Face3(tet[0], tet[3], tet[1]));
                 tetGeo.faces.push(new THREE.Face3(tet[0], tet[1], tet[2]));
                 tetGeo.faces.push(new THREE.Face3(tet[0], tet[2], tet[3]));
@@ -223,21 +226,19 @@ class TetmeshActor extends Actor {
         this.obj.rotation.x += 0.01 * multiplier;
         this.obj.rotation.y += 0.005 * multiplier;
         this.obj.rotation.z += 0.001 * multiplier;
+
+        // Cast to each point
+        var raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera( this.mouse, this.camera );
+        var intersects = raycaster.intersectObjects(this.points, true);
+        if (intersects.length > 0) {
+            intersects[0].object.material = pointMaterialHover;
+            console.log("Swapping material");
+        }
     }
 
     mouseMove(event) {
 
-        // calculate mouse position in normalized device coordinates
-        // (-1 to +1) for both components
-
-        mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-        mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-
-        // Cast to each point
-        var raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera( mouse, tetmeshScene.camera );
-        var intersects = raycaster.intersectObjects(this.obj, true);
-        console.log(intersects);
     }
 }
 
@@ -245,9 +246,9 @@ class TetmeshActor extends Actor {
 // Global Data (shhh! don't tell anyone)
 //
 
-var mouse = new THREE.Vector2();
 
 // Scene references
+var tetmeshMouse = new THREE.Vector2();
 var tetmeshScene;
 
 //
@@ -266,11 +267,20 @@ $(document).ready(function() {
         actors.push(tetmeshScene);
         var tetmesh = new Tetmesh();
         tetmesh.randomize();
-        var tetmeshActor = new TetmeshActor(tetmeshScene.scene, tetmesh, mouse);
+        var tetmeshActor = new TetmeshActor(
+            tetmeshScene.scene,
+            tetmeshScene.camera,
+            tetmesh,
+            tetmeshMouse);
         actors.push(tetmeshActor);
         container.mouseenter(function() { tetmeshActor.mouseInteraction = true; });
         container.mouseleave(function() { tetmeshActor.mouseInteraction = false; });
-        container.mousemove(tetmeshActor.mouseMove);
+        container.mousemove(function(e) { 
+            // calculate mouse position in normalized device coordinates
+            // (-1 to +1) for both components
+            tetmeshMouse.x = ( (event.clientX - container[0].offsetLeft) / container.width() ) * 2 - 1;
+            tetmeshMouse.y = -( (event.clientY - container[0].offsetTop) / container.height() ) * 2 + 1;
+        });
     }
 
     //
