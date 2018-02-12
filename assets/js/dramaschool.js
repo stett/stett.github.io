@@ -5,7 +5,11 @@ var DRAMA = DRAMA || {
     },
 
     add: function(newActor) {
-        DRAMA.actors.push(newActor);
+        if (newActor) {
+            DRAMA.actors.push(newActor);
+        } else {
+            console.log("Cannot add actor: " + newActor);
+        }
     },
 
     actors: [],
