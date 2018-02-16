@@ -1,6 +1,7 @@
 //
-// Dear lord, please save my soul. I knoweth the horrors of this code
-// which I have brought up, yet I have done nothing to correct it.
+// Dear lord, please save my soul from the evils of this damned spaghetti.
+// For I knoweth the horrors of this code which I have brought up with my
+// own hands, yet I hath done nothing to correct it.
 //
 
 var TetMeshBuilder = TetMeshBuilder || {
@@ -24,27 +25,17 @@ var TetMeshBuilder = TetMeshBuilder || {
         [1, 2, 3, 0]
     ],
 
+    //
+    // Data structures
+    //
+
     Tet: class {
         constructor(indices, vertices) {
             this.indices = indices;
             this.vertices = vertices;
             this.compute_normals();
-
-            // If any normal is inverted, swap two
-            // vertex indices and invert all of the normals.
-            {
-                var a = this.get_vert(0, 0);
-                var d = this.get_vert(0, 3);
-                var n = this.get_norm(0);
-                var ad = new THREE.Vector3();
-                ad.subVectors(d, a);
-                if (n.dot(ad) > 0) {
-                    var temp = this.indices[0];
-                    this.indices[0] = this.indices[1];
-                    this.indices[1] = temp;
-                    this.compute_normals();
-                }
-            }
+            this.compute_indices();
+            this.compute_stiffness();
         }
 
         compute_normals() {
@@ -62,6 +53,43 @@ var TetMeshBuilder = TetMeshBuilder || {
                 n.crossVectors(ac, ab);
                 this.normals.push(n);
             }
+        }
+
+        compute_indices() {
+            // If any normal is inverted, swap two
+            // vertex indices and invert all of the normals.
+            var a = this.get_vert(0, 0);
+            var d = this.get_vert(0, 3);
+            var n = this.get_norm(0);
+            var ad = new THREE.Vector3();
+            ad.subVectors(d, a);
+            if (n.dot(ad) > 0) {
+                var temp = this.indices[0];
+                this.indices[0] = this.indices[1];
+                this.indices[1] = temp;
+                this.compute_normals();
+            }
+        }
+
+        compute_stiffness() {
+            this.stiffness = [
+                [ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 ],
+                [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 ]
+            ];
+
+            //
+            // TODO!
+            //
         }
 
         get_tri(index) {
@@ -362,22 +390,27 @@ var TetMeshBuilder = TetMeshBuilder || {
         }
     },
 
-    //
-    // Global Data (shhh! don't tell anyone)
-    //
+    onReady: function(container) {
 
-    onReady: function() {
-        var container = $("#tetmeshbuilder-tetmesh");
+        // Add a scene
         TetMeshBuilder.tetmeshScene = new TetMeshBuilder.SceneActor(container, 20);
         DRAMA.add(TetMeshBuilder.tetmeshScene);
+
+        // Add some tetmesh data
         var tetmesh = new TetMeshBuilder.Tetmesh();
         tetmesh.randomize();
+
+        // Add an actor to control & display the tetmesh
         var tetmeshActor = new TetMeshBuilder.TetmeshActor(
             TetMeshBuilder.tetmeshScene.scene,
             TetMeshBuilder.tetmeshScene.camera,
             tetmesh,
             TetMeshBuilder.tetmeshMouse);
         DRAMA.add(tetmeshActor);
+
+        // Add some interactions for the tetmesh actor... this
+        // raycasts into the mesh if mouse is over the element area,
+        // and tries to add a tetrahedron when a click occurs.
         container.mouseenter(function() { tetmeshActor.mouseInteraction = true; });
         container.mouseleave(function() { tetmeshActor.mouseInteraction = false; });
         container.mousemove(function(e) {

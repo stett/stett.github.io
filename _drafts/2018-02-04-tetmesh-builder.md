@@ -25,7 +25,6 @@ div.centered {
 
 </style>
 
-
 In a simulation of solid mechanics, the shape of an object is usually discretized into geometric regions which share faces and nodes. Especially in FEM, it is common to use tetrahedra for the element shape due to the simple interpolating functions that result.
 
 A network of connected nodes represents the tetrahedral regions of a solid object. The connectivity of the network along with the material properties of the object determine the physical reaction to stresses and strains.
@@ -34,12 +33,19 @@ The following widget allows you to make simple tweaks to a random tetrahedral me
 
 <div class="container-3js" id="tetmeshbuilder-tetmesh" style="height:300px;"></div>
 
-The stress/strain relationship between every pair of nodes can be represented as a square, symmetric matrix, called the _stiffness matrix_. The purpose of the WebGL demos in this article are to visually demonstrate how changing the connectivity of a tetrahedral mesh changes the matrix representation of the stiffness matrix.
+The stress/strain relationship between every pair of nodes can be represented as a sparse, square, symmetric matrix, called the _stiffness matrix_. The following widget illustrates the stiffness matrices for each of the tetrahedra in the mesh above.
 
-<script src="{{ site.url }}/assets/js/tetmeshbuilder.js"></script>
+<div class="container-3js" id="tetmeshbuilder-tetstiffinspector" style="height:300px;"></div>
+
+<br>
 
 <script>
+{% include js/tetmeshbuilder.js %}
+{% include js/tetstiffinspector.js %}
+
+// Attach the tetmesh builder & stiffness inspector to the correct elements
 $(document).ready(function() {
-    TetMeshBuilder.onReady();
+    TetMeshBuilder.onReady($("#tetmeshbuilder-tetmesh"));
+    TetStiffInspector.onReady($("#tetmeshbuilder-tetstiffinspector"));
 });
 </script>

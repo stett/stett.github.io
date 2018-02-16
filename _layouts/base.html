@@ -12,14 +12,16 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
     <![endif]-->
 
+    <!--<script data-main="{{ site.url }}/assets/js" src="{{ site.url }}/assets/js/require.js"></script>-->
+
     <!-- JQuery -->
     {% if page.jquery %}
-    <script type="text/javascript" src="{{ site.url }}/assets/jquery.min.js"></script>
+    <script src="{{ site.url }}/assets/jquery.min.js"></script>
     {% endif %}
 
     <!-- ThreeJS -->
     {% if page.threejs %}
-    <script type="text/javascript" src="{{ site.url }}/assets/three.min.js"></script>
+    <script src="{{ site.url }}/assets/three.min.js"></script>
     {% endif %}
 
     <!-- Mathjax -->
@@ -29,7 +31,7 @@
 
     <!-- Drama School -->
     {% if page.dramaschool %}
-    <script type="text/javascript" src="{{ site.url }}/assets/js/dramaschool.js"></script>
+    <script src="{{ site.url }}/assets/js/dramaschool.js"></script>
     {% endif %}
 </head>
 
