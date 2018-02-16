@@ -25,6 +25,7 @@ var MatrixQuadActor = MatrixQuadActor || class extends DRAMA.Actor {
                 this.object.add(mesh);
             }
         }
+
         this.scene.add( this.object );
     }
 }
