@@ -4,11 +4,24 @@ var DRAMA = DRAMA || {
         update() {}
     },
 
+    actorId: 0,
+
     add: function(newActor) {
         if (newActor) {
+            newActor.id = DRAMA.actorId;
+            DRAMA.actorId += 1;
             DRAMA.actors.push(newActor);
         } else {
-            console.log("Cannot add actor: " + newActor);
+        }
+    },
+
+    remove: function(oldActor) {
+        var newActors = [];
+        for (var i = 0; i < DRAMA.actors.length; ++i) {
+            var actor = DRAMA.actors[i];
+            if (actor.id != oldActor.id) {
+                newActors.push(actor);
+            }
         }
     },
 

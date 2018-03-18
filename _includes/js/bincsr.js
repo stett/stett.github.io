@@ -11,7 +11,7 @@ var BinIntermediate = BinIntermediate || class {
 }
 
 var BinCSRIntermediate = BinCSRIntermediate || class {
-    constructor(width, matrix=[[]]) {
+    constructor(width, matrix=[]) {
         this.width = width;
         this.set_matrix(matrix);
     }
