@@ -1,5 +1,6 @@
-highlighter: 'rouge'
+url: https://stett.github.io
 permalink: /:title
+highlighter: 'rouge'
 markdown: kramdown
 kramdown:
   input: GFM
