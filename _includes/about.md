@@ -5,9 +5,11 @@ I'm this guy:
 
 What I'm Up To These Days
 -------------------------
-Working on my masters in computer science at a weird little school called [DigiPen](https://www.digipen.edu/), and writing code for the Minecraft team at Microsoft.
+I am working on a teeny little project at Epic Games. What a wild ride!
 
-Previously I worked for a kick-ass indie game studio called [Strange Loop Games](http://www.strangeloopgames.com/).
+A couple years ago I completed my masters in computer science at a weird little school called [DigiPen](https://www.digipen.edu/).
+
+During that time I wrote code for the Minecraft team at Microsoft, and before that I worked for a kick-ass indie game studio called [Strange Loop Games](http://www.strangeloopgames.com/).
 
 
 <!--
