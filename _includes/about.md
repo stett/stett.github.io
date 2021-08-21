@@ -1,7 +1,7 @@
 Who I Am
 --------
 I'm this guy:
-![Dragons!]({{ site.url }}/assets/thats-me.png)
+![Dragons!]({{ site.url }}/assets/reverie.jpg)
 
 What I'm Up To These Days
 -------------------------
