@@ -4,5 +4,8 @@ highlighter: 'rouge'
 markdown: kramdown
 kramdown:
   input: GFM
+  math_engine_opts:
+    preview:         true
+    preview_as_code: true
 google_analytics: UA-89661602-1
 excerpt_separator: '<!-- excerpt -->'

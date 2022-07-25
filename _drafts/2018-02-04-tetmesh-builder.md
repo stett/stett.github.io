@@ -3,7 +3,6 @@ title: Tetmesh Builder
 layout: post
 tags: [math, physics]
 comments: false
-math: false
 jquery: true
 threejs: true
 dramaschool: true
