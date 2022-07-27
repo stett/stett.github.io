@@ -9,6 +9,8 @@ layout: base
     {{ content }}
 </article>
 
+{% comment %} <!-- Remove disqus for now -->
 {% if page.comments %}
 {% include disqus.html %}
 {% endif %}
+{% endcomment %}

@@ -19,7 +19,10 @@ dramaschool: true
         </header>
 
         {{ post.content }}
+
+        {% comment %} <!-- For now, disable disqus -->
         [ <a href="{{ post.url }}#comments">Comment</a> ]
+        {% endcomment %}
     </article>
 </div>
 
