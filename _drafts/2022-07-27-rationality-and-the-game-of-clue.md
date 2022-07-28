@@ -4,6 +4,18 @@ layout: post
 math: true
 ---
 
+Some games when broken down into their raw components of probability and choice become practically deterministic. When a "best move" is known (or can be computed) for every possible configuration of the game, then a perfectly dull little algorithm can be made which makes the moves for the player, upping the odds of that player winning, but also upping the odds that they might begin to question the value of their agency.
+
+I think that the development of such an algorithm for games which involve probabilities and unkowns is an interesting pursuit, and is worth a small moment of existential insecurity here and there.
+
+And so here we are, thinking about the game of Clue, wherein middle class family members take up roles as an array of paranoid mystery novel stereotypes and accuse each other of brutal violence. I imagine this game could be made much more interesting to play simply by changing up or adding more categories of clue cards - for example, rather than being limited to hypotheses such as "Ms. Scarlet, in the Library, with a Candlestick", all of which are about murder, you might add various categories of crime or deed, replace the players with historical figures, perhaps add motivations. Players might be prompted to utter historical incongruencies like "Abraham Lincoln, Making a porno, in the Library, with a Candlestick". Far more interesting.
+
+In order to leave the door open to such things, I'll use a generalized representation of the game, where there may be any number of categories of clue card, and any number of cards in each category.
+
+But what happens if we begin to add categories of cards? Does the game become unplayably long? With the original numbers, can we develop an algorithm which will tell us the best possible move to make in every situation?
+
+These are the questions I'm attempting to address in this article.
+
 # Rules
 
 ## Composition of the Game
@@ -51,8 +63,10 @@ That is, the probability that one particular component of our hypothesis is corr
 
 Put more concretely, if there are six weapon cards, but we have seen two of them (and therefore know that the solution set cannot contain those two), then the solution set must contain one of the four remaining weapons. The probability that we get the weapon correct for any of our hypotheses must be 25%.
 
-The combined probability that all of the components of our hypothesis are correct at once is the product of their individual probabilities.
+The combined probability that all of the components of our hypothesis are correct is the product of their individual probabilities.
 
 $$
 P\lparen{H=S}\rparen = \prod_{i=1}^{\lvert{C}\rvert} \frac{1}{C_i - \lvert{K_i}\rvert}
 $$
+
+_We now have a method for evaluating the probability that any particular hypothesis will win us the game!_ How very exciting. Now that we've got all this setup and notational nonsense out of the way, we can start to think about strategy and choice.
