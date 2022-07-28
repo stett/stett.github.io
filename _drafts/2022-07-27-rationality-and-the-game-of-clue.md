@@ -8,7 +8,7 @@ Some games when broken down into their raw components of probability and choice 
 
 I think that the development of such an algorithm for games which involve probabilities and unkowns is an interesting pursuit, and is worth a small moment of existential insecurity here and there.
 
-And so here we are, thinking about the game of Clue, wherein middle class family members take up roles as an array of paranoid mystery novel stereotypes and accuse each other of brutal violence. I imagine this game could be made much more interesting to play simply by changing up or adding more categories of clue cards - for example, rather than being limited to hypotheses such as "Ms. Scarlet, in the Library, with a Candlestick", all of which are about murder, you might add various categories of crime or deed, replace the players with historical figures, perhaps add motivations. Players might be prompted to utter historical incongruencies like "Abraham Lincoln, Making a porno, in the Library, with a Candlestick". Far more interesting.
+And so here we are, thinking about the game of Clue, wherein middle class family members take up roles as an array of paranoid mystery novel stereotypes and accuse each other of brutal violence. I imagine this game could be made much more interesting to play simply by adding more categories of clue cards or changing the ones that are already there. For example, rather than being limited to hypotheses such as "Ms. Scarlet, in the Library, with a Candlestick", all of which are about murder, you might add various categories of crime or deed, replace the players with historical figures, perhaps add motivations. Players might be prompted to utter historical incongruencies like "Abraham Lincoln, Making a porno, in the Library, with a Candlestick". Far more interesting.
 
 In order to leave the door open to such things, I'll use a generalized representation of the game, where there may be any number of categories of clue card, and any number of cards in each category.
 
@@ -51,7 +51,7 @@ $$
 
 At any point, the player has a set of known "innocent" character, weapon, and room cards $$K=\{K_0, K_1, ..., K_{\lvert{C}\rvert}\}$$. This is a set of sets of indices into the clue card sets $$C$$. This can be used to compute the probability $$P\lparen{H=S}\rparen$$ that a hypothesis is equal to the solution set. When this probability is sufficiently low, the hypothesizing player may choose to propose $$H$$ in an attempt to end the game.
 
-Note that the cardinality of a known subset $$\lvert{K}\rvert$$ is _the number of of cards which we know are not in the solution set_.
+Note that _the cardinality of a known subset $$\lvert{K_i}\rvert$$ is the number of of cards of category $$i$$ which we know are not in the solution set_.
 
 Assuming that we do not make a hypothesis which includes any known elements, the probability that component $$i$$ of a hypothesis is correct is
 
@@ -67,6 +67,12 @@ The combined probability that all of the components of our hypothesis are correc
 
 $$
 P\lparen{H=S}\rparen = \prod_{i=1}^{\lvert{C}\rvert} \frac{1}{C_i - \lvert{K_i}\rvert}
+$$
+
+For concreteness, in a regular game this would be
+
+$$
+P\lparen{H=S}\rparen = \frac{1}{6 - \lvert{K_{suspects}}\rvert} \times \frac{1}{6 - \lvert{K_{weapons}}\rvert} \times \frac{1}{9 - \lvert{K_{rooms}}\rvert}.
 $$
 
 _We now have a method for evaluating the probability that any particular hypothesis will win us the game!_ How very exciting. Now that we've got all this setup and notational nonsense out of the way, we can start to think about strategy and choice.
