@@ -21,7 +21,6 @@ div.container-3js canvas {
 div.centered {
     text-align: center;
 }
-
 </style>
 
 In a simulation of solid mechanics, the shape of an object is usually discretized into geometric regions which share faces and nodes. Especially in FEM, it is common to use tetrahedra for the element shape due to the simple interpolating functions that result.
