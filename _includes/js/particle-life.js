@@ -6,38 +6,17 @@ const gl = canvas.getContext('webgl', { preserveDrawingBuffer: true, premultipli
 
 const ext = gl.getExtension("OES_texture_float");
 
-let random = new Random();
-
 // constants
-const G = 1;
-const m = 1;
-//const dt_fixed = .025;
-//const dt_fixed = .05;
 const dt_fixed = .075;
-//const dt_fixed = 0.1;
-//const dt_fixed = random.random_num(0.1, 0.01);//.025;
 var r_min = 1; // distance before which particles only repel
 var r_max = 2; // max interaction distance
-
-// shape of the fbo for particles
-//const shape = [4, 4];
-//const shape = [8, 8];
-//const shape = [16, 16];
-//const shape = [32, 32];
-//const shape = [64, 64];
-const shape = [128, 128];
-//const shape = [256, 256];
-//const shape = [256, 256];
-//const shape = [512, 512];
-//const shape = [1024, 1024];
-//const shape = [2048, 2048];
-//const shape = [4096, 4096];
-const count = shape[0] * shape[1];
 var collision_damping = .2;
 var point_size = 1.5;
-
-// min and max of the sph boundary box...
 const bounds = [-20,-20,-20, 20,20,20];
+
+// mutable simulation state
+var shape = [80, 80];
+var count = shape[0] * shape[1];
 
 // camera orbit
 var orbit_radius = 30;
@@ -167,7 +146,7 @@ var drawQuad;
     gl.enableVertexAttribArray(quad_uvs_loc);
 
     // indices
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, quad_index_buffer); 
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, quad_index_buffer);
 
     // texture
     gl.activeTexture(gl.TEXTURE0);
@@ -185,128 +164,31 @@ var drawQuad;
   }
 }
 
-// initialize color pallette
-var colors = [
+// full color palette (20 colors)
+var all_colors = [
   [91/255,  192/255, 235/255],
   [253/255, 231/255, 76/255],
   [155/255, 197/255, 61/255],
   [229/255, 89/255,  52/255],
   [250/255, 121/255, 33/255],
-
-  [88/255, 53/255, 94/255],
-  [224/255, 54/255, 22/255],
+  [88/255,  53/255,  94/255],
+  [224/255, 54/255,  22/255],
   [255/255, 246/255, 137/255],
   [207/255, 255/255, 176/255],
-  [89/255, 152/255, 197/255]
+  [89/255,  152/255, 197/255],
+  [255/255, 105/255, 180/255],
+  [64/255,  224/255, 208/255],
+  [218/255, 112/255, 214/255],
+  [144/255, 238/255, 144/255],
+  [255/255, 200/255, 87/255],
+  [70/255,  130/255, 180/255],
+  [255/255, 99/255,  71/255],
+  [127/255, 255/255, 0/255],
+  [199/255, 21/255,  133/255],
+  [0/255,   206/255, 209/255],
 ];
 
-// initialize particle interaction matrix
-var interactions = new Float32Array(colors.length * colors.length);
-for (let i = 0; i < interactions.length; ++i) {
-  const val = random.random_num(-1, 1);
-  interactions[i] = val;
-}
-/*var interactions = [
-  1, .5,
-  0, 0,
-];*/
-
-var interactions_pixels = new Float32Array(4 * colors.length * colors.length);
-for (let i = 0; i < interactions.length; ++i) {
-  const val = interactions[i];
-  interactions_pixels[(4*i)+0] = val;
-  interactions_pixels[(4*i)+1] = val;
-  interactions_pixels[(4*i)+2] = val;
-  interactions_pixels[(4*i)+3] = val;
-}
-
-var logicFragAccelerate = `
-  precision mediump float;
-  uniform sampler2D pos_data;
-  uniform sampler2D vel_data;
-  uniform sampler2D col_data;
-  uniform sampler2D interaction_data;
-  uniform float dt;
-  uniform vec3 bounds_min;
-  uniform vec3 bounds_max;
-  uniform float collision_damping;
-  uniform float r_min;
-  uniform float r_max;
-  varying vec2 uv;` +
-  "const ivec2 res = ivec2(" + shape[0] + "," + shape[1] + ");" + `
-
-  void main() {
-    vec3 pos = texture2D(pos_data, uv).xyz;
-    vec3 vel = texture2D(vel_data, uv).xyz;
-    vec4 col = texture2D(col_data, uv).rgba;
-    float type = col.w;
-    vec3 acc = vec3(0);
-    for (int i = 0; i < res.x; ++i)
-    {
-      for (int j = 0; j < res.y; ++j)
-      {
-        vec2 uv2 = vec2(float(i)/float(res.x), float(j)/float(res.y));
-        if (uv2 != uv)
-        {
-          vec3 pos2 = texture2D(pos_data, uv2).xyz;
-          vec4 col2 = texture2D(col_data, uv2).rgba;
-
-          // look up interaction strength from the interaction matrix
-          float type2 = col2.w;
-          vec2 type_uv = vec2(type, type2);
-          //vec2 type_uv = vec2(0,0);
-          float interaction = texture2D(interaction_data, type_uv).x;
-
-          // accelerate based on interaction type
-          vec3 diff = pos2 - pos;
-          float range = r_min;
-          float dist = length(diff);
-          if (dist > .0001)
-          {
-            vec3 dir = diff / dist;
-
-            if (dist < range)
-            {
-              acc += dir * mix(-1., 0., dist / range);
-              continue;
-            }
-
-            dist -= range;
-            range = (r_max - r_min) * .5;
-            if (dist < range)
-            {
-              acc += dir * mix(0., interaction, dist / range);
-              continue;
-            }
-
-            dist -= range;
-            range = (r_max - r_min) * .5;
-            if (dist < range)
-            {
-              acc += dir * mix(interaction, 0., dist / range);
-            }
-          }
-        }
-      }
-    }
-
-    // accelerate
-    vel += acc * dt;
-
-    // damp
-    vel *= .9;
-    //vel *= .8;
-    //vel *= .7;
-
-    // bounce against boundary
-    if ((pos.x <= bounds_min.x && vel.x < 0.) || (pos.x >= bounds_max.x && vel.x > 0.)) { vel.x *= -collision_damping; }
-    if ((pos.y <= bounds_min.y && vel.y < 0.) || (pos.y >= bounds_max.y && vel.y > 0.)) { vel.y *= -collision_damping; }
-    if ((pos.z <= bounds_min.z && vel.z < 0.) || (pos.z >= bounds_max.z && vel.z > 0.)) { vel.x *= -collision_damping; }
-
-    gl_FragColor = vec4(vel, 1);
-  }
-`;
-
+// static shader sources (these don't embed shape)
 var logicFragIntegrate = `
   precision mediump float;
   uniform sampler2D pos_data;
@@ -357,109 +239,248 @@ const drawFrag = `
   }
 `;
 
-// create program for accelerating particles & get it's uniform locations
-var program_accelerate = createProgram(gl, quad_vs, logicFragAccelerate);
-const accelerate_verts_loc = gl.getAttribLocation(program_accelerate, "verts");
-const accelerate_uvs_loc = gl.getAttribLocation(program_accelerate, "uvs");
-const accelerate_pos_loc = gl.getUniformLocation(program_accelerate, "pos_data");
-const accelerate_vel_loc = gl.getUniformLocation(program_accelerate, "vel_data");
-const accelerate_col_loc = gl.getUniformLocation(program_accelerate, "col_data");
-const accelerate_interaction_loc = gl.getUniformLocation(program_accelerate, "interaction_data");
-//const accelerate_res_loc = gl.getUniformLocation(program_accelerate, "res");
-const accelerate_dt_loc = gl.getUniformLocation(program_accelerate, "dt");
-const accelerate_G_loc = gl.getUniformLocation(program_accelerate, "G");
-const accelerate_m_loc = gl.getUniformLocation(program_accelerate, "m");
-const accelerate_r_min_loc = gl.getUniformLocation(program_accelerate, "r_min");
-const accelerate_r_max_loc = gl.getUniformLocation(program_accelerate, "r_max");
-//const accelerate_smooth_radius_loc = gl.getUniformLocation(program_accelerate, "smooth_radius");
-const accelerate_bounds_min_loc = gl.getUniformLocation(program_accelerate, "bounds_min");
-const accelerate_bounds_max_loc = gl.getUniformLocation(program_accelerate, "bounds_max");
-const accelerate_collision_damping_loc = gl.getUniformLocation(program_accelerate, "collision_damping");
+// mutable program + location state
+var program_accelerate, program_integrate, program_draw;
+var accelerate_verts_loc, accelerate_uvs_loc;
+var accelerate_pos_loc, accelerate_vel_loc, accelerate_col_loc, accelerate_interaction_loc;
+var accelerate_dt_loc, accelerate_r_min_loc, accelerate_r_max_loc;
+var accelerate_bounds_min_loc, accelerate_bounds_max_loc, accelerate_collision_damping_loc;
+var integrate_verts_loc, integrate_uvs_loc;
+var integrate_pos_loc, integrate_vel_loc, integrate_dt_loc;
+var integrate_bounds_min_loc, integrate_bounds_max_loc;
+var draw_pos_loc, draw_col_loc, draw_view_loc, draw_proj_loc, draw_uv_loc, draw_point_size_loc;
 
-// create program for integrating particles & get it's uniform locations
-var program_integrate = createProgram(gl, quad_vs, logicFragIntegrate);
-const integrate_verts_loc = gl.getAttribLocation(program_integrate, "verts");
-const integrate_uvs_loc = gl.getAttribLocation(program_integrate, "uvs");
-const integrate_pos_loc = gl.getUniformLocation(program_integrate, "pos_data");
-const integrate_vel_loc = gl.getUniformLocation(program_integrate, "vel_data");
-const integrate_dt_loc = gl.getUniformLocation(program_integrate, "dt");
-const integrate_bounds_min_loc = gl.getUniformLocation(program_integrate, "bounds_min");
-const integrate_bounds_max_loc = gl.getUniformLocation(program_integrate, "bounds_max");
+// mutable texture/fbo/buffer state
+var pos_tex, vel_tex, pos_fbo, vel_fbo;
+var col_tex, col_fbo;
+var interaction_tex, interaction_fbo;
+var uv_buf;
 
-// create a program for drawing the particles & get it's uniform locations
-var program_draw = createProgram(gl, drawVert, drawFrag);
-const draw_pos_loc = gl.getUniformLocation(program_draw, "pos_data");
-const draw_col_loc = gl.getUniformLocation(program_draw, "col_data");
-const draw_view_loc = gl.getUniformLocation(program_draw, "view");
-const draw_proj_loc = gl.getUniformLocation(program_draw, "proj");
-const draw_uv_loc = gl.getAttribLocation(program_draw, "uv");
-const draw_point_size_loc = gl.getUniformLocation(program_draw, "point_size");
-
-// create arrays of positions and velocities
-var pos_arr = new Float32Array(4 * count);
-var vel_arr = new Float32Array(4 * count);
-var col_arr = new Float32Array(4 * count);
-for (var i = 0; i < pos_arr.length; ++i) {
-  vel_arr[i] = 0;
-  const j = i % 4;
-  if (j == 3) {
-    pos_arr[i] = 0;
-
-    // fill in color data
-    let col = random.random_int(0, colors.length - 1);
-    col_arr[i-3] = colors[col][0];
-    col_arr[i-2] = colors[col][1];
-    col_arr[i-1] = colors[col][2];
-    col_arr[i] = col / colors.length; // normalize so we can use it as a UV in the shaders
-
-  } else {
-    //let size = .25;
-    let size = 1;
-    pos_arr[i] = random.random_num(bounds[j] * size, bounds[j+3] * size);
-  }
-}
-/*
-col_arr[0] = colors[0][0];
-col_arr[1] = colors[0][1];
-col_arr[2] = colors[0][2];
-col_arr[3] = 0;
-*/
-
-// create fbos with textures for velocity and position on previous and next frames
-var pos_tex = [ makeTexture(shape, pos_arr), makeTexture(shape, pos_arr) ];
-var vel_tex = [ makeTexture(shape, vel_arr), makeTexture(shape, vel_arr) ];
-//var col_tex = [ makeTexture(shape, col_arr), makeTexture(shape, col_arr) ];
-var pos_fbo = [ makeFBO(pos_tex[0]), makeFBO(pos_tex[1]) ];
-var vel_fbo = [ makeFBO(vel_tex[0]), makeFBO(vel_tex[1]) ];
-//var col_fbo = [ makeFBO(col_tex[0]), makeFBO(col_tex[1]) ];
-var col_tex = makeTexture(shape, col_arr);
-var col_fbo = makeFBO(col_tex);
-var interaction_tex = makeTexture([colors.length, colors.length], interactions_pixels);
-var interaction_fbo = makeFBO(interaction_tex);
-
-// create a gpu buffer for texture UVs and populate it with uvs. We only need to do it once.
-var uv_arr = new Float32Array(2 * count);
-{
-  var i = 0;
-  for (var j = 0; j < shape[0]; ++j) {
-  for (var k = 0; k < shape[1]; ++k) {
-    uv_arr[(2 * i) + 0] = j / shape[0];
-    uv_arr[(2 * i) + 1] = k / shape[1];
-    i += 2;
-  } }
-}
-var uv_buf = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, uv_buf);
-gl.bufferData(gl.ARRAY_BUFFER, uv_arr, gl.STATIC_DRAW);
-uv_buf.itemSize = 2;
-uv_buf.numItems = uv_arr.length;
-
-// current time - this variable will be updated every frame
-var time = document.timeline.currentTime;
-
-// index swaps
 var swap_index0 = 0;
 var swap_index1 = 1;
+var time = document.timeline.currentTime;
+
+// deterministic hash from integer seed
+function seedToHash(seed) {
+  var h = seed | 0;
+  var hex = '0x';
+  for (var i = 0; i < 64; i++) {
+    h = ((h * 1103515245 + 12345) & 0x7fffffff);
+    hex += ((h >> 16) & 0xf).toString(16);
+  }
+  return hex;
+}
+
+function init(seed, numColors, shapeSize) {
+  // cleanup old GL resources
+  if (program_accelerate) gl.deleteProgram(program_accelerate);
+  if (program_integrate) gl.deleteProgram(program_integrate);
+  if (program_draw) gl.deleteProgram(program_draw);
+  if (pos_tex) { gl.deleteTexture(pos_tex[0]); gl.deleteTexture(pos_tex[1]); }
+  if (vel_tex) { gl.deleteTexture(vel_tex[0]); gl.deleteTexture(vel_tex[1]); }
+  if (pos_fbo) { gl.deleteFramebuffer(pos_fbo[0]); gl.deleteFramebuffer(pos_fbo[1]); }
+  if (vel_fbo) { gl.deleteFramebuffer(vel_fbo[0]); gl.deleteFramebuffer(vel_fbo[1]); }
+  if (col_tex) gl.deleteTexture(col_tex);
+  if (col_fbo) gl.deleteFramebuffer(col_fbo);
+  if (interaction_tex) gl.deleteTexture(interaction_tex);
+  if (interaction_fbo) gl.deleteFramebuffer(interaction_fbo);
+  if (uv_buf) gl.deleteBuffer(uv_buf);
+
+  // update shape and count
+  shape = [shapeSize, shapeSize];
+  count = shape[0] * shape[1];
+
+  // seed random
+  tokenData.hash = seedToHash(seed);
+  var random = new Random();
+
+  // select colors
+  var colors = all_colors.slice(0, numColors);
+
+  // initialize particle interaction matrix
+  var interactions = new Float32Array(colors.length * colors.length);
+  for (var i = 0; i < interactions.length; ++i) {
+    interactions[i] = random.random_num(-1, 1);
+  }
+
+  var interactions_pixels = new Float32Array(4 * colors.length * colors.length);
+  for (var i = 0; i < interactions.length; ++i) {
+    var val = interactions[i];
+    interactions_pixels[(4*i)+0] = val;
+    interactions_pixels[(4*i)+1] = val;
+    interactions_pixels[(4*i)+2] = val;
+    interactions_pixels[(4*i)+3] = val;
+  }
+
+  // build acceleration shader (embeds shape)
+  var logicFragAccelerate = `
+    precision mediump float;
+    uniform sampler2D pos_data;
+    uniform sampler2D vel_data;
+    uniform sampler2D col_data;
+    uniform sampler2D interaction_data;
+    uniform float dt;
+    uniform vec3 bounds_min;
+    uniform vec3 bounds_max;
+    uniform float collision_damping;
+    uniform float r_min;
+    uniform float r_max;
+    varying vec2 uv;` +
+    "const ivec2 res = ivec2(" + shape[0] + "," + shape[1] + ");" + `
+
+    void main() {
+      vec3 pos = texture2D(pos_data, uv).xyz;
+      vec3 vel = texture2D(vel_data, uv).xyz;
+      vec4 col = texture2D(col_data, uv).rgba;
+      float type = col.w;
+      vec3 acc = vec3(0);
+      for (int i = 0; i < res.x; ++i)
+      {
+        for (int j = 0; j < res.y; ++j)
+        {
+          vec2 uv2 = vec2(float(i)/float(res.x), float(j)/float(res.y));
+          if (uv2 != uv)
+          {
+            vec3 pos2 = texture2D(pos_data, uv2).xyz;
+            vec4 col2 = texture2D(col_data, uv2).rgba;
+
+            // look up interaction strength from the interaction matrix
+            float type2 = col2.w;
+            vec2 type_uv = vec2(type, type2);
+            float interaction = texture2D(interaction_data, type_uv).x;
+
+            // accelerate based on interaction type
+            vec3 diff = pos2 - pos;
+            float range = r_min;
+            float dist = length(diff);
+            if (dist > .0001)
+            {
+              vec3 dir = diff / dist;
+
+              if (dist < range)
+              {
+                acc += dir * mix(-1., 0., dist / range);
+                continue;
+              }
+
+              dist -= range;
+              range = (r_max - r_min) * .5;
+              if (dist < range)
+              {
+                acc += dir * mix(0., interaction, dist / range);
+                continue;
+              }
+
+              dist -= range;
+              range = (r_max - r_min) * .5;
+              if (dist < range)
+              {
+                acc += dir * mix(interaction, 0., dist / range);
+              }
+            }
+          }
+        }
+      }
+
+      // accelerate
+      vel += acc * dt;
+
+      // damp
+      vel *= .9;
+
+      // bounce against boundary
+      if ((pos.x <= bounds_min.x && vel.x < 0.) || (pos.x >= bounds_max.x && vel.x > 0.)) { vel.x *= -collision_damping; }
+      if ((pos.y <= bounds_min.y && vel.y < 0.) || (pos.y >= bounds_max.y && vel.y > 0.)) { vel.y *= -collision_damping; }
+      if ((pos.z <= bounds_min.z && vel.z < 0.) || (pos.z >= bounds_max.z && vel.z > 0.)) { vel.x *= -collision_damping; }
+
+      gl_FragColor = vec4(vel, 1);
+    }
+  `;
+
+  // create programs + get uniform locations
+  program_accelerate = createProgram(gl, quad_vs, logicFragAccelerate);
+  accelerate_verts_loc = gl.getAttribLocation(program_accelerate, "verts");
+  accelerate_uvs_loc = gl.getAttribLocation(program_accelerate, "uvs");
+  accelerate_pos_loc = gl.getUniformLocation(program_accelerate, "pos_data");
+  accelerate_vel_loc = gl.getUniformLocation(program_accelerate, "vel_data");
+  accelerate_col_loc = gl.getUniformLocation(program_accelerate, "col_data");
+  accelerate_interaction_loc = gl.getUniformLocation(program_accelerate, "interaction_data");
+  accelerate_dt_loc = gl.getUniformLocation(program_accelerate, "dt");
+  accelerate_r_min_loc = gl.getUniformLocation(program_accelerate, "r_min");
+  accelerate_r_max_loc = gl.getUniformLocation(program_accelerate, "r_max");
+  accelerate_bounds_min_loc = gl.getUniformLocation(program_accelerate, "bounds_min");
+  accelerate_bounds_max_loc = gl.getUniformLocation(program_accelerate, "bounds_max");
+  accelerate_collision_damping_loc = gl.getUniformLocation(program_accelerate, "collision_damping");
+
+  program_integrate = createProgram(gl, quad_vs, logicFragIntegrate);
+  integrate_verts_loc = gl.getAttribLocation(program_integrate, "verts");
+  integrate_uvs_loc = gl.getAttribLocation(program_integrate, "uvs");
+  integrate_pos_loc = gl.getUniformLocation(program_integrate, "pos_data");
+  integrate_vel_loc = gl.getUniformLocation(program_integrate, "vel_data");
+  integrate_dt_loc = gl.getUniformLocation(program_integrate, "dt");
+  integrate_bounds_min_loc = gl.getUniformLocation(program_integrate, "bounds_min");
+  integrate_bounds_max_loc = gl.getUniformLocation(program_integrate, "bounds_max");
+
+  program_draw = createProgram(gl, drawVert, drawFrag);
+  draw_pos_loc = gl.getUniformLocation(program_draw, "pos_data");
+  draw_col_loc = gl.getUniformLocation(program_draw, "col_data");
+  draw_view_loc = gl.getUniformLocation(program_draw, "view");
+  draw_proj_loc = gl.getUniformLocation(program_draw, "proj");
+  draw_uv_loc = gl.getAttribLocation(program_draw, "uv");
+  draw_point_size_loc = gl.getUniformLocation(program_draw, "point_size");
+
+  // create particle arrays
+  var pos_arr = new Float32Array(4 * count);
+  var vel_arr = new Float32Array(4 * count);
+  var col_arr = new Float32Array(4 * count);
+  for (var i = 0; i < pos_arr.length; ++i) {
+    vel_arr[i] = 0;
+    var j = i % 4;
+    if (j == 3) {
+      pos_arr[i] = 0;
+      var col = random.random_int(0, colors.length - 1);
+      col_arr[i-3] = colors[col][0];
+      col_arr[i-2] = colors[col][1];
+      col_arr[i-1] = colors[col][2];
+      col_arr[i] = col / colors.length;
+    } else {
+      var size = 1;
+      pos_arr[i] = random.random_num(bounds[j] * size, bounds[j+3] * size);
+    }
+  }
+
+  // create textures + fbos
+  pos_tex = [ makeTexture(shape, pos_arr), makeTexture(shape, pos_arr) ];
+  vel_tex = [ makeTexture(shape, vel_arr), makeTexture(shape, vel_arr) ];
+  pos_fbo = [ makeFBO(pos_tex[0]), makeFBO(pos_tex[1]) ];
+  vel_fbo = [ makeFBO(vel_tex[0]), makeFBO(vel_tex[1]) ];
+  col_tex = makeTexture(shape, col_arr);
+  col_fbo = makeFBO(col_tex);
+  interaction_tex = makeTexture([colors.length, colors.length], interactions_pixels);
+  interaction_fbo = makeFBO(interaction_tex);
+
+  // create uv buffer
+  var uv_arr = new Float32Array(2 * count);
+  {
+    var i = 0;
+    for (var j = 0; j < shape[0]; ++j) {
+    for (var k = 0; k < shape[1]; ++k) {
+      uv_arr[(2 * i) + 0] = j / shape[0];
+      uv_arr[(2 * i) + 1] = k / shape[1];
+      i += 2;
+    } }
+  }
+  uv_buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, uv_buf);
+  gl.bufferData(gl.ARRAY_BUFFER, uv_arr, gl.STATIC_DRAW);
+  uv_buf.itemSize = 2;
+  uv_buf.numItems = uv_arr.length;
+
+  // reset state
+  swap_index0 = 0;
+  swap_index1 = 1;
+  time = document.timeline.currentTime;
+}
 
 function accelerate(dt)
 {
@@ -471,27 +492,23 @@ function accelerate(dt)
 
   // set uniforms
   gl.uniform1f(accelerate_dt_loc, dt);
-  //gl.uniform1f(accelerate_G_loc, G);
-  //gl.uniform1f(accelerate_m_loc, m);
-  //gl.uniform2i(accelerate_res_loc, shape[0], shape[1]);
   gl.uniform1f(accelerate_r_min_loc, r_min);
   gl.uniform1f(accelerate_r_max_loc, r_max);
   gl.uniform3f(accelerate_bounds_min_loc, bounds[0], bounds[1], bounds[2]);
   gl.uniform3f(accelerate_bounds_max_loc, bounds[3], bounds[4], bounds[5]);
   gl.uniform1f(accelerate_collision_damping_loc, collision_damping);
-  //gl.uniform1f(accelerate_smooth_radius_loc, smooth_radius);
 
   // send the position buffer
-  gl.activeTexture(gl.TEXTURE0); // Tell WebGL we want to affect texture unit 0
-  gl.bindTexture(gl.TEXTURE_2D, pos_tex[swap_index0]);// Bind the texture to texture unit 0
-  gl.uniform1i(accelerate_pos_loc, 0); // Tell the shader we bound the texture to texture unit 0
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, pos_tex[swap_index0]);
+  gl.uniform1i(accelerate_pos_loc, 0);
 
   // send the velocity buffer
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, vel_tex[swap_index0]);
   gl.uniform1i(accelerate_vel_loc, 1);
 
-  // send the velocity buffer
+  // send the color buffer
   gl.activeTexture(gl.TEXTURE2);
   gl.bindTexture(gl.TEXTURE_2D, col_tex);
   gl.uniform1i(accelerate_col_loc, 2);
@@ -512,7 +529,7 @@ function accelerate(dt)
   gl.enableVertexAttribArray(accelerate_uvs_loc);
 
   // indices
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, quad_index_buffer); 
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, quad_index_buffer);
 
   // clear the buffer and set the viewport
   gl.clearColor(0,0,0,1);
@@ -541,9 +558,9 @@ function integrate(dt)
   gl.uniform3f(integrate_bounds_max_loc, bounds[3], bounds[4], bounds[5]);
 
   // send the position buffer
-  gl.activeTexture(gl.TEXTURE0); // Tell WebGL we want to affect texture unit 0
-  gl.bindTexture(gl.TEXTURE_2D, pos_tex[swap_index0]);// Bind the texture to texture unit 0
-  gl.uniform1i(integrate_pos_loc, 0); // Tell the shader we bound the texture to texture unit 0
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, pos_tex[swap_index0]);
+  gl.uniform1i(integrate_pos_loc, 0);
 
   // send the velocity buffer
   gl.activeTexture(gl.TEXTURE1);
@@ -561,7 +578,7 @@ function integrate(dt)
   gl.enableVertexAttribArray(integrate_uvs_loc);
 
   // indices
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, quad_index_buffer); 
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, quad_index_buffer);
 
   // clear the buffer and set the viewport
   gl.clearColor(0,0,0,1);
@@ -602,24 +619,11 @@ function draw()
   gl.uniform1f(draw_point_size_loc, point_size);
 
   // send the position buffers
-  gl.activeTexture(gl.TEXTURE0); // Tell WebGL we want to affect texture unit 0
-  gl.bindTexture(gl.TEXTURE_2D, pos_tex[swap_index1]);// Bind the texture to texture unit 0
-  gl.uniform1i(draw_pos_loc, 0); // Tell the shader we bound the texture to texture unit 0
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, pos_tex[swap_index1]);
+  gl.uniform1i(draw_pos_loc, 0);
 
-  /*
-  gl.activeTexture(gl.TEXTURE1); // Tell WebGL we want to affect texture unit 0
-  gl.bindTexture(gl.TEXTURE_2D, pos_tex[swap_index1]);// Bind the texture to texture unit 0
-  gl.uniform1i(draw_pos_loc, 1); // Tell the shader we bound the texture to texture unit 0
-  */
-
-  /*
-  // send the velocity buffer
-  gl.activeTexture(gl.TEXTURE1);
-  gl.bindTexture(gl.TEXTURE_2D, vel_tex[swap_index0]);
-  gl.uniform1i(draw_vel_loc, 1);
-  */
-
-  // send the velocity buffer
+  // send the color buffer
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, col_tex);
   gl.uniform1i(draw_col_loc, 1);
@@ -635,18 +639,15 @@ function draw()
   gl.drawArrays(gl.POINTS, 0, count);
 }
 
-//drawQuad(vel_tex[swap_index0], [10,10,10], 1/20);
-
 function step(new_time)
 {
   // get elapsed time
-  const dt = new_time - time;
+  var dt = new_time - time;
   time = new_time;
 
   // clear the screen
   gl.clearColor(.1,.1,.1,1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.clear(gl.DEPTH_BUFFER_BIT);
 
   // update particle positions
   accelerate(dt_fixed);
@@ -654,9 +655,6 @@ function step(new_time)
 
   // draw the scene
   draw();
-  //drawQuad(pos_tex[swap_index1], [10,10,10], 1/20);
-  //drawQuad(vel_tex[swap_index1], [0,0,0], 1);
-  //drawQuad(interaction_tex, [1,1,1], .5);
 
   // swap which buffer we're reading from/writing to
   swap_index0 = (swap_index0 + 1) % 2;
@@ -666,10 +664,20 @@ function step(new_time)
   requestAnimationFrame(step);
 }
 
-//canvas.style.backgroundColor = "black";
+// listen for config changes from parent page
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'particle-life-config') {
+    init(
+      e.data.seed !== undefined ? e.data.seed : 42,
+      e.data.numColors !== undefined ? e.data.numColors : 10,
+      e.data.shapeSize !== undefined ? e.data.shapeSize : 80
+    );
+  }
+});
+
 gl.clearColor(.1,.1,.1,1);
 gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-//gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 gl.clear(gl.COLOR_BUFFER_BIT);
 
+init(42, 10, 80);
 step(document.timeline.currentTime);
