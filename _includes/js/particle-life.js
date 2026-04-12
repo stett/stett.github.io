@@ -260,6 +260,7 @@ var swap_index0 = 0;
 var swap_index1 = 1;
 var time = document.timeline.currentTime;
 var clear_buffer = true;
+var bg_color = [.1, .1, .1];
 
 // deterministic hash from integer seed
 function seedToHash(seed) {
@@ -648,7 +649,7 @@ function step(new_time)
 
   // clear the screen
   if (clear_buffer) {
-    gl.clearColor(.1,.1,.1,1);
+    gl.clearColor(bg_color[0], bg_color[1], bg_color[2], 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   } else {
     gl.clear(gl.DEPTH_BUFFER_BIT);
@@ -682,10 +683,13 @@ window.addEventListener('message', function(e) {
   if (e.data && e.data.type === 'particle-life-clear-buffer') {
     clear_buffer = e.data.clearBuffer;
   }
+  if (e.data && e.data.type === 'particle-life-bg') {
+    bg_color = e.data.bgColor;
+  }
 });
 
-gl.clearColor(.1,.1,.1,1);
 gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+gl.clearColor(bg_color[0], bg_color[1], bg_color[2], 1);
 gl.clear(gl.COLOR_BUFFER_BIT);
 
 var params = new URLSearchParams(window.location.search);

@@ -93,5 +93,9 @@ Having become spoiled by modern GPU APIs with programmable pipelines and fully c
     updateLink();
   });
   updateLink();
+  var iframeEl = document.getElementById('particle-life-iframe');
+  iframeEl.addEventListener('load', function() {
+    iframeEl.contentWindow.postMessage({ type: 'particle-life-bg', bgColor: [252/255, 250/255, 247/255] }, '*');
+  });
 })();
 </script>
