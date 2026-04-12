@@ -259,6 +259,7 @@ var uv_buf;
 var swap_index0 = 0;
 var swap_index1 = 1;
 var time = document.timeline.currentTime;
+var clear_buffer = true;
 
 // deterministic hash from integer seed
 function seedToHash(seed) {
@@ -646,8 +647,12 @@ function step(new_time)
   time = new_time;
 
   // clear the screen
-  gl.clearColor(.1,.1,.1,1);
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  if (clear_buffer) {
+    gl.clearColor(.1,.1,.1,1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  } else {
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+  }
 
   // update particle positions
   accelerate(dt_fixed);
@@ -667,11 +672,15 @@ function step(new_time)
 // listen for config changes from parent page
 window.addEventListener('message', function(e) {
   if (e.data && e.data.type === 'particle-life-config') {
+    if (e.data.clearBuffer !== undefined) clear_buffer = e.data.clearBuffer;
     init(
       e.data.seed !== undefined ? e.data.seed : 42,
       e.data.numColors !== undefined ? e.data.numColors : 10,
       e.data.shapeSize !== undefined ? e.data.shapeSize : 80
     );
+  }
+  if (e.data && e.data.type === 'particle-life-clear-buffer') {
+    clear_buffer = e.data.clearBuffer;
   }
 });
 
@@ -679,5 +688,11 @@ gl.clearColor(.1,.1,.1,1);
 gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 gl.clear(gl.COLOR_BUFFER_BIT);
 
-init(42, 10, 80);
+var params = new URLSearchParams(window.location.search);
+if (params.get('clear') === '0') clear_buffer = false;
+init(
+  parseInt(params.get('seed')) || 42,
+  parseInt(params.get('colors')) || 10,
+  parseInt(params.get('shape')) || 80
+);
 step(document.timeline.currentTime);

@@ -53,9 +53,12 @@ Having become spoiled by modern GPU APIs with programmable pipelines and fully c
 <div class="pl-controls">
 <label><span class="pl-label">Seed</span><input type="range" id="pl-seed" min="0" max="100" value="42"><span id="pl-seed-val" class="pl-val">42</span></label>
 <label><span class="pl-label">Colors</span><input type="range" id="pl-colors" min="1" max="20" value="10"><span id="pl-colors-val" class="pl-val">10</span></label>
-<label><span class="pl-label">sqrt(Particles)</span><input type="range" id="pl-shape" min="8" max="256" value="80"><span id="pl-shape-val" class="pl-val">80</span></label>
+<label><span class="pl-label">sqrt(Particles)</span><input type="range" id="pl-shape" min="8" max="200" value="80"><span id="pl-shape-val" class="pl-val">80</span></label>
+<label><span class="pl-label">Clear buffer</span><input type="checkbox" id="pl-clear" checked></label>
 </div>
 </div>
+
+<a id="pl-fullscreen" href="{{ site.url }}/render-particle-life">Full screen</a>
 
 <script>
 (function() {
@@ -63,6 +66,8 @@ Having become spoiled by modern GPU APIs with programmable pipelines and fully c
   var seedEl = document.getElementById('pl-seed');
   var colorsEl = document.getElementById('pl-colors');
   var shapeEl = document.getElementById('pl-shape');
+  var clearEl = document.getElementById('pl-clear');
+  var fullscreenLink = document.getElementById('pl-fullscreen');
   function send() {
     document.getElementById('pl-seed-val').textContent = seedEl.value;
     document.getElementById('pl-colors-val').textContent = colorsEl.value;
@@ -71,13 +76,22 @@ Having become spoiled by modern GPU APIs with programmable pipelines and fully c
       type: 'particle-life-config',
       seed: parseInt(seedEl.value),
       numColors: parseInt(colorsEl.value),
-      shapeSize: parseInt(shapeEl.value)
+      shapeSize: parseInt(shapeEl.value),
+      clearBuffer: clearEl.checked
     }, '*');
   }
-  seedEl.addEventListener('input', send);
-  colorsEl.addEventListener('input', send);
-  shapeEl.addEventListener('input', send);
+  function updateLink() {
+    fullscreenLink.href = '{{ site.url }}/render-particle-life?seed=' + seedEl.value +
+      '&colors=' + colorsEl.value + '&shape=' + shapeEl.value +
+      (clearEl.checked ? '' : '&clear=0');
+  }
+  seedEl.addEventListener('input', function() { send(); updateLink(); });
+  colorsEl.addEventListener('input', function() { send(); updateLink(); });
+  shapeEl.addEventListener('input', function() { send(); updateLink(); });
+  clearEl.addEventListener('change', function() {
+    iframe.contentWindow.postMessage({ type: 'particle-life-clear-buffer', clearBuffer: clearEl.checked }, '*');
+    updateLink();
+  });
+  updateLink();
 })();
 </script>
-
-[Full screen]({{ site.url }}/render-particle-life)
