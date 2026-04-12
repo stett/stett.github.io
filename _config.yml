@@ -1,4 +1,4 @@
-url: https://stett.github.io
+url: https://stettj.com
 permalink: /:title
 highlighter: 'rouge'
 markdown: kramdown
@@ -9,3 +9,5 @@ kramdown:
     preview_as_code: true
 google_analytics: UA-89661602-1
 excerpt_separator: '<!-- excerpt -->'
+exclude:
+  - CLAUDE.md
