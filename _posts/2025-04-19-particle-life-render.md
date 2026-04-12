@@ -41,9 +41,13 @@ comments: true
 }
 </style>
 
-I spent this weekend fascinating over the interesting patterns that can emerge from the [Particle Life](https://particle-life.com/) algorithm by Jeffrey Ventrella. While this algorithm needs no new implementations (there are many!) I decided to use it as an exercise in Web GPU programming.
+I spent this weekend fascinated by the interesting patterns that can emerge from the [Particle Life](https://particle-life.com/) algorithm by Jeffrey Ventrella. While this algorithm needs no new implementations (there are many!) I decided to use it as an exercise in WebGL programming.
 
-Having become spoiled by modern GPU APIs with programmable pipelines and fully custom buffer formats, it was fun to recall the old days of working within the confines of a texture buffer.
+The algorithm assigns each particle a type and defines an interaction matrix — a random NxN table of attraction/repulsion strengths between type pairs. Each step, every particle sums up forces from all others based on distance and type, producing emergent flocking and clustering behavior from a handful of scalar values.
+
+The interesting technical constraint here is that WebGL has no compute shaders. To run the simulation entirely on the GPU, all particle state — position and velocity — is encoded as floating-point textures (via `OES_texture_float`). Each simulation step dispatches a full-screen quad pass whose fragment shader reads the current state textures and writes updated values back to a framebuffer. The draw pass then reads particle positions directly from texture to set `gl_Position`, using UV coordinates as the per-particle index.
+
+The current implementation performs O(N²) particle interactions per step — each of the N GPU threads loops over all N particles. The next step to scale up would be to add a GPU-based acceleration structure like spatial hashing or Barnes-Hut, reducing this to O(N log N).
 
 <div class="particle-life-embed">
     <iframe id="particle-life-iframe" src="{{ site.url }}/render-particle-life"></iframe>

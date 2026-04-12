@@ -393,7 +393,7 @@ function init(seed, numColors, shapeSize) {
       // bounce against boundary
       if ((pos.x <= bounds_min.x && vel.x < 0.) || (pos.x >= bounds_max.x && vel.x > 0.)) { vel.x *= -collision_damping; }
       if ((pos.y <= bounds_min.y && vel.y < 0.) || (pos.y >= bounds_max.y && vel.y > 0.)) { vel.y *= -collision_damping; }
-      if ((pos.z <= bounds_min.z && vel.z < 0.) || (pos.z >= bounds_max.z && vel.z > 0.)) { vel.x *= -collision_damping; }
+      if ((pos.z <= bounds_min.z && vel.z < 0.) || (pos.z >= bounds_max.z && vel.z > 0.)) { vel.z *= -collision_damping; }
 
       gl_FragColor = vec4(vel, 1);
     }
@@ -469,7 +469,7 @@ function init(seed, numColors, shapeSize) {
     for (var k = 0; k < shape[1]; ++k) {
       uv_arr[(2 * i) + 0] = j / shape[0];
       uv_arr[(2 * i) + 1] = k / shape[1];
-      i += 2;
+      i += 1;
     } }
   }
   uv_buf = gl.createBuffer();
