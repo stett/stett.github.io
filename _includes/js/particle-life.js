@@ -39,8 +39,26 @@ var point_size = 1.5;
 // min and max of the sph boundary box...
 const bounds = [-20,-20,-20, 20,20,20];
 
-// camera position
-var camera_pos = [30, 0, 0]
+// camera orbit
+var orbit_radius = 30;
+var orbit_azimuth_target = 0;
+var orbit_elevation_target = 0;
+var orbit_azimuth = 0;
+var orbit_elevation = 0;
+var camera_pos = [orbit_radius, 0, 0];
+var dragging = false;
+var drag_prev_x = 0;
+var drag_prev_y = 0;
+canvas.addEventListener('mousedown', function(e) { dragging = true; drag_prev_x = e.clientX; drag_prev_y = e.clientY; });
+canvas.addEventListener('mousemove', function(e) {
+  if (!dragging) return;
+  orbit_azimuth_target += (e.clientX - drag_prev_x) * 0.005;
+  orbit_elevation_target += (e.clientY - drag_prev_y) * 0.005;
+  orbit_elevation_target = Math.max(-Math.PI * 0.49, Math.min(Math.PI * 0.49, orbit_elevation_target));
+  drag_prev_x = e.clientX;
+  drag_prev_y = e.clientY;
+});
+window.addEventListener('mouseup', function() { dragging = false; });
 
 // minified helpers:
 function createProgram(e,r,a){var o=e.createShader(e.VERTEX_SHADER);if(e.shaderSource(o,r),e.compileShader(o),!e.getShaderParameter(o,e.COMPILE_STATUS))return console.log(e.getShaderInfoLog(o)),e.deleteShader(o),null;var t=e.createShader(e.FRAGMENT_SHADER);if(e.shaderSource(t,a),e.compileShader(t),!e.getShaderParameter(t,e.COMPILE_STATUS))return console.log(e.getShaderInfoLog(t)),e.deleteShader(t),null;var S=e.createProgram();return e.attachShader(S,o),e.attachShader(S,t),e.linkProgram(S),e.getProgramParameter(S,e.LINK_STATUS)?S:(console.log(e.getProgramInfoLog(S)),e.deleteProgram(S),null)}
@@ -302,8 +320,6 @@ var logicFragIntegrate = `
     vec3 vel = texture2D(vel_data, uv).xyz;
     pos += vel * dt;
 
-    //pos.x = 0.;
-
     if      (pos.x < bounds_min.x) { pos.x = bounds_min.x; }
     else if (pos.x > bounds_max.x) { pos.x = bounds_max.x; }
     if      (pos.y < bounds_min.y) { pos.y = bounds_min.y; }
@@ -562,9 +578,15 @@ function integrate(dt)
 
 function draw()
 {
+  // lerp camera towards target
+  var lerp_speed = 0.08;
+  orbit_azimuth += (orbit_azimuth_target - orbit_azimuth) * lerp_speed;
+  orbit_elevation += (orbit_elevation_target - orbit_elevation) * lerp_speed;
+  camera_pos[0] = orbit_radius * Math.cos(orbit_elevation) * Math.cos(orbit_azimuth);
+  camera_pos[1] = orbit_radius * Math.sin(orbit_elevation);
+  camera_pos[2] = orbit_radius * Math.cos(orbit_elevation) * Math.sin(orbit_azimuth);
+
   // create view and projection matrices
-  var cameraAngleRadians = 0;
-  //var fieldOfViewRadians = 1.39626;
   var fieldOfViewRadians = 1.2;
   var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
   var zNear = 1;
