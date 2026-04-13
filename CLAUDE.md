@@ -36,9 +36,24 @@ Custom JavaScript for in-post demos, inlined via `{% include %}`. These are spec
 **Background animation** (`_includes/fluid.html`):
 Interactive fluid/water surface simulation rendered to `<canvas id="canvas">` on every page using the base layout. Responds to mouse input.
 
+**Standalone render pages** — Full-screen generative art pieces live as root-level `.html` files (e.g. `render-particle-life.html`) using `layout: render`. They inline their own JS directly and do not share the fluid background.
+
 ## Post Conventions
 
 - Permalink structure: `/:title` (no date in URL)
 - Excerpt separator: `<!-- excerpt -->`
 - Posts use `layout: post`; generative art pages use `layout: render`
 - Thumbnails referenced via `thumbnail:` frontmatter field, stored in `assets/img/`
+- `_drafts/` holds in-progress posts; served locally with `--drafts` flag, never published to GitHub Pages automatically
+
+**Common post frontmatter fields:**
+```yaml
+layout: post
+title: "Post Title"
+thumbnail: assets/img/thumb.png
+math: true          # load KaTeX
+threejs: true       # load Three.js
+jquery: true        # load jQuery
+dramaschool: true   # load actor/update-loop framework
+tags: [tag1, tag2]
+```
