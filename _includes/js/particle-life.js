@@ -675,9 +675,9 @@ window.addEventListener('message', function(e) {
   if (e.data && e.data.type === 'particle-life-config') {
     if (e.data.clearBuffer !== undefined) clear_buffer = e.data.clearBuffer;
     init(
-      e.data.seed !== undefined ? e.data.seed : 42,
-      e.data.numColors !== undefined ? e.data.numColors : 10,
-      e.data.shapeSize !== undefined ? e.data.shapeSize : 80
+      e.data.seed !== undefined ? e.data.seed : 87,
+      e.data.numColors !== undefined ? e.data.numColors : 15,
+      e.data.shapeSize !== undefined ? e.data.shapeSize : 100
     );
   }
   if (e.data && e.data.type === 'particle-life-clear-buffer') {
@@ -695,8 +695,8 @@ gl.clear(gl.COLOR_BUFFER_BIT);
 var params = new URLSearchParams(window.location.search);
 if (params.get('clear') === '0') clear_buffer = false;
 init(
-  parseInt(params.get('seed')) || 42,
-  parseInt(params.get('colors')) || 10,
-  parseInt(params.get('shape')) || 80
+  parseInt(params.get('seed')) || 87,
+  parseInt(params.get('colors')) || 15,
+  parseInt(params.get('shape')) || 100
 );
 step(document.timeline.currentTime);
