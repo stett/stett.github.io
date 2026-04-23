@@ -17,15 +17,13 @@ dramaschool: true
         </a>
         </header>
 
-        {{ post.content }}
-
-        {% comment %}
         {{ post.excerpt }}
-        {% endcomment %}
+        {% if post.content contains '<!-- excerpt -->' %}
+        <div class="continue-reading">
+        <a href="{{ post.url }}">Continue Reading...</a>
+        </div>
+        {% endif %}
 
-        {% comment %} <!-- For now, disable disqus -->
-        [ <a href="{{ post.url }}#comments">Comment</a> ]
-        {% endcomment %}
     </article>
 </div>
 
