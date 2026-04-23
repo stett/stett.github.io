@@ -1,11 +1,60 @@
 ---
-title: GPU Jacobi Solver for Rigid Body Point Constraints
+title: A Minimal GPU Jacobi Solver for Rigid Body Point Constraints
 layout: post
 comments: false
 math: true
 ---
 
-This is my derivation for the Jacobi iteration for a system of rigid bodies constrained together by "point" constraints (ie. ball joints). I've been working on a little framework project for comparing different GPU based physics solvers, and this is meant to be the first, very basic solver type.
+This post contains my derivation notes for the Jacobi iteration of a system of spherical rigid bodies constrained together in a chain by "point" constraints (ie. ball joints) - ie. a pearl necklace :). I've been working on a little framework project for comparing different GPU based physics solvers, and this is meant to be a solver/scene which can function as a baseline by which to compare the stability and performance of various solvers.
+
+I'm sticking with a specific, very simple constraint type for the scope of this derivation for concreteness, and so that it can immediately map to an actual simulation.
+
+The result? A _mostly_ stable chain of heavy looking beads:
+
+---
+## Glossary of Terms
+
+This table lists every mathematical symbol used in the derivation that follows.
+
+| $$N_b$$ | Number of rigid bodies in the system |
+| $$N_c$$ | Number of constraints |
+| $$h$$ | Timestep (delta time) |
+| $$n$$ | Current timestep index |
+| $$k$$ | Jacobi iteration index |
+| $$\ell$$ | Constraint index |
+| $$i, j$$ | Body indices (generic) |
+| $$i_\ell, j_\ell$$ | Indices of the two bodies connected by constraint $$\ell$$ |
+| $$x_i$$ | World-space position of body $$i$$ |
+| $$q_i$$ | Unit quaternion orientation of body $$i$$ |
+| $$\dot x_i$$ | Linear velocity of body $$i$$ |
+| $$\omega_i$$ | Angular velocity of body $$i$$ (world space) |
+| $$m_i$$ | Scalar (linear) mass of body $$i$$ |
+| $$I_i$$ | World-space rotational inertia tensor of body $$i$$ |
+| $$R(q)$$ | Rotation operator: rotates a vector by unit quaternion $$q$$ |
+| $$[v]_\times$$ | Cross-product matrix of $$v$$, satisfying $$[v]_\times u = v \times u$$ |
+| $$\otimes$$ | Quaternion multiplication |
+| $$X$$ | System configuration state, $$X \in \mathbb{R}^{7N_b}$$ |
+| $$V$$ | Generalized velocity vector, $$V \in \mathbb{R}^{6N_b}$$ |
+| $$M$$ | Block-diagonal generalized mass matrix, $$M \in \mathbb{R}^{6N_b \times 6N_b}$$ |
+| $$F$$ | Generalized force vector |
+| $$L$$ | Lagrangian, $$L = K - U$$ |
+| $$K$$ | Kinetic energy |
+| $$U$$ | Potential energy |
+| $$r^0_\ell, r^1_\ell$$ | Local-space attachment points of constraint $$\ell$$ on bodies $$i_\ell$$ and $$j_\ell$$ |
+| $$c_\ell$$ | Constraint function for constraint $$\ell$$ (3-vector) |
+| $$C(X)$$ | Full constraint vector (stack of all $$c_\ell$$), $$C \in \mathbb{R}^{3N_c}$$ |
+| $$J$$ | Constraint Jacobian, $$J \in \mathbb{R}^{3N_c \times 6N_b}$$, defined by $$\dot C = JV$$ |
+| $$J_\ell$$ | Rows of $$J$$ for constraint $$\ell$$, $$J_\ell \in \mathbb{R}^{3 \times 6N_b}$$ |
+| $$\lambda$$ | Lagrange multiplier vector, $$\lambda \in \mathbb{R}^{3N_c}$$ |
+| $$\lambda_\ell$$ | Lagrange multiplier for constraint $$\ell$$ (3-vector) |
+| $$\lambda^k$$ | Lagrange multiplier estimate at Jacobi iteration $$k$$ |
+| $$V^*$$ | Free velocity: velocity after force integration, before constraint solve |
+| $$V^k$$ | Velocity estimate at Jacobi iteration $$k$$ |
+| $$A$$ | Delassus matrix, $$A = JM^{-1}J^T \in \mathbb{R}^{3N_c \times 3N_c}$$ |
+| $$A_{\ell\ell}$$ | Diagonal $$3 \times 3$$ block of $$A$$ for constraint $$\ell$$ |
+| $$b$$ | Constraint RHS vector, $$b = h^{-1}JV^* \in \mathbb{R}^{3N_c}$$ |
+| $$D$$ | Block-diagonal part of $$A$$ (Jacobi splitting) |
+| $$E$$ | Off-block-diagonal part of $$A$$ (Jacobi splitting) |
 
 ---
 ## Derivation
