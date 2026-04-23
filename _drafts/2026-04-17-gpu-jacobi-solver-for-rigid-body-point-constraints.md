@@ -11,6 +11,8 @@ I'm sticking with a specific, very simple constraint type for the scope of this 
 
 The result? A _mostly_ stable chain of heavy looking beads:
 
+<!-- excerpt -->
+
 ---
 ## Glossary of Terms
 
@@ -31,13 +33,13 @@ This table lists every mathematical symbol used in the derivation that follows.
 | $$m_i$$ | Scalar (linear) mass of body $$i$$ |
 | $$I_i$$ | World-space rotational inertia tensor of body $$i$$ |
 | $$R(q)$$ | Rotation operator: rotates a vector by unit quaternion $$q$$ |
-| $$[v]_\times$$ | Cross-product matrix of $$v$$, satisfying $$[v]_\times u = v \times u$$ |
-| $$\otimes$$ | Quaternion multiplication |
+| $$[v]_\times$$ | Cross-product matrix of vector $$v$$, satisfying $$[v]_\times u = v \times u$$ |
+| $$\otimes$$ | [Quaternion multiplication](https://en.wikipedia.org/wiki/Quaternion#Hamilton_product:~:text=Center-,Hamilton%20product,-Scalar%20and%20vector) |
 | $$X$$ | System configuration state, $$X \in \mathbb{R}^{7N_b}$$ |
 | $$V$$ | Generalized velocity vector, $$V \in \mathbb{R}^{6N_b}$$ |
 | $$M$$ | Block-diagonal generalized mass matrix, $$M \in \mathbb{R}^{6N_b \times 6N_b}$$ |
 | $$F$$ | Generalized force vector |
-| $$L$$ | Lagrangian, $$L = K - U$$ |
+| $$L$$ | Lagrangian |
 | $$K$$ | Kinetic energy |
 | $$U$$ | Potential energy |
 | $$r^0_\ell, r^1_\ell$$ | Local-space attachment points of constraint $$\ell$$ on bodies $$i_\ell$$ and $$j_\ell$$ |
@@ -58,7 +60,7 @@ This table lists every mathematical symbol used in the derivation that follows.
 
 ---
 ## Derivation
-### Definitions
+### State Definitions
 
 We will start by defining our terms. In a system with $$N_b$$ rigid bodies, the $$i$$th body will have a position $$x_i$$ and quaternion rotation $$q_i$$. Its linear and angular velocities are $$\dot x_i$$ and $$\omega_i$$.
 
@@ -69,7 +71,7 @@ X &= \begin{bmatrix} x_0 & q_0 & x_1 & q_1 & \dots & x_{N_b-1} & q_{N_b-1} \end{
 V &= \begin{bmatrix} \dot x_0 & \omega_0 & \dot x_1 & \omega_1 & \dots & \dot x_{N_b-1} & \omega_{N_b-1} \end{bmatrix}^T
 \end{align}$$
 
-$$X \in \mathbb{R}^{7N_b}$$ uses unit quaternions for rotation (7 components per body). $$V \in \mathbb{R}^{6N_b}$$ is the generalized velocity (6 components per body), using angular velocity $$\omega_i$$ rather than $$\dot q_i$$. Note that $$V \neq \dot X$$ — they live in spaces of different dimension. $$V$$ is an element of the tangent space of the configuration manifold, not of $$\mathbb{R}^{7N_b}$$. The relationship between $$\dot q_i$$ and $$\omega_i$$ is
+$$X \in \mathbb{R}^{7N_b}$$ uses unit quaternions for rotation (7 components per body). $$V \in \mathbb{R}^{6N_b}$$ is the generalized velocity (6 components per body), using angular velocity $$\omega_i$$ rather than $$\dot q_i$$. Note that $$V \neq \dot X$$ — they live in spaces of different dimension. $$V$$ is an element of the tangent space of the constraint configuration, not of $$\mathbb{R}^{7N_b}$$. The relationship between $$\dot q_i$$ and $$\omega_i$$ is
 
 $$
 \dot q_i = \tfrac{1}{2}q_i \otimes (0, \omega_i)
@@ -77,9 +79,11 @@ $$
 
 where $$\omega_i$$ is embedded as a pure quaternion. This is used for position integration but does not appear in the constraint solve.
 
-We'll also define the operation $$R(q)$$ to be the operation which rotates a vector by the rotation represented by the unit quaternion $$q$$.
+### Point Constraint Definition
 
-Now let's say there are $$N_c$$ constraints. The $$\ell$$th constraint references two bodies via indices $$i_\ell$$ and $$j_\ell$$, and "pins" their local-space attachment points $$r^0_\ell$$ and $$r^1_\ell$$ together
+To simplify the constraint expression we want to construct, we'll define $$R(q)$$ to be the operation which rotates a vector by the unit quaternion $$q$$.
+
+Remember, we're trying to make a "point constraint" - that is, we want to constrain specific points on two objects to always be collocated. Let's say there are $$N_c$$ constraints. The $$\ell$$th constraint references two bodies via indices $$i_\ell$$ and $$j_\ell$$, and "pins" their local-space attachment points $$r^0_\ell$$ and $$r^1_\ell$$ together.
 
 $$\begin{align}
 c_\ell(x_{i_\ell},q_{i_\ell},x_{j_\ell},q_{j_\ell}) &= x_{i_\ell} - x_{j_\ell} + R(q_{i_\ell})r^0_\ell - R(q_{j_\ell})r^1_\ell\\
@@ -96,24 +100,28 @@ We define the _constraint Jacobian_ $$J$$, a $$3N_c \times 6N_b$$ matrix, by the
 
 $$
 \dot C = J V
+\tag{1}
 $$
 
-Note that $$J \neq \frac{\partial C}{\partial X}$$ in the strict sense: since $$X \in \mathbb{R}^{7N_b}$$ and $$V \in \mathbb{R}^{6N_b}$$ have different dimensions, no such equality is possible. Instead, $$J$$ is the Jacobian in the tangent space of the configuration manifold — obtained by differentiating $$C$$ directly with respect to time and reading off the $$V$$ coefficients.
+Note that $$J \neq \frac{\partial C}{\partial X}$$ in the strict sense: since $$X \in \mathbb{R}^{7N_b}$$ and $$V \in \mathbb{R}^{6N_b}$$ have different dimensions, no such equality is possible. Instead, we obtain $$J$$ by differentiating $$C$$ directly with respect to time and reading off the coefficients of $$V$$, which gives us a gradient in the tangent space of the constraint configuration.
 
-Since $$C(X) = 0$$ must hold for all time, $$\dot C = 0$$, giving the velocity-level constraint
+If we did want $$J$$ to be a Jacobiain of the constraint function in a stricter sense, we could add a constraint per body which enforces normalization of the quaternion state variables, and treat the quaternion's fourth value as another degree of freedom with it's own corresponding time derivative. This would be a very interesting exercise and probably carries its own advantages, but the obvious major disadvantage is that it adds an extra unknown and an additional constraint _per body_, which could increase computation - not worth it for the improved aesthetic of the derivation.
+
+Since $$C(X) = 0$$ must hold for all time, $$\dot C = 0$$. Combined this with $$(1)$$, the velocity-level constraint is
 
 $$
 J V = 0
+\tag{2}
 $$
 
 $$J$$ is sparse — every block of 3 rows corresponds to one constraint, and the $$\ell$$th block $$J_\ell$$ is a $$3 \times 6N_b$$ matrix with only 12 nonzero columns (the 6-DOF blocks for bodies $$i_\ell$$ and $$j_\ell$$). We compute those columns by differentiating $$c_\ell$$ with respect to time and reading off the velocity coefficients.
 
 $$\begin{align}
-\dot c_\ell &= \dot x_{i_\ell} - \dot x_{j_\ell} + \omega_{i_\ell} \times R(q_{i_\ell}) r^0_\ell - \omega_{j_\ell} \times R(q_{j_\ell}) r^1_\ell\\
-&= \dot x_{i_\ell} - \dot x_{j_\ell} - R(q_{i_\ell}) r^0_\ell \times \omega_{i_\ell} + R(q_{j_\ell}) r^1_\ell \times \omega_{j_\ell}\\
+    \dot c_\ell &= \dot x_{i_\ell} - \dot x_{j_\ell} + \omega_{i_\ell} \times R(q_{i_\ell}) r^0_\ell - \omega_{j_\ell} \times R(q_{j_\ell}) r^1_\ell\\
+    &= \dot x_{i_\ell} - \dot x_{j_\ell} - R(q_{i_\ell}) r^0_\ell \times \omega_{i_\ell} + R(q_{j_\ell}) r^1_\ell \times \omega_{j_\ell}\\
 \end{align}$$
 
-From this expression, we can split out the velocities and infer the constraint Jacobian
+From this, we can split out the velocities and infer the constraint Jacobian
 
 $$\begin{align}
 \dot c_\ell &=
@@ -123,14 +131,12 @@ $$\begin{align}
     \begin{bmatrix}
         \dot x_{i_\ell} \\ \omega_{i_\ell} \\ \dot x_{j_\ell} \\ \omega_{j_\ell}
     \end{bmatrix}\\
-&= J_\ell V_\ell
+    &= J_\ell V_\ell
 \end{align}$$
 
-where $$V_\ell = \begin{bmatrix} \dot x_{i_\ell}^T & \omega_{i_\ell}^T & \dot x_{j_\ell}^T & \omega_{j_\ell}^T \end{bmatrix}^T \in \mathbb{R}^{12}$$ is the velocity state of the two bodies involved in constraint $$\ell$$, in the same interleaved order as the global $$V$$.
+where $$V_\ell = \begin{bmatrix} \dot x_{i_\ell}^T & \omega_{i_\ell}^T & \dot x_{j_\ell}^T & \omega_{j_\ell}^T \end{bmatrix}^T \in \mathbb{R}^{12}$$ is the velocity state of the two bodies involved in constraint $$\ell$$, in the same interleaved order as the global $$V$$. Also, I'm using the syntax $$[v]\times$$ to represent the [cross-product matrix](https://en.wikipedia.org/wiki/Cross_product#Conversion_to_matrix_multiplication:~:text=to%20compute%20subsection-,Conversion%20to%20matrix%20multiplication,-Index%20notation%20for), defined by $$[v]\times u = v \times u$$.
 
-Here I'm using the syntax $$[v]\times$$ to represent the cross-product matrix, defined by $$[v]\times u = v \times u$$.
-
-Therefore
+We can infer the Jacobian
 
 $$
 J_\ell =
@@ -144,24 +150,25 @@ $$
 Recalling the Lagrangian $$L$$ as
 
 $$\begin{align}
-L &= K - U\\
-&= \frac{1}{2}V^T M V - U(X)
+L &= K - U + \lambda C(X)\\
+&= \frac{1}{2}V^T M V - U(X) + \lambda C(X)
 \end{align}$$
 
 where $$M \in \mathbb{R}^{6N_b \times 6N_b}$$ is the block-diagonal generalized mass matrix, with blocks $$m_i I_3$$ for linear inertia and the world-space inertia tensor $$I_i$$ for angular inertia.
 
-Constraints are enforced by adding a generalized constraint force $$J^T\lambda$$ to the equations of motion, where $$\lambda \in \mathbb{R}^{3N_c}$$ are the Lagrange multipliers representing constraint impulses. Since $$J$$ is defined in the tangent space of the configuration manifold (rather than as $$\frac{\partial C}{\partial X}$$ literally), the constraint force term $$\left(\frac{\partial C}{\partial X}\right)^T\lambda$$ in the Euler-Lagrange equation is equivalent to $$J^T\lambda$$ when both are evaluated in this tangent space. The constrained Euler-Lagrange equation is then
+Since $$J$$ is defined in the tangent space of the constraint configuration (rather than as $$\frac{\partial C}{\partial X}$$ literally), the constraint force term $$\left(\frac{\partial C}{\partial X}\right)^T\lambda$$ in the Euler-Lagrange equation is equivalent to $$J^T\lambda$$ when both are evaluated in this tangent space. The constrained Euler-Lagrange equation is then
 
 $$\begin{align}
-0 &= \frac{d}{dt}\frac{\partial L}{\partial V} - \frac{\partial L}{\partial X} + J^T\lambda\\
+0 &= \frac{d}{dt}\frac{\partial L}{\partial V} - \frac{\partial L}{\partial X}\\
+&= M\dot V - F + \left(\frac{\partial C}{\partial X}\right)^T\lambda\\
 &= M\dot V - F + J^T\lambda
 \end{align}$$
 
-where $$F = -\frac{\partial U}{\partial X}$$ is the total force on the system.
+where [$$F = -\frac{\partial U}{\partial X}$$](https://en.wikipedia.org/wiki/Force#Potential_energy:~:text=Kinematic%20integrals-,Potential%20energy,-Conservation) is the total force on the system.
 
 ### Discretizing Time
 
-We now discretize the equations of motion over the time domain by introducing $$h$$, the "delta time", and let $$n$$ denote the current timestep index. The acceleration of the system $$\ddot X$$ then becomes
+We now discretize the equations of motion over the time domain by introducing $$h$$, the "delta time", and let $$n$$ denote the current timestep index. The acceleration of the system $$\dot V$$ then becomes
 
 $$
 \dot V = \left(V_{n+1} - V_n\right)h^{-1}
@@ -173,24 +180,26 @@ Then the equation of motion becomes a system of $$6N_b$$ equations with $$6N_b +
 
 $$
 MV_{n+1} + hJ^T\lambda = MV^*
+\tag{3}
 $$
 
-Closing the system with the discretized velocity constraint $$JV_{n+1} = 0$$ enforces the constraint at the velocity level only — it does not directly enforce $$C(X) = 0$$, so position-level drift can accumulate over time. This gives $$6N_b + 3N_c$$ equations in $$6N_b + 3N_c$$ unknowns, which can be written as the block matrix system
+We close the system with the discretized velocity constraint
 
 $$
-\begin{bmatrix} M & hJ^T \\ J & 0 \end{bmatrix}
-\begin{bmatrix} V_{n+1} \\ \lambda \end{bmatrix}
-=
-\begin{bmatrix} MV^* \\ 0 \end{bmatrix}
+JV_{n+1} = 0
+\tag{4}
 $$
 
-We'll solve the first equation for $$V_{n+1}$$, and substitute the result into the second equation, and rearrange to find $$\lambda$$.
+Equations $$(3)$$ and $$(4)$$ give $$6N_b + 3N_c$$ equations in $$6N_b + 3N_c$$ unknowns. This system includes the constraint at the velocity level only - it does not directly enforce $$C(X) = 0$$, so position-level drift can accumulate over time. 
 
-First, solve equation one for $$V_{n+1}$$.
+We'll solve $$(3)$$ for $$V_{n+1}$$, and substitute the result into the $$(4)$$, and rearrange to find $$\lambda$$. The result can then be plugged back into $$(3)$$ to solve for $$V_{n+1}$$.
+
+First, solve $$(3)$$ for $$V_{n+1}$$.
 
 $$\begin{align}
 MV_{n+1} + hJ^T\lambda &= MV^*\\
 V_{n+1} &= V^* - hM^{-1}J^T\lambda
+\tag{5}
 \end{align}$$
 
 Now, plug this into equation 2 and rearrange to get a linear system in $$\lambda$$.
@@ -214,11 +223,11 @@ $$\begin{align}
 A\lambda &= b\\
 \end{align}$$
 
-The matrix $$A$$ is known as the _Delassus matrix_ and represents the compliance of the system in constraint space - how much constraint velocity changes in response to a unit constraint impulse. It is effectively the inverse inertia in constraint space.
+The matrix $$A$$ is known as the _Delassus matrix_ and represents the compliance of the system in constraint space - how much constraint velocity changes in response to a unit constraint impulse. It is effectively the inverse inertia (ie. inverse mass), but in constraint space.
 
 ### The Jacobi Step
 
-The Jacobi method is an iterative numeric method for solving linear systems. We choose this as our starting point because it is well suited for parallelization. The method begins by breaking $$A$$ into its block-diagonal and off-block-diagonal parts, $$D$$ and $$E$$, where $$D$$ consists of the $$3\times 3$$ diagonal blocks $$A_{\ell\ell}$$.
+I'll rely on the [Jacobi method](https://en.wikipedia.org/wiki/Jacobi_method) for solving the linear systems. This is a good choice as a starting point because it is well suited for parallelization, and I am targeting GPU simulation. The method begins by breaking $$A$$ into its block-diagonal and off-block-diagonal parts, $$D$$ and $$E$$, where $$D$$ consists of the $$3\times 3$$ diagonal blocks $$A_{\ell\ell}$$.
 
 $$\begin{align}
 A &= D + E
@@ -245,15 +254,17 @@ $$\begin{align}
 &= D^{-1}\left( b - A\lambda^k \right) + \lambda^k
 \end{align}$$
 
-The innermost expression $$b - A\lambda^k$$ is known as the "residual". Intuitively, $$b$$ is the constraint violation of the free velocity and $$A\lambda^k$$ is the correction the current impulse estimate would produce, so the residual is the remaining violation that $$\lambda^k$$ has not yet accounted for — the iteration converges when it reaches zero.
+The innermost expression $$b - A\lambda^k$$ is known as the _residual_. Intuitively, $$b$$ is the constraint violation of the free velocity and $$A\lambda^k$$ is the correction the current impulse estimate would produce, so the residual is the remaining violation that $$\lambda^k$$ has not yet accounted for — the iteration converges when it reaches zero.
 
 ### Using Sparsity for Parallelism
 
-Since each $$c_\ell$$ is a 3D vector equation (a difference between two positions), $$A$$ has dimensions $$3N_c \times 3N_c$$ with $$3\times 3$$ blocks. $$A$$ is sparse, containing nonzero blocks only where constraints share a body. We now devise an update for the $$\ell$$th block $$\lambda_\ell$$, which is a 3-vector. Each $$\lambda_\ell$$ can be updated independently, so the Jacobi iteration can be done in a parallel manner.
+Since each $$c_\ell$$ is a 3D vector equation (a difference between two positions), $$A$$ has dimensions $$3N_c \times 3N_c$$ with $$3\times 3$$ blocks. $$A$$ is generally sparse, containing nonzero blocks only where constraints share a body. We now devise an update for the $$\ell$$th constraint's Lagrange multiplier $$\lambda_\ell$$, which is a 3-vector. Each $$\lambda_\ell$$ can be updated independently.
 
-The diagonal blocks of $$D$$ are $$A_{\ell\ell} = J_\ell M^{-1} J_\ell^T$$, where $$A_{\ell\ell}$$ are $$3\times 3$$ matrices. Although $$J_\ell$$ and $$M^{-1}$$ both depend on orientation and change each timestep, they are fixed for the duration of a single solve. So $$A_{\ell\ell}^{-1}$$ can be precomputed once per timestep, before the iteration loop begins. The full, global $$A$$ matrix never needs to be formed. Note that $$J_\ell$$ is technically a $$3 \times 6N_b$$ matrix, where we typically only store the $$12$$ of the $$6N_b$$ columns which are nonzero, the 6-DOF blocks for bodies $$i_\ell$$ and $$j_\ell$$.
+The diagonal blocks of $$D$$ are $$A_{\ell\ell} = J_\ell M^{-1} J_\ell^T$$, where $$A_{\ell\ell}$$ are $$3\times 3$$ matrices. Although $$J_\ell$$ and $$M^{-1}$$ both depend on orientation and change each timestep, they are fixed for the duration of a single solve. So $$A_{\ell\ell}^{-1}$$ can be precomputed once per timestep, before the iteration loop begins.
 
-We also track the velocity estimate across iterations, writing $$V^k$$ for the velocity implied by the current iterate $$\lambda^k$$, initialized as $$V^0 = V^*$$.
+Note that $$J_\ell$$ is technically a $$3 \times 6N_b$$ matrix, where we typically only store the $$12$$ of the $$6N_b$$ columns which are nonzero, the 6-DOF blocks for bodies $$i_\ell$$ and $$j_\ell$$.
+
+We track the velocity estimate across iterations, writing $$V^k$$ for the velocity implied by the current $$\lambda^k$$, initialized as $$V^0 = V^*$$.
 
 Recalling the definitions for $$A$$ and $$b$$, the per-constraint update is then
 
@@ -262,16 +273,24 @@ $$\begin{align}
 &= \lambda_\ell^k + A_{\ell\ell}^{-1} \cdot h^{-1} J_\ell V^k
 \end{align}$$
 
-where $$V^k = V^* - hM^{-1}J^T\lambda^k$$. The second line follows from the identity $$b_\ell - (A\lambda^k)_\ell = h^{-1}J_\ell V^k$$, which can be verified by substituting the definitions of $$A$$, $$b$$, and $$V^k$$. Since $$J_\ell$$ is nonzero only for bodies $$i_\ell$$ and $$j_\ell$$, each thread only needs to read the velocities of those two bodies.
+where $$V^k = V^* - hM^{-1}J^T\lambda^k$$ comes from $$(5)$$. The second line follows from the identity $$b_\ell - (A\lambda^k)_\ell = h^{-1}J_\ell V^k$$, which can be verified by substituting the definitions of $$A$$, $$b$$, and $$V^k$$. Since $$J_\ell$$ is nonzero only for bodies $$i_\ell$$ and $$j_\ell$$, each thread only needs to read the velocities of those two bodies.
 
-The challenge is that $$V^k$$ requires summing impulse contributions from all constraints touching each body. Each Jacobi iteration splits naturally into two kernel passes, initializing with $$V^0 = V^*$$:
+To then get the next estimate for body velocities, we need to express $$(5)$$ in terms of per-constraint $$\lambda_\ell$$, and substitute in our new value $$\lambda_\ell^{k+1}$$. We use $$J^T\lambda = \sum_\ell J_\ell^T \lambda_\ell$$ to obtain the velocity iteration
+
+$$
+V^{k+1} = V^* - hM^{-1}\sum_\ell J_\ell^T \lambda_\ell^{k+1}
+$$
+
+We can see that $$V^k$$ requires summing impulse contributions from all constraints touching each body. But if we break down the summation to obtain a _per-body_ velocity update, we can see from the sparsity of $$J_\ell$$ that the velocity change on body $$i$$ depends only on constraint $$\ell$$ if $$i=i_\ell$$ or $$i=j_\ell$$. In the case of our exemplary chain, each body is referred to in at most two constraints, so this summation is cheap.
+
+Therefore, the Jacobi iteration splits naturally into two kernel passes, initializing with $$V^0 = V^*$$:
 
 1. **Lambda pass** (one thread per constraint): read $$V^k$$ for bodies $$i_\ell$$ and $$j_\ell$$, produce $$\lambda_\ell^{k+1}$$
-2. **Velocity pass** (one thread per body): accumulate $$V^{k+1} = V^* - hM^{-1}\sum_\ell J_\ell^T \lambda_\ell^{k+1}$$
+2. **Velocity pass** (one thread per body): accumulate $$V_i^{k+1}$$, given $$\lambda_\ell^{k+1}$$
 
 ### Connectivity
 
-The velocity pass only needs to sum over constraints touching each body, not all constraints. To make this efficient, we precompute a flat array of constraint indices sorted by body, so that each body's connected constraints are contiguous. Each body stores a single integer offset marking where its section begins. Each constraint appears twice — once per body it connects. This structure is built once per topological change, not per frame.
+The velocity pass only needs to sum over constraints touching each body, not all constraints. To make this efficient, we precompute a flat array of constraint indices sorted by body, so that each body's connected constraints are contiguous. Each body stores a single integer offset marking where its section begins. Each constraint appears twice - once per body it connects. This structure is built once per topological change (not per frame).
 
 ---
 ## Algorithm

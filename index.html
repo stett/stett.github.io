@@ -19,6 +19,10 @@ dramaschool: true
 
         {{ post.content }}
 
+        {% comment %}
+        {{ post.excerpt }}
+        {% endcomment %}
+
         {% comment %} <!-- For now, disable disqus -->
         [ <a href="{{ post.url }}#comments">Comment</a> ]
         {% endcomment %}
