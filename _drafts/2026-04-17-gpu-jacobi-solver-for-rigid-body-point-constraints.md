@@ -9,7 +9,7 @@ This post contains my derivation notes for the Jacobi iteration of a system of s
 
 I'm sticking with a specific, very simple constraint type for the scope of this derivation for concreteness, and so that it can immediately map to an actual simulation.
 
-The result? A _mostly_ stable chain of heavy looking beads:
+The result? A _mostly_ stable chain of heavy-looking beads:
 
 <!-- excerpt -->
 
@@ -105,9 +105,9 @@ $$
 
 Note that $$J \neq \frac{\partial C}{\partial X}$$ in the strict sense: since $$X \in \mathbb{R}^{7N_b}$$ and $$V \in \mathbb{R}^{6N_b}$$ have different dimensions, no such equality is possible. Instead, we obtain $$J$$ by differentiating $$C$$ directly with respect to time and reading off the coefficients of $$V$$, which gives us a gradient in the tangent space of the constraint configuration.
 
-If we did want $$J$$ to be a Jacobiain of the constraint function in a stricter sense, we could add a constraint per body which enforces normalization of the quaternion state variables, and treat the quaternion's fourth value as another degree of freedom with it's own corresponding time derivative. This would be a very interesting exercise and probably carries its own advantages, but the obvious major disadvantage is that it adds an extra unknown and an additional constraint _per body_, which could increase computation - not worth it for the improved aesthetic of the derivation.
+If we did want $$J$$ to be a Jacobian of the constraint function in a stricter sense, we could add a constraint per body which enforces normalization of the quaternion state variables, and treat the quaternion's fourth value as another degree of freedom with its own corresponding time derivative. This would be a very interesting exercise and probably carries its own advantages, but the obvious major disadvantage is that it adds an extra unknown and an additional constraint _per body_, which could increase computation - not worth it for the improved aesthetic of the derivation.
 
-Since $$C(X) = 0$$ must hold for all time, $$\dot C = 0$$. Combined this with $$(1)$$, the velocity-level constraint is
+Since $$C(X) = 0$$ must hold for all time, $$\dot C = 0$$. Combining this with $$(1)$$, the velocity-level constraint is
 
 $$
 J V = 0
@@ -126,7 +126,7 @@ From this, we can split out the velocities and infer the constraint Jacobian
 $$\begin{align}
 \dot c_\ell &=
     \begin{bmatrix}
-        I_3 & -\left[R(q_{i_\ell}) r^0_\ell\right]\times & -I_3 & \left[R(q_{j_\ell}) r^1_\ell\right]\times
+        I_3 & -\left[R(q_{i_\ell}) r^0_\ell\right]_\times & -I_3 & \left[R(q_{j_\ell}) r^1_\ell\right]_\times
     \end{bmatrix}
     \begin{bmatrix}
         \dot x_{i_\ell} \\ \omega_{i_\ell} \\ \dot x_{j_\ell} \\ \omega_{j_\ell}
@@ -134,14 +134,14 @@ $$\begin{align}
     &= J_\ell V_\ell
 \end{align}$$
 
-where $$V_\ell = \begin{bmatrix} \dot x_{i_\ell}^T & \omega_{i_\ell}^T & \dot x_{j_\ell}^T & \omega_{j_\ell}^T \end{bmatrix}^T \in \mathbb{R}^{12}$$ is the velocity state of the two bodies involved in constraint $$\ell$$, in the same interleaved order as the global $$V$$. Also, I'm using the syntax $$[v]\times$$ to represent the [cross-product matrix](https://en.wikipedia.org/wiki/Cross_product#Conversion_to_matrix_multiplication:~:text=to%20compute%20subsection-,Conversion%20to%20matrix%20multiplication,-Index%20notation%20for), defined by $$[v]\times u = v \times u$$.
+where $$V_\ell = \begin{bmatrix} \dot x_{i_\ell}^T & \omega_{i_\ell}^T & \dot x_{j_\ell}^T & \omega_{j_\ell}^T \end{bmatrix}^T \in \mathbb{R}^{12}$$ is the velocity state of the two bodies involved in constraint $$\ell$$, in the same interleaved order as the global $$V$$. Also, I'm using the syntax $$[v]_\times$$ to represent the [cross-product matrix](https://en.wikipedia.org/wiki/Cross_product#Conversion_to_matrix_multiplication:~:text=to%20compute%20subsection-,Conversion%20to%20matrix%20multiplication,-Index%20notation%20for), defined by $$[v]_\times u = v \times u$$.
 
 We can infer the Jacobian
 
 $$
 J_\ell =
     \begin{bmatrix}
-        I_3 & -\left[R(q_{i_\ell}) r^0_\ell\right]\times & -I_3 & \left[R(q_{j_\ell}) r^1_\ell\right]\times
+        I_3 & -\left[R(q_{i_\ell}) r^0_\ell\right]_\times & -I_3 & \left[R(q_{j_\ell}) r^1_\ell\right]_\times
     \end{bmatrix}
 $$
 
@@ -150,8 +150,8 @@ $$
 Recalling the Lagrangian $$L$$ as
 
 $$\begin{align}
-L &= K - U + \lambda C(X)\\
-&= \frac{1}{2}V^T M V - U(X) + \lambda C(X)
+L &= K - U - \lambda C(X)\\
+&= \frac{1}{2}V^T M V - U(X) - \lambda C(X)
 \end{align}$$
 
 where $$M \in \mathbb{R}^{6N_b \times 6N_b}$$ is the block-diagonal generalized mass matrix, with blocks $$m_i I_3$$ for linear inertia and the world-space inertia tensor $$I_i$$ for angular inertia.
@@ -192,7 +192,7 @@ $$
 
 Equations $$(3)$$ and $$(4)$$ give $$6N_b + 3N_c$$ equations in $$6N_b + 3N_c$$ unknowns. This system includes the constraint at the velocity level only - it does not directly enforce $$C(X) = 0$$, so position-level drift can accumulate over time. 
 
-We'll solve $$(3)$$ for $$V_{n+1}$$, and substitute the result into the $$(4)$$, and rearrange to find $$\lambda$$. The result can then be plugged back into $$(3)$$ to solve for $$V_{n+1}$$.
+We'll solve $$(3)$$ for $$V_{n+1}$$, and substitute the result into $$(4)$$, and rearrange to find $$\lambda$$. The result can then be plugged back into $$(3)$$ to solve for $$V_{n+1}$$.
 
 First, solve $$(3)$$ for $$V_{n+1}$$.
 
@@ -202,7 +202,7 @@ V_{n+1} &= V^* - hM^{-1}J^T\lambda
 \tag{5}
 \end{align}$$
 
-Now, plug this into equation 2 and rearrange to get a linear system in $$\lambda$$.
+Now, plug this into $$(4)$$ and rearrange to get a linear system in $$\lambda$$.
 
 $$\begin{align}
 J V_{n+1} &= 0\\
@@ -312,6 +312,8 @@ vec3 lin_vel_delta[NB]; // the working lin vel delta during jacobi iterations
 vec3 ang_vel_delta[NB]; // the working ang vel delta during jacobi iterations
 float lin_mass[NB];
 float lin_mass_inv[NB];
+vec3 lin_acc[NB]; // linear acceleration from external forces (e.g. gravity)
+vec3 ang_acc[NB]; // angular acceleration from external torques
 mat3 ang_mass_local[NB];
 mat3 ang_mass[NB];
 mat3 ang_mass_inv[NB];
@@ -324,14 +326,14 @@ vec3 r1[NC]; // offset in body 1 local space
 vec3 multiplier[NC];
 Jacobian jacobian[NC];
 mat3 delassus_inv[NC];
-int constraint_list[NC * 2] // constraint indices, ordered by body
+int constraint_list[NC * 2]; // constraint indices, ordered by body
 ```
 
 At a high level, the algorithm to do a time step looks like this:
 ```c++
 void update(float dt) {
 
-    // recompute the constraint topolgy mappings
+    // recompute the constraint topology mappings
     // this is NOT a parallel algorithm, and should run once per topological update.
     if (/* topology has changed */) {
         compute_connectivity();
@@ -362,7 +364,7 @@ void update(float dt) {
         
         // update velocities (scatter)
         parallel_for (int ib : body_indices)
-            update_velocity(ib, dt);
+            update_velocities(ib, dt);
     }
     
     // integrate velocities
@@ -371,7 +373,7 @@ void update(float dt) {
 }
 ```
 
-First I'll break run the sequential connectivity builder which should change only when there's a topological change.
+Next, I'll walk through the sequential connectivity builder, which runs only when there's a topological change.
 ```c++
 void compute_connectivity() {
 
