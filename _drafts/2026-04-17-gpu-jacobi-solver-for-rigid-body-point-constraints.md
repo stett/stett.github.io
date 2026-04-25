@@ -16,8 +16,6 @@ The result? A _mostly_ stable chain of heavy-looking beads:
 ---
 ## Glossary of Terms
 
-This table lists every mathematical symbol used in the derivation that follows.
-
 | $$N_b$$ | Number of rigid bodies in the system |
 | $$N_c$$ | Number of constraints |
 | $$h$$ | Timestep (delta time) |
@@ -426,7 +424,7 @@ void compute_inertia(int ib) {
 
 void compute_free_velocity(int ib, float dt) {
 
-    // these integrations are separable, and it may be desireable
+    // these integrations are separable, and it may be desirable
     // to swap out different methods of integration for each in the
     // case that forces are position-dependent or require higher
     // precision. For example, we may want an integrator which does
