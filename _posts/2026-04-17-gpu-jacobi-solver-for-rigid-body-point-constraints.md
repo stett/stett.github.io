@@ -333,7 +333,7 @@ b &= h^{-1} \left( J V^* + \beta C(X) \right)
 This trickles down to the per-constraint update to the multiplier.
 
 $$\begin{align}
-\lambda_\ell^{k+1} &= \lambda_\ell^k + h^{-1} A_{\ell\ell}^{-1} \left(J_\ell V^k + \beta C_\ell(X)) \right)
+\lambda_\ell^{k+1} &= \lambda_\ell^k + h^{-1} A_{\ell\ell}^{-1} \left(J_\ell V^k + \beta C_\ell(X) \right)
 \end{align}$$
 
 It's a simple change to make, but one question remains: since $$\beta$$ is not a real physical parameter, what value should we assign to it? In section 4.2 of [Erin Catto's famous paper](https://box2d.org/files/ErinCatto_IterativeDynamics_GDC2005.pdf), he derives bounds of $$[0,2]$$ for convergence and $$[0,1]$$ for smooth convergence. In practice, values in the range $$[0.1,0.3]$$ are common.
@@ -529,13 +529,12 @@ void update_multipliers(int ic, float dt) {
     vec3 ang_vel0 = ang_vel[b0] + ang_vel_delta[b0];
     vec3 ang_vel1 = ang_vel[b1] + ang_vel_delta[b1];
 
-    // compute constraint velocity: J_l * X_dot = (v0 - v1) + jw0*w0 + jw1*w1
+    // compute constraint velocity: J_l * X_dot = (v0 - v1) + (jw0 * w0) + (jw1 * w1) + (β * C_l)
     vec3 constraint_vel
         = (lin_vel0 - lin_vel1)
         + (jacobian[ic].w0 * ang_vel0)
         + (jacobian[ic].w1 * ang_vel1)
         + (baumgarte * violations[ic]);
-
 
     // increment the multiplier: lambda += A_ll^-1 * h^-1 * J_l * X_dot
     multiplier[ic] += delassus_inv[ic] * constraint_vel * (1.f/dt);
