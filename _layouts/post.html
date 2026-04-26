@@ -8,7 +8,17 @@ layout: base
         <h3 class="subtitle">{% if page.subtitle %}{{ page.subtitle }}{% endif %}</h3>
     </header>
     {{ content }}
+
+
 </article>
+
+{% if page.pdf %}
+{% assign pdf_file = page.path | split: '/' | last | replace: '.md', '.pdf' %}
+<div class="download-pdf">
+<a href="{{ '/assets/pdf/' | append: pdf_file | relative_url }}">Download PDF</a>
+</div>
+{% endif %}
+
 
 {% comment %} <!-- Remove disqus for now -->
 {% if page.comments %}
