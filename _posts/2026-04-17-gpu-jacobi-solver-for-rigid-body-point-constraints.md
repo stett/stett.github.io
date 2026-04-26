@@ -218,6 +218,7 @@ To simplify things, we define $$A$$ and $$b$$
 $$\begin{align}
 A &= JM^{-1}J^T\\
 b &= h^{-1}J V^*
+\tag{6}
 \end{align}$$
 
 so that our system becomes
@@ -272,6 +273,7 @@ We track the velocity estimate across iterations, writing $$V^k$$ for the veloci
 Recalling the definitions for $$A$$ and $$b$$, the per-constraint update is then
 
 $$\begin{align}
+\lambda_\ell^0 &= 0\\
 \lambda_\ell^{k+1} &= \lambda_\ell^k + A_{\ell\ell}^{-1}(b_\ell - (A\lambda^k)_\ell)\\
 &= \lambda_\ell^k + A_{\ell\ell}^{-1} \cdot h^{-1} J_\ell V^k
 \end{align}$$
@@ -281,7 +283,10 @@ where $$V^k = V^* - hM^{-1}J^T\lambda^k$$ comes from $$(5)$$. The second line fo
 To then get the next estimate for body velocities, we need to express $$(5)$$ in terms of per-constraint $$\lambda_\ell$$, and substitute in our new value $$\lambda_\ell^{k+1}$$. We use $$J^T\lambda = \sum_\ell J_\ell^T \lambda_\ell$$ to obtain the velocity iteration
 
 $$
-V^{k+1} = V^* - hM^{-1}\sum_\ell J_\ell^T \lambda_\ell^{k+1}
+\begin{align}
+V^0 &= V^*\\
+V^{k+1} &= V^k - hM^{-1}\sum_\ell J_\ell^T \lambda_\ell^{k+1}
+\end{align}
 $$
 
 We can see that $$V^k$$ requires summing impulse contributions from all constraints touching each body. But if we break down the summation to obtain a _per-body_ velocity update, we can see from the sparsity of $$J_\ell$$ that the velocity change on body $$i$$ depends only on constraint $$\ell$$ if $$i=i_\ell$$ or $$i=j_\ell$$. In the case of our exemplary chain, each body is referred to in at most two constraints, so this summation is cheap.
@@ -294,6 +299,54 @@ Therefore, the Jacobi iteration splits naturally into two kernel passes, initial
 ### Connectivity
 
 The velocity pass only needs to sum over constraints touching each body, not all constraints. To make this efficient, we precompute a flat array of constraint indices sorted by body, so that each body's connected constraints are contiguous. Each body stores a single integer offset marking where its section begins. Each constraint appears twice - once per body it connects. This structure is built once per topological change (not per frame).
+
+### Numeric Drift
+
+The derivation up to this point is technically correct. Now say we go through the long process of coding it all up, testing every step to make sure there were no mistakes, and finally building a scene with a simple chain of spheres. This is what we see:
+
+<video width="100%" controls>
+  <source src="{{ '/assets/video/chain-no-baumgarte.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+Close but not quite right! Note the paragraph immediately after equation $$(4)$$. We've got a solid physical basis for the derivation of equations which enforce $$\dot C(X) = 0$$, but _not_ $$C(X) = 0$$. This means that over time, drift is introduced by imperfect floating point calculations at each step.
+
+There are a number of ways to address this. In real-time sims, the most common solution is calle [Baumgarte stabilization](https://www.sciencedirect.com/science/article/abs/pii/0045782572900187). Thankfully it's very simple to implement and to understand intuitively. However, it is not a physically based method - while it does typically improve numeric accuracy, it can also inject kinetic energy into the system and cause instabilities.
+
+The idea comes from control theory. In reality, $$C(X) \neq 0$$ because constraint error is introduced over time. To control for it, we can introduce a time-dependent term which exponentially decays to zero. Since $$X$$ depends on $$t$$ and $$C$$ only depends on $$X$$, we can write $$C$$ as a function of $$t$$.
+
+$$
+C(t) = C(X(t)) e^{-\beta t}
+$$
+
+Previously we had considered the time derivative of $$C(X)$$ to be zero, but now we have
+
+$$
+\dot C(X) = -\beta C(X)
+\tag{7}
+$$
+
+After the derivative, $$t$$ dependence outside of $$X(t)$$ is gone, so I've rewritten it again in terms of $$X$$ alone. We now carry $$(7)$$ through each step of the derivation. This starts with equation $$(4)$$, where we close the system of equations of motion. Plugging $$(5)$$ into $$(7)$$ this time, we come to a system identical to $$(6)$$, but with a new term for $$b$$.
+
+$$\begin{align}
+A \lambda &= b\\
+A &= JM^{-1}J^T\\
+b &= h^{-1}J V^* + \beta C(X)
+\tag{8}
+\end{align}$$
+
+This trickles down to the per-constraint update to the multiplier.
+
+$$\begin{align}
+\lambda_\ell^{k+1} &= \lambda_\ell^k + A_{\ell\ell}^{-1} \left( \cdot h^{-1} J_\ell V^k + \beta C_\ell(X)) \right)
+\end{align}$$
+
+It's a simple change to make, but one question remains: since $$\beta$$ is not a real physical parameter, what value should we assign to it? In section 4.2 of [Erin Catto's famous paper](https://box2d.org/files/ErinCatto_IterativeDynamics_GDC2005.pdf), he derives a bounds of $$[0,2]$$ for convergence and $$[0,1]$$ for smooth convergence. In practice, values in the range $$[0.1,0.3]$$ are common.
+
+Finally, with this update, we have a much better looking chain simulation:
+
+<video width="100%" controls>
+  <source src="{{ '/assets/video/chain-with-baumgarte.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 ---
 ## Algorithm
@@ -328,6 +381,7 @@ vec3 r0[NC]; // offset in body 0 local space
 vec3 r1[NC]; // offset in body 1 local space
 vec3 multiplier[NC];
 Jacobian jacobian[NC];
+vec3 violations[NC]; // constraint violation values, ie. C(X)
 mat3 delassus_inv[NC];
 int constraint_list[NC * 2]; // constraint indices, ordered by body
 ```
@@ -350,9 +404,9 @@ void update(float dt) {
     parallel_for (int ib : body_indices)
         compute_free_velocity(ib, dt);
     
-    // update constraint Jacobian and Delassus matrices
+    // update constraint violation, Jacobian matrix, and Delassus matrix
     parallel_for (int ic : constraint_indices)
-        compute_jacobian_and_delassus(ic);
+        compute_violation_and_jacobian_and_delassus(ic);
     
     // note: at this point we could zero out the multipliers before iterating,
     // but convergence will generally improve if we "warm-start" the system
@@ -442,11 +496,20 @@ void compute_free_velocity(int ib, float dt) {
     ang_vel_delta[ib] = vec3(0.0f);
 }
 
-void compute_jacobian_and_delassus(int ic) {
+void compute_violation_and_jacobian_and_delassus(int ic) {
+
+    // compute world world space body points
+    int b0 = ib0[ic];
+    int b1 = ib1[ic];
+    vec3 r0 = to_mat3(rot[b0]) * r0[ic]
+    vec3 r1 = to_mat3(rot[b1]) * r1[ic]
+
+    // compute current constraint violation
+    violations[ic] = pos[b0] - pos[b1] + r1 - r1;
 
     // set up the Jacobian matrix for this constraint in the current orientations
-    mat3 jw0 = -cross_mat(to_mat3(rot[ib0[ic]]) * r0[ic]);
-    mat3 jw1 =  cross_mat(to_mat3(rot[ib1[ic]]) * r1[ic]);
+    mat3 jw0 = -cross_mat(r0);
+    mat3 jw1 =  cross_mat(r1);
     jacobian[ic].w0 = jw0;
     jacobian[ic].w1 = jw1;
     
@@ -474,7 +537,10 @@ void update_multipliers(int ic, float dt) {
     vec3 constraint_vel
         = (lin_vel0 - lin_vel1)
         + (jacobian[ic].w0 * ang_vel0)
-        + (jacobian[ic].w1 * ang_vel1);
+        + (jacobian[ic].w1 * ang_vel1)
+
+    constraint_vel += push_constants.baumgarte_beta * violations[ci].xyz / push_constants.dt;
+
 
     // increment the multiplier: lambda += A_ll^-1 * h^-1 * J_l * X_dot
     multiplier[ic] += delassus_inv[ic] * constraint_vel * (1.f/dt);
