@@ -9,7 +9,9 @@ In the following video a teapot made of 149210 tetrahedra is generated from a re
 
 <iframe width="100%" height="300" src="https://www.youtube.com/embed/BwP3SIjHfZw" frameborder="0" allowfullscreen></iframe>
 
-I am beginning work on an FEM based model for deforming and fracturing physics objects. Such a model requires that objects to be composed of assemblies of tetrahedrons (theoretically FEM could work on more complex element shapes than the tetrahedron, but I will make no such attempt :P).
+I am beginning work on an FEM based model for deforming and fracturing physics objects. Such a model requires that objects to be composed of assemblies of tetrahedrons. This post contains a high level overview of the datastructures and algorithms I'm experimenting with.
+
+<!-- excerpt -->
 
 ## Data Structure ##
 
