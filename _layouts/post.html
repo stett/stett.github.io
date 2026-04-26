@@ -4,7 +4,8 @@ layout: base
 
 <article>
     <header>
-        <h2>{{ page.title }}</h2>
+        <h2 class="title">{{ page.title }}</h2>
+        <h3 class="subtitle">{% if page.subtitle %}{{ page.subtitle }}{% endif %}</h3>
     </header>
     {{ content }}
 </article>

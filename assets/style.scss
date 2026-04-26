@@ -103,6 +103,16 @@ main>#content>h2 {
     margin-bottom: 0;
 }
 
+header {
+    .title {
+        margin-bottom: 0px;
+    }
+
+    .subtitle {
+        margin-top: 0px;
+    }
+}
+
 span.tags {
     color: #D9D5D0;
 }

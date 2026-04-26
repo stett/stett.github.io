@@ -1,13 +1,16 @@
 ---
-title: A Minimal GPU Jacobi Solver for Rigid Body Point Constraints
+title: GPU Constraint Solver - Part 1
+subtitle: A chain of rigid bodies using Jacobi iterations
 layout: post
 comments: false
 math: true
 ---
 
-This post contains my derivation notes for the Jacobi iteration of a system of spherical rigid bodies constrained together in a chain by "point" constraints (ie. ball joints) - ie. a pearl necklace :). I've been working on a little framework project for comparing different GPU based physics solvers, and this is meant to be a solver/scene which can function as a baseline by which to compare the stability and performance of various solvers.
+This post contains my derivation notes for the Jacobi iteration of a system of spherical rigid bodies constrained together in a chain by "point" constraints (ie. ball joints) - ie. a pearl necklace :).
 
-I'm sticking with a specific, very simple constraint type for the scope of this derivation for concreteness, and so that it can immediately map to an actual simulation.
+I've been working on a little framework project for comparing different GPU based physics solvers, and this is meant to be a solver/scene which can function as a baseline by which to compare the stability and performance of various solvers. I've called this post "Part 1", because I intend to build on the basis which I'm introducing here.
+
+I'm sticking with a specific, very simple constraint type for the scope of this derivation for concreteness, and so that it can immediately map to an actual simulation, although the concepts can be generalized to other equality constraint types.
 
 The result: 2.5k chains of 40 beads (100k beads and constraints total) at 60fps on a RTX4060.
 
