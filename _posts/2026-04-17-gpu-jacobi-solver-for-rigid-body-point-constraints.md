@@ -57,7 +57,7 @@ The result: 2.5k chains of 40 beads (100k beads and constraints total) at 60fps 
 | $$V^k$$ | Velocity estimate at Jacobi iteration $$k$$ |
 | $$A$$ | Delassus matrix, $$A = JM^{-1}J^T \in \mathbb{R}^{3N_c \times 3N_c}$$ |
 | $$A_{\ell\ell}$$ | Diagonal $$3 \times 3$$ block of $$A$$ for constraint $$\ell$$ |
-| $$b$$ | Constraint RHS vector, $$b = h^{-1}JV^* \in \mathbb{R}^{3N_c}$$ |
+| $$b$$ | Constraint RHS vector, $$b \in \mathbb{R}^{3N_c}$$ |
 | $$D$$ | Block-diagonal part of $$A$$ (Jacobi splitting) |
 | $$E$$ | Off-block-diagonal part of $$A$$ (Jacobi splitting) |
 
@@ -275,7 +275,7 @@ Recalling the definitions for $$A$$ and $$b$$, the per-constraint update is then
 $$\begin{align}
 \lambda_\ell^0 &= 0\\
 \lambda_\ell^{k+1} &= \lambda_\ell^k + A_{\ell\ell}^{-1}(b_\ell - (A\lambda^k)_\ell)\\
-&= \lambda_\ell^k + A_{\ell\ell}^{-1} \cdot h^{-1} J_\ell V^k
+&= \lambda_\ell^k + h^{-1} A_{\ell\ell}^{-1} J_\ell V^k
 \end{align}$$
 
 where $$V^k = V^* - hM^{-1}J^T\lambda^k$$ comes from $$(5)$$. The second line follows from the identity $$b_\ell - (A\lambda^k)_\ell = h^{-1}J_\ell V^k$$, which can be verified by substituting the definitions of $$A$$, $$b$$, and $$V^k$$. Since $$J_\ell$$ is nonzero only for bodies $$i_\ell$$ and $$j_\ell$$, each thread only needs to read the velocities of those two bodies.
@@ -305,47 +305,43 @@ The velocity pass only needs to sum over constraints touching each body, not all
 The derivation up to this point is technically correct. Now say we go through the long process of coding it all up, testing every step to make sure there were no mistakes, and finally building a scene with a simple chain of spheres. This is what we see:
 
 <video width="100%" controls>
-  <source src="{{ '/assets/video/chain-no-baumgarte.mov' | relative_url }}" type="video/mov">
+  <source src="{{ '/assets/video/chain-without-baumgarte.mp4' | relative_url }}" type="video/mp4">
 </video>
 
 Close but not quite right! Note the paragraph immediately after equation $$(4)$$. We've got a solid physical basis for the derivation of equations which enforce $$\dot C(X) = 0$$, but _not_ $$C(X) = 0$$. This means that over time, drift is introduced by imperfect floating point calculations at each step.
 
-There are a number of ways to address this. In real-time sims, the most common solution is calle [Baumgarte stabilization](https://www.sciencedirect.com/science/article/abs/pii/0045782572900187). Thankfully it's very simple to implement and to understand intuitively. However, it is not a physically based method - while it does typically improve numeric accuracy, it can also inject kinetic energy into the system and cause instabilities.
+There are a number of ways to address this. In real-time sims, the most common solution is called [Baumgarte stabilization](https://www.sciencedirect.com/science/article/abs/pii/0045782572900187). Thankfully it's very simple to implement and to understand intuitively. However, it is not a physically based method - while it does typically improve numeric accuracy, it can also inject kinetic energy into the system and cause instabilities.
 
-The idea comes from control theory. In reality, $$C(X) \neq 0$$ because constraint error is introduced over time. To control for it, we can introduce a time-dependent term which exponentially decays to zero. Since $$X$$ depends on $$t$$ and $$C$$ only depends on $$X$$, we can write $$C$$ as a function of $$t$$.
-
-$$
-C(t) = C(X(t)) e^{-\beta t}
-$$
-
-Previously we had considered the time derivative of $$C(X)$$ to be zero, but now we have
+The idea comes from control theory. In reality, $$C(X) \neq 0$$ because constraint error is introduced over time. To control for it, we can introduce a term to the constraint velocity which opposes violation. With $$\beta > 0$$, we have
 
 $$
 \dot C(X) = -\beta C(X)
 \tag{7}
 $$
 
-After the derivative, $$t$$ dependence outside of $$X(t)$$ is gone, so I've rewritten it again in terms of $$X$$ alone. We now carry $$(7)$$ through each step of the derivation. This starts with equation $$(4)$$, where we close the system of equations of motion. Plugging $$(5)$$ into $$(7)$$ this time, we come to a system identical to $$(6)$$, but with a new term for $$b$$.
+This differential equation has the solution $$C(t) = C(0) e^{-\beta t}$$, which goes to zero smoothly over time.
+
+We now carry $$(7)$$ through each step of the derivation. This starts with equation $$(4)$$, where we close the system of equations of motion. We come to a system identical to $$(6)$$, but with a new term for $$b$$.
 
 $$\begin{align}
 A \lambda &= b\\
 A &= JM^{-1}J^T\\
-b &= h^{-1}J V^* + \beta C(X)
+b &= h^{-1} \left( J V^* + \beta C(X) \right)
 \tag{8}
 \end{align}$$
 
 This trickles down to the per-constraint update to the multiplier.
 
 $$\begin{align}
-\lambda_\ell^{k+1} &= \lambda_\ell^k + A_{\ell\ell}^{-1} \left( \cdot h^{-1} J_\ell V^k + \beta C_\ell(X)) \right)
+\lambda_\ell^{k+1} &= \lambda_\ell^k + h^{-1} A_{\ell\ell}^{-1} \left(J_\ell V^k + \beta C_\ell(X)) \right)
 \end{align}$$
 
-It's a simple change to make, but one question remains: since $$\beta$$ is not a real physical parameter, what value should we assign to it? In section 4.2 of [Erin Catto's famous paper](https://box2d.org/files/ErinCatto_IterativeDynamics_GDC2005.pdf), he derives a bounds of $$[0,2]$$ for convergence and $$[0,1]$$ for smooth convergence. In practice, values in the range $$[0.1,0.3]$$ are common.
+It's a simple change to make, but one question remains: since $$\beta$$ is not a real physical parameter, what value should we assign to it? In section 4.2 of [Erin Catto's famous paper](https://box2d.org/files/ErinCatto_IterativeDynamics_GDC2005.pdf), he derives bounds of $$[0,2]$$ for convergence and $$[0,1]$$ for smooth convergence. In practice, values in the range $$[0.1,0.3]$$ are common.
 
 Finally, with this update, we have a much better looking chain simulation:
 
 <video width="100%" controls>
-  <source src="{{ '/assets/video/chain-with-baumgarte.mov' | relative_url }}" type="video/mov">
+  <source src="{{ '/assets/video/chain-with-baumgarte.mp4' | relative_url }}" type="video/mp4">
 </video>
 
 ---
@@ -505,7 +501,7 @@ void compute_violation_and_jacobian_and_delassus(int ic) {
     vec3 r1 = to_mat3(rot[b1]) * r1[ic]
 
     // compute current constraint violation
-    violations[ic] = pos[b0] - pos[b1] + r1 - r1;
+    violations[ic] = pos[b0] - pos[b1] + r0 - r1;
 
     // set up the Jacobian matrix for this constraint in the current orientations
     mat3 jw0 = -cross_mat(r0);
@@ -538,8 +534,7 @@ void update_multipliers(int ic, float dt) {
         = (lin_vel0 - lin_vel1)
         + (jacobian[ic].w0 * ang_vel0)
         + (jacobian[ic].w1 * ang_vel1)
-
-    constraint_vel += push_constants.baumgarte_beta * violations[ci].xyz / push_constants.dt;
+        + (baumgarte * violations[ic]);
 
 
     // increment the multiplier: lambda += A_ll^-1 * h^-1 * J_l * X_dot
