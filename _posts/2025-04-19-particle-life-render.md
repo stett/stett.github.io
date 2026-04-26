@@ -103,7 +103,9 @@ I spent this weekend fascinated by the interesting patterns that can emerge from
 
 The algorithm assigns each particle a type and defines an interaction matrix — a random NxN table of attraction/repulsion strengths between type pairs. Each step, every particle sums up forces from all others based on distance and type, producing emergent flocking and clustering behavior from a handful of scalar values.
 
-The interesting technical constraint here is that WebGL has no compute shaders. To run the simulation entirely on the GPU, all particle state — position and velocity — is encoded as floating-point textures (via `OES_texture_float`). Each simulation step dispatches a full-screen quad pass whose fragment shader reads the current state textures and writes updated values back to a framebuffer. The draw pass then reads particle positions directly from texture to set `gl_Position`, using UV coordinates as the per-particle index.
+I wanted to write this as a potential submission to [ArtBlocks](https://www.artblocks.io/), which does not support WebGPU - instead artists are required to create renders using WebGL. This poses a fun constraint, which is the lack of support for compute shaders.
+
+To run the simulation entirely on the GPU, all particle state — position and velocity — is encoded as floating-point textures (via `OES_texture_float`). Each simulation step dispatches a full-screen quad pass whose fragment shader reads the current state textures and writes updated values back to a framebuffer. The draw pass then reads particle positions directly from texture to set `gl_Position`, using UV coordinates as the per-particle index. This is not a novel method, but it's a fun, somewhat archaic implementation.
 
 The current implementation performs O(N²) particle interactions per step — each of the N GPU threads loops over all N particles. The next step to scale up would be to add a GPU-based acceleration structure like spatial hashing or Barnes-Hut, reducing this to O(N log N).
 
