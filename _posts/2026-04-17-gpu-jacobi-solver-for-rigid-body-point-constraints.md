@@ -305,7 +305,7 @@ The velocity pass only needs to sum over constraints touching each body, not all
 The derivation up to this point is technically correct. Now say we go through the long process of coding it all up, testing every step to make sure there were no mistakes, and finally building a scene with a simple chain of spheres. This is what we see:
 
 <video width="100%" controls>
-  <source src="{{ '/assets/video/chain-no-baumgarte.mp4' | relative_url }}" type="video/mp4">
+  <source src="{{ '/assets/video/chain-no-baumgarte.mov' | relative_url }}" type="video/mov">
 </video>
 
 Close but not quite right! Note the paragraph immediately after equation $$(4)$$. We've got a solid physical basis for the derivation of equations which enforce $$\dot C(X) = 0$$, but _not_ $$C(X) = 0$$. This means that over time, drift is introduced by imperfect floating point calculations at each step.
@@ -345,7 +345,7 @@ It's a simple change to make, but one question remains: since $$\beta$$ is not a
 Finally, with this update, we have a much better looking chain simulation:
 
 <video width="100%" controls>
-  <source src="{{ '/assets/video/chain-with-baumgarte.mp4' | relative_url }}" type="video/mp4">
+  <source src="{{ '/assets/video/chain-with-baumgarte.mov' | relative_url }}" type="video/mov">
 </video>
 
 ---
