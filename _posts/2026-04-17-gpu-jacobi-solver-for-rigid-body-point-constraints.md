@@ -284,8 +284,7 @@ To then get the next estimate for body velocities, we need to express $$(5)$$ in
 
 $$
 \begin{align}
-V^0 &= V^*\\
-V^{k+1} &= V^k - hM^{-1}\sum_\ell J_\ell^T \lambda_\ell^{k+1}
+V^{k+1} &= V^* - hM^{-1}\sum_\ell J_\ell^T \lambda_\ell^{k+1}
 \end{align}
 $$
 
@@ -494,7 +493,7 @@ void compute_free_velocity(int ib, float dt) {
 
 void compute_violation_and_jacobian_and_delassus(int ic) {
 
-    // compute world world space body points
+    // compute world space body points
     int b0 = ib0[ic];
     int b1 = ib1[ic];
     vec3 r0 = to_mat3(rot[b0]) * r0[ic]
