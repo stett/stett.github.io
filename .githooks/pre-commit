@@ -1,0 +1,73 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'fileutils'
+require 'open3'
+require 'tempfile'
+require 'yaml'
+
+def pandoc_available?
+  system('pandoc', '--version', out: File::NULL, err: File::NULL)
+end
+
+def parse_frontmatter(path)
+  content = File.read(path, encoding: 'utf-8')
+  return {} unless content.start_with?('---')
+
+  match = content.match(/\A---\r?\n(.*?)\r?\n---\r?\n/m)
+  return {} unless match
+
+  YAML.safe_load(match[1]) || {}
+rescue StandardError
+  {}
+end
+
+def strip_jekyll(content)
+  content
+    .gsub(/<video\b[^>]*>.*?<\/video\s*>/im, '')
+    .gsub(/<source\b[^>]*\/?>/, '')
+    .gsub(/\{%-?\s*.*?\s*-?%\}/m, '')
+    .gsub(/\{\{[^}]*\}\}/, '')
+end
+
+unless pandoc_available?
+  puts 'pre-commit: pandoc not found, skipping PDF generation'
+  exit 0
+end
+
+changed = `git diff --cached --name-only --diff-filter=ACM`.split("\n")
+
+changed.each do |file|
+  next unless file.match?(%r{^(_posts|_drafts)/.*\.md$})
+  next unless File.exist?(file)
+
+  fm = parse_frontmatter(file)
+  next unless fm['pdf']
+
+  puts "pre-commit: generating PDF for #{file}"
+
+  FileUtils.mkdir_p('assets/pdf')
+  outfile = "assets/pdf/#{File.basename(file, '.md')}.pdf"
+
+  Tempfile.create(['jekyll-pdf', '.md']) do |tmp|
+    tmp.write(strip_jekyll(File.read(file, encoding: 'utf-8')))
+    tmp.flush
+
+    _, stderr, status = Open3.capture3(
+      'pandoc', tmp.path,
+      '--from', 'markdown+tex_math_dollars',
+      '--pdf-engine=xelatex',
+      '-V', 'classoption=twocolumn',
+      '-V', 'geometry:margin=1in',
+      '-V', 'fontsize=10pt',
+      '-o', outfile
+    )
+
+    if status.success?
+      system('git', 'add', outfile)
+      puts "pre-commit: added #{outfile} to commit"
+    else
+      warn "pre-commit: PDF generation failed for #{file}\n#{stderr}"
+    end
+  end
+end
