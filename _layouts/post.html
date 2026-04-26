@@ -8,8 +8,6 @@ layout: base
         <h3 class="subtitle">{% if page.subtitle %}{{ page.subtitle }}{% endif %}</h3>
     </header>
     {{ content }}
-
-
 </article>
 
 {% if page.pdf %}
@@ -18,10 +16,3 @@ layout: base
 <a href="{{ '/assets/pdf/' | append: pdf_file | relative_url }}">Download PDF</a>
 </div>
 {% endif %}
-
-
-{% comment %} <!-- Remove disqus for now -->
-{% if page.comments %}
-{% include disqus.html %}
-{% endif %}
-{% endcomment %}
