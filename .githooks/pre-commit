@@ -22,12 +22,37 @@ rescue StandardError
   {}
 end
 
+def convert_tables(content)
+  # Convert headerless pipe tables (no |---|---| separator) to raw LaTeX tabular.
+  # Pandoc requires a header separator row to recognise pipe tables; without one it
+  # renders the | characters as literal text.
+  content.gsub(/^(\|[^\n]+\n)+/) do |block|
+    lines = block.split("\n").reject(&:empty?)
+    # Leave standard pandoc tables (those that have a separator row) untouched
+    next block if lines.any? { |l| l.match?(/^\|[\s:|-]+\|/) }
+
+    rows = lines.map do |l|
+      l.split('|').map(&:strip).reject(&:empty?).map do |cell|
+        cell.gsub(/\[([^\]]+)\]\([^)]+\)/, '\1')  # strip markdown links to plain text
+      end
+    end
+
+    "\\begin{table*}[h]\n\\begin{tabular}{@{}lp{0.65\\linewidth}@{}}\n" +
+      rows.map { |cells| cells.join(' & ') + ' \\\\' }.join("\n") +
+      "\n\\end{tabular}\n\\end{table*}\n\n"
+  end
+end
+
 def strip_jekyll(content)
+  # Strip YAML frontmatter — pandoc re-parses it and chokes on --- rules in the body
+  content = content.sub(/\A---\r?\n.*?\r?\n---\r?\n/m, '')
   content
     .gsub(/<video\b[^>]*>.*?<\/video\s*>/im, '')
     .gsub(/<source\b[^>]*\/?>/, '')
     .gsub(/\{%-?\s*.*?\s*-?%\}/m, '')
     .gsub(/\{\{[^}]*\}\}/, '')
+    .gsub(/^---$/, '* * *')  # --- in body would be read as a YAML delimiter by pandoc
+    .then { |c| convert_tables(c) }
 end
 
 unless pandoc_available?
@@ -53,15 +78,29 @@ changed.each do |file|
     tmp.write(strip_jekyll(File.read(file, encoding: 'utf-8')))
     tmp.flush
 
-    _, stderr, status = Open3.capture3(
-      'pandoc', tmp.path,
-      '--from', 'markdown+tex_math_dollars',
-      '--pdf-engine=xelatex',
-      '-V', 'classoption=twocolumn',
-      '-V', 'geometry:margin=1in',
-      '-V', 'fontsize=10pt',
-      '-o', outfile
-    )
+    stderr = nil
+    status = nil
+
+    Tempfile.create(['jekyll-pdf-header', '.tex']) do |hdr|
+      hdr.write(<<~'LATEX')
+        \usepackage{stfloats}
+        \usepackage{fvextra}
+        \DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\},breaklines=true,fontsize=\small}
+      LATEX
+      hdr.flush
+
+      _, stderr, status = Open3.capture3(
+        'pandoc', tmp.path,
+        '--from', 'markdown+tex_math_dollars',
+        '--pdf-engine=xelatex',
+        '-H', hdr.path,
+        '-V', 'classoption=twocolumn',
+        '-V', 'geometry:margin=1in',
+        '-V', 'fontsize=10pt',
+        '-M', "title:#{fm['title'] || File.basename(file, '.md')}",
+        '-o', outfile
+      )
+    end
 
     if status.success?
       system('git', 'add', outfile)

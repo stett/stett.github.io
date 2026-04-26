@@ -14,20 +14,20 @@ The matrix and quaternion methods result in similar performance when used with t
 
 ### Matrix
 
-If the positions of a vertex in local and world space are $$\vec{q}$$ and $$\vec{r}$$, and the center of rotation of the body to which it belongs is $$\vec{c}$$, then they are related by
+If the positions of a vertex in local and world space are $\vec{q}$ and $\vec{r}$, and the center of rotation of the body to which it belongs is $\vec{c}$, then they are related by
 
 $$
 \vec{r}\left(t\right)=R\left(t\right)\vec{q}+\vec{c}\left(t\right)
 $$
 
-where $$R\left(t\right)$$ is the rotation matrix of the body. The linear
-velocity of the vertex $$\dot{\vec{r}}$$ is easy to find, and involves
-a term $$\dot{R}$$, which is the ``change-in'' matrix which we're
+where $R\left(t\right)$ is the rotation matrix of the body. The linear
+velocity of the vertex $\dot{\vec{r}}$ is easy to find, and involves
+a term $\dot{R}$, which is the ``change-in'' matrix which we're
 looking for. Recall that the linear velocity of a point on a rotating
-body is also given by the cross product of the angular velocity $$\omega\left(t\right)$$
+body is also given by the cross product of the angular velocity $\omega\left(t\right)$
 with it's position relative to the center of rotation and making use
 of the [cross product matrix](https://en.wikipedia.org/wiki/Cross_product#Conversion_to_matrix_multiplication),
-$$\dot{R}$$ can be quickly identified.
+$\dot{R}$ can be quickly identified.
 
 $$
 \begin{eqnarray*}
@@ -37,8 +37,8 @@ $$
 \end{eqnarray*}
 $$
 
-Where $$\left[\omega\left(t\right)\right]_{\times}$$ is the cross product
-matrix of $$\omega\left(t\right)$$. Then $$\dot{R}\left(t\right)=\left[\omega\left(t\right)\right]_{\times}R\left(t\right)$$,
+Where $\left[\omega\left(t\right)\right]_{\times}$ is the cross product
+matrix of $\omega\left(t\right)$. Then $\dot{R}\left(t\right)=\left[\omega\left(t\right)\right]_{\times}R\left(t\right)$,
 and the integration step to update the rotation matrix is pretty simple:
 
 $$
@@ -58,7 +58,7 @@ rotation += glm::matrixCross4(angular_velocity * dt) * rotation;
 ### Quaternion
 
 We'll develop the quaternion solution in essentially the same way,
-taking $$Q\left(t\right)$$ to be the rotation quaternion of the body.
+taking $Q\left(t\right)$ to be the rotation quaternion of the body.
 Remember that to [orient a point with a quaternion](https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation#Orientation)
 the point is reinterpreted as a quaternion with a zero scalar value
 and it is multiplied by the rotation on one side and its conjugate
@@ -79,7 +79,7 @@ $$
 \end{eqnarray*}
 $$
 
-where $$Q_{\times}$$ represents the angle-axis quaternion, whose scalar
+where $Q_{\times}$ represents the angle-axis quaternion, whose scalar
 and vector parts are given by
 
 $$
