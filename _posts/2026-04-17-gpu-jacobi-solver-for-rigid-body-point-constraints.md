@@ -335,7 +335,7 @@ $$\begin{align}
 \lambda_\ell^{k+1} &= \lambda_\ell^k + h^{-1} A_{\ell\ell}^{-1} \left(J_\ell V^k + \beta C_\ell(X) \right)
 \end{align}$$
 
-It's a simple change to make, but one question remains: since $$\beta$$ is not a real physical parameter, what value should we assign to it? In section 4.2 of [Erin Catto's famous paper](https://box2d.org/files/ErinCatto_IterativeDynamics_GDC2005.pdf), he derives bounds of $$[0,2]$$ for convergence and $$[0,1]$$ for smooth convergence. In practice, values in the range $$[0.1,0.3]$$ are common.
+It's a simple change to make, but one question remains: since $$\beta$$ is not a real physical parameter, what value should we assign to it? In section 4.2 of [Erin Catto's famous paper](https://box2d.org/files/ErinCatto_IterativeDynamics_GDC2005.pdf), he derives bounds of $$[0,2]h^{-1}$$ for convergence and $$[0,1]h^{-1}$$ for smooth convergence. In practice, values in the range $$[0.1,0.3]h^{-1}$$ are common.
 
 Finally, with this update, we have a much better looking chain simulation:
 
