@@ -235,7 +235,9 @@ The matrix $A$ is known as the _Delassus matrix_ and represents the compliance o
 
 ### The Jacobi Step
 
-I'll rely on the [Jacobi method](https://en.wikipedia.org/wiki/Jacobi_method) for solving the linear systems. This is a good choice as a starting point because it is well suited for parallelization, and I am targeting GPU simulation. The method begins by breaking $A$ into its block-diagonal and off-block-diagonal parts, $D$ and $E$, where $D$ consists of the $3\times 3$ diagonal blocks $A_{\ell\ell}$.
+I'll rely on the [Jacobi method](https://en.wikipedia.org/wiki/Jacobi_method) for solving the linear systems. This is a good choice as a starting point because it is well suited for parallelization, and I am targeting GPU simulation. I should note, however, that I'm aware that this method of solving linear systems converges about half as quickly as Gauss Seidel, but I'll save that for a later optimization since for parallel execution it requires constraint graph coloring machinery.
+
+The Jacobi method begins by breaking $A$ into its block-diagonal and off-block-diagonal parts, $D$ and $E$, where $D$ consists of the $3\times 3$ diagonal blocks $A_{\ell\ell}$.
 
 $$\begin{align}
 A &= D + E
@@ -282,7 +284,7 @@ $$\begin{align}
 &= \lambda_\ell^k + h^{-1} A_{\ell\ell}^{-1} J_\ell V^k
 \end{align}$$
 
-where $V^k = V^* - hM^{-1}J^T\lambda^k$ comes from $(5)$. The second line follows from the identity $b_\ell - (A\lambda^k)_\ell = h^{-1}J_\ell V^k$, which can be verified by substituting the definitions of $A$, $b$, and $V^k$. Since $J_\ell$ is nonzero only for bodies $i_\ell$ and $j_\ell$, each thread only needs to read the velocities of those two bodies.
+where $V^k = V^* - hM^{-1}J^T\lambda^k$ comes from $(5)$. The second line can be verified by substituting the definitions of $A$, $b$, and $V^k$ directly. Since $J_\ell$ is nonzero only for bodies $i_\ell$ and $j_\ell$, each thread only needs to read the velocities of those two bodies.
 
 To then get the next estimate for body velocities, we need to express $(5)$ in terms of per-constraint $\lambda_\ell$, and substitute in our new value $\lambda_\ell^{k+1}$. We use $J^T\lambda = \sum_\ell J_\ell^T \lambda_\ell$ to obtain the velocity iteration
 

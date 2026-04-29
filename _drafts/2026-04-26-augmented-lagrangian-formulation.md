@@ -26,29 +26,29 @@ L &= K - U - \lambda C(X) + \frac{1}{2}\mu C^2(X)\\
 This trickles through our derivation, starting with the equation of motion.
 
 $$\begin{align}
-0 &= M \dot V - F + J^T \lambda - \mu C(X)
+0 &= M \dot V - F + J^T \lambda - \mu J^T C(X)
 \end{align}$$
 
 After time discretization, we have
 
 $$\begin{align}
-M V_{n+1} + h J^T \lambda - h \mu C(X) &= M V^*\\
+M V_{n+1} + h J^T \lambda - h \mu J^T C(X) &= M V^*\\
 J V_{n+1} &= 0
 \end{align}$$
 
 First we solve the system for $V_{n+1}$.
 
 $$\begin{align}
-M V_{n+1} + h J^T \lambda - h \mu C(X) &= M V^*\\
-V_{n+1} &= V^* - h M^{-1} J^T \lambda + h \mu C(X)
+M V_{n+1} + h J^T \lambda - h \mu J^T C(X) &= M V^*\\
+V_{n+1} &= V^* - h M^{-1} J^T \lambda + h \mu M^{-1} J^T C(X)
 \end{align}$$
 
 Now we plug this into our second equation to get a linear system in $\lambda$.
 
 $$\begin{align}
 0 &= J V_{n+1}\\
-&= J V^* - h J M^{-1} J^T \lambda + h \mu J C(X)\\
-J M^{-1} J^T \lambda &= h^{-1} J V^* + \mu J C(X)
+&= J V^* - h J M^{-1} J^T \lambda + h \mu J M^{-1} J^T C(X)\\
+J M^{-1} J^T \lambda &= h^{-1} J V^* + \mu J M^{-1} J^T C(X)
 \end{align}$$
 
 Now our linear system is
@@ -56,7 +56,8 @@ Now our linear system is
 $$\begin{align}
 A \lambda &= b\\
 A &= J M^{-1} J^T\\
-b &= h^{-1} J V^* - \mu J C(X)
+b &= h^{-1} J V^* + \mu J M^{-1} J^T C(X)\\
+&= h^{-1} J V^* + \mu A C(X)\\
 \end{align}$$
 
 Finally we must decompose $A$ for our Jacobi step. Taking $D$ and $E$ to be the diagonal and off-diagonal parts of $A$, and skipping steps that were covered earlier, we have
@@ -69,22 +70,34 @@ A &= D + E\\
 Remember that $D$ is made up of the diagonal blocks of $A_{\ell\ell} = J_\ell M^{-1} J_\ell^T$. To get the iteration for $\lambda_\ell$, we start by substituting prior definitions into $b_\ell - (A \lambda^k)_\ell$.
 
 
+The $\ell$-th block of $AC(X)$ is $\sum_m A_{\ell m}C_m(X)$, coupling constraint $\ell$ to all neighboring constraints through shared bodies. Consistent with the per-constraint Jacobi update we derived in part 1, we drop the off-diagonal terms, keeping only $A_{\ell\ell}C_\ell(X)$.
+
 $$\begin{align}
-b_\ell - (A \lambda^k)_\ell &= h^{-1} J_\ell V^* - \mu J_\ell C(X) - J_\ell M^{-1} J_\ell^T \lambda_\ell^k\\
-&= h^{-1} J_\ell \left( V^k + h M^{-1} J_\ell^T \lambda^k \right) - \mu J_\ell C(X) - J_\ell M^{-1} J_\ell^T \lambda_\ell^k\\
-&= h^{-1} J_\ell V^k + \mu J_\ell C(X)
+b_\ell - (A \lambda^k)_\ell &= h^{-1} J_\ell V^* + \mu A_{\ell\ell} C_\ell(X) - J_\ell M^{-1} J^T \lambda^k\\
+&= h^{-1} J_\ell \left( V^k + h M^{-1} J^T \lambda^k \right) + \mu A_{\ell\ell} C_\ell(X) - J_\ell M^{-1} J^T \lambda^k\\
+&= h^{-1} J_\ell V^k + \mu A_{\ell\ell} C_\ell(X)
 \end{align}$$
 
-Then the multiplier for constraint $\ell$, is
+Then the multiplier for constraint $\ell$ is
 
 $$\begin{align}
 \lambda_\ell^{k+1} &= \lambda_\ell^k + A_{\ell\ell}^{-1}\left( b_\ell - (A \lambda^k)_\ell \right)\\
-&= \lambda_\ell^k + A_{\ell\ell}^{-1}\left( h^{-1} J_\ell V^k + \mu J_\ell C(X) \right)
+&= \lambda_\ell^k + A_{\ell\ell}^{-1}\left( h^{-1} J_\ell V^k + \mu A_{\ell\ell} C_\ell(X) \right)\\
+&= \lambda_\ell^k + h^{-1} A_{\ell\ell}^{-1} J_\ell V^k + \mu C_\ell(X)
 \end{align}$$
 
+Comparing this to our expression for $\lambda_\ell^{k+1}$ when we used a Baumgarte correction term, we can see that we have replaced $h^{-1} A_{\ell\ell}^{-1} \beta$ with $\mu$. In our new formulation, the drift correction is now uniform across all constraints, without prefering ones with higher inertia. This in itself could potentially be useful to make tuning of $\mu$ a little bit easier and more general. The tradeoff is that we lose the known boundary which we had for $\beta$ for smooth convergence (however as we have seen, even within those bounds solutions may be unstable).
+
+However, there's an additional advantage here. In augmented Lagrangian methods, $\mu$ does not need to be a constant - it just needs to be greater than zero in order to improve the convexity of the constraint. It typically starts small in order to reduce the chances that a solver iteration overshoots, and is increased with each iteration as the solver approches a minimum. The amount by which it is increased per iteration may be any amount. I'll take a page out of the recent [AVBD](https://graphics.cs.utah.edu/research/projects/avbd/Augmented_VBD-SIGGRAPH25_RTL.pdf) paper, and suggest increasing $\mu$ by an amount per constraint which scales with the corresponding constraint violation.
+
+The updated $\lambda$ and $\mu$ iterations are
 
 $$\begin{align}
+\lambda_\ell^{k+1} &= \lambda_\ell^k + h^{-1} A_{\ell\ell}^{-1} J_\ell V^k + \mu_\ell^k C_\ell(X)\\
+\mu_\ell^{k+1} &= \mu_\ell^k + \beta \left| C_\ell(X) \right|\\
 \end{align}$$
+
+where $\beta$ is now repurposed as a parameter which controls the growth rate of $\mu$.
 
 $$\begin{align}
 \end{align}$$
