@@ -307,13 +307,13 @@ The velocity pass only needs to sum over constraints touching each body, not all
 
 ### Numeric Drift
 
-The derivation up to this point is technically correct. Now say we go through the long process of coding it all up, testing every step to make sure there were no mistakes, and finally building a scene with a simple chain of spheres. This is what we see:
+The derivation up to this point is technically correct. Now say we go through the long process of coding it all up, testing every step to make sure there were no mistakes, and finally building a scene with a simple chain of spheres. I made the bottom sphere the heaviest, just to exagerate any problems there might be with my solve. Here's what we get:
 
 <video width="100%" controls>
   <source src="{{ '/assets/video/chain-without-baumgarte.mp4' | relative_url }}" type="video/mp4">
 </video>
 
-Close but not quite right! Note the paragraph immediately after equation $(4)$. We've got a solid physical basis for the derivation of equations which enforce $\dot C(X) = 0$, but _not_ $C(X) = 0$. This means that over time, drift is introduced by imperfect floating point calculations at each step.
+That's not what we wanted to see! Note the paragraph immediately after equation $(4)$. We've got a solid physical basis for the derivation of equations which enforce $\dot C(X) = 0$, but _not_ $C(X) = 0$. This means that over time, drift is introduced by imperfect floating point calculations at each step.
 
 There are a number of ways to address this. In real-time sims, the most common solution is called [Baumgarte stabilization](https://www.sciencedirect.com/science/article/abs/pii/0045782572900187). Thankfully it's very simple to implement and to understand intuitively. However, it is not a physically based method - while it does typically improve numeric accuracy, it can also inject kinetic energy into the system and cause instabilities.
 
