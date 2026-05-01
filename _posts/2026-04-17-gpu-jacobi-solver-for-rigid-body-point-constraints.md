@@ -349,7 +349,6 @@ Finally, with this update, we have a much better looking chain simulation:
   <source src="{{ '/assets/video/chain-with-baumgarte.mp4' | relative_url }}" type="video/mp4">
 </video>
 
----
 ## Algorithm
 Let's begin by defining our data. We have the following structs and buffers. Note that even though the Jacobian should be a 3x12 matrix, we only store two 3x3 matrices. This is because in the way that we have formulated the point constraint, the two 3x3 matrices corresponding to positions are always just the identity matrix, and can be dropped entirely from our representation.
 ```c++
@@ -576,3 +575,19 @@ void update_velocities(int ib, float dt) {
     }
 }
 ```
+
+## Next Steps
+
+There are many ways in which this very basic solver can be improved. For instance, what happens when I make the ball at the end of the chain _even bigger_? We quickly run into some stability limitations which no amount of Buamgarte stabilization can resolve.
+
+<video width="100%" controls>
+  <source src="{{ '/assets/video/chain-with-bigger-ball.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+And what if we make a chain that's too long, but don't increase the number of iterations? We start to see jittery instabilities here too. A chain with 10 links of equal mass converges pretty well with 10-ish iterations. But at 20 links it starts to get stretchy, and by 30 we start to see some odd instabilities which require a high number of iterations to correct.
+
+<video width="100%" controls>
+  <source src="{{ '/assets/video/chain-with-insufficient-iteration-count.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+The next post will start to explore some ways to address these issues. In the meantime, we now have a basis for a relatively scalable solver to play with.
