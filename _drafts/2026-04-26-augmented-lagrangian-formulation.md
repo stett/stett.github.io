@@ -1,5 +1,5 @@
 ---
-title: GPU Constraint Solver - Part 2
+title: GPU Constraint Solver - Part ?
 subtitle: Improving Stability with an Augmented Lagrangian Method
 layout: post
 comments: false
@@ -78,13 +78,21 @@ b_\ell - (A \lambda^k)_\ell &= h^{-1} J_\ell V^* + \mu A_{\ell\ell} C_\ell(X) - 
 &= h^{-1} J_\ell V^k + \mu A_{\ell\ell} C_\ell(X)
 \end{align}$$
 
-Then the multiplier for constraint $\ell$ is
+Then the multiplier iteration for constraint $\ell$ is
 
 $$\begin{align}
 \lambda_\ell^{k+1} &= \lambda_\ell^k + A_{\ell\ell}^{-1}\left( b_\ell - (A \lambda^k)_\ell \right)\\
 &= \lambda_\ell^k + A_{\ell\ell}^{-1}\left( h^{-1} J_\ell V^k + \mu A_{\ell\ell} C_\ell(X) \right)\\
 &= \lambda_\ell^k + h^{-1} A_{\ell\ell}^{-1} J_\ell V^k + \mu C_\ell(X)
 \end{align}$$
+
+And the velocity iteration is the same as before
+
+$$
+\begin{align}
+V^{k+1} &= V^* - hM^{-1}\sum_\ell J_\ell^T \lambda_\ell^{k+1}
+\end{align}
+$$
 
 Comparing this to our expression for $\lambda_\ell^{k+1}$ when we used a Baumgarte correction term, we can see that we have replaced $h^{-1} A_{\ell\ell}^{-1} \beta$ with $\mu$. In our new formulation, the drift correction is now uniform across all constraints, without prefering ones with higher inertia. This in itself could potentially be useful to make tuning of $\mu$ a little bit easier and more general. The tradeoff is that we lose the known boundary which we had for $\beta$ for smooth convergence (however as we have seen, even within those bounds solutions may be unstable).
 
