@@ -303,11 +303,18 @@ Therefore, the Jacobi iteration splits naturally into two kernel passes, initial
 
 ### Connectivity
 
-The velocity pass only needs to sum over constraints touching each body, not all constraints. To make this efficient, we precompute a flat array of constraint indices sorted by body, so that each body's connected constraints are contiguous. Each body stores a single integer offset marking where its section begins. Each constraint appears twice - once per body it connects. This structure is built once per topological change (not per frame).
+The velocity pass only needs to sum over constraints touching each body, not all constraints. To make this efficient, we pre-compute a flat array of constraint indices sorted by body, so that each body's connected constraints are contiguous. Each body stores a single integer offset marking where its section begins. Each constraint appears twice - once per body it connects. This structure is built once per frame only if there was a topological change.
+
+The specific algorithm is outlined in the last section, but it deserves a few words. For each body, we need access to each constraint that is attached to it. To facilitate this, we keep two additional buffers.
+
+1. The _constraint index list_, which stores a list of constraint indices, grouped by which body each constraint pertains to
+2. A list which stores an index to the first element in the constraint index list, for each body.
+
+With these two index lists, we can construct an efficient parallel per-body velocity pass. For each body, list 1 can be used to get the index bounds of list 2. An iteration through list 2 will give the indices of every constraint on the body in question, which can then be used to update its velocity.
 
 ### Numeric Drift
 
-The derivation up to this point is technically correct. Now say we go through the long process of coding it all up, testing every step to make sure there were no mistakes, and finally building a scene with a simple chain of spheres. I made the bottom sphere the heaviest, just to exagerate any problems there might be with my solve. Here's what we get:
+The derivation up to this point is technically correct. Now say we go through the long process of coding it all up, testing every step to make sure there were no mistakes, and finally building a scene with a simple chain of spheres. I made the bottom sphere the heaviest, just to exaggerate any problems there might be with my solve. Here's what we get:
 
 <video width="100%" controls>
   <source src="{{ '/assets/video/chain-without-baumgarte.mp4' | relative_url }}" type="video/mp4">
