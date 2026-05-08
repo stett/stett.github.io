@@ -270,7 +270,13 @@ The innermost expression $b - A\lambda^k$ is known as the _residual_. Intuitivel
 
 Since each $c_\ell$ is a 3D vector equation (a difference between two positions), $A$ has dimensions $3N_c \times 3N_c$ with $3\times 3$ blocks. $A$ is generally sparse, containing nonzero blocks only where constraints share a body. We now devise an update for the $\ell$th constraint's Lagrange multiplier $\lambda_\ell$, which is a 3-vector. Each $\lambda_\ell$ can be updated independently.
 
-The diagonal blocks of $D$ are $A_{\ell\ell} = J_\ell M^{-1} J_\ell^T$, where $A_{\ell\ell}$ are $3\times 3$ matrices. Although $J_\ell$ and $M^{-1}$ both depend on orientation and change each timestep, they are fixed for the duration of a single solve. So $A_{\ell\ell}^{-1}$ can be precomputed once per timestep, before the iteration loop begins.
+The diagonal blocks of $D$ are $A_{\ell\ell} = J_\ell M^{-1} J_\ell^T$, where $A_{\ell\ell}$ are $3\times 3$ matrices. Although $J_\ell$ and $M^{-1}$ both depend on orientation and change each timestep, they are fixed for the duration of a single solve. So $A_{\ell\ell}^{-1}$ can be pre-computed once per timestep, before the iteration loop begins.
+
+{%comment%}
+> *Approximation alert*! - The computation of $A_{\ell\ell}$ is one place where our solver may start to subtly but meaningfully stray from the path of "correctness". Notice that we have $A = J M^{-1} J^T$, so then if $A_{\ell\ell}$ is to mean the $\ell$th diagonal block of $A$, then by considering only contributions from $J_\ell$ we are throwing out all off-diagonal terms.
+
+> Consider a chain with $N$ links. By discarding the off-diagonals of $A$ in our computation for $A_{\ell\ell}$, we are taking into account the effect of each link on its neighbor, but discarding all others, so that link $0$ has no effect on links $2$ through $N$. However, through iteration the relationship between any two non-adjacent links emerges, albeit with more iterations.
+{%endcomment%}
 
 Note that $J_\ell$ is technically a $3 \times 6N_b$ matrix, where we typically only store the $12$ of the $6N_b$ columns which are nonzero, the 6-DOF blocks for bodies $i_\ell$ and $j_\ell$.
 
