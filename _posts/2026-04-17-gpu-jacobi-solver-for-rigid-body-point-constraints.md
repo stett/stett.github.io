@@ -394,7 +394,7 @@ vec3 r0[NC]; // offset in body 0 local space
 vec3 r1[NC]; // offset in body 1 local space
 vec3 multiplier[NC];
 Jacobian jacobian[NC];
-vec3 violations[NC]; // constraint violation values, ie. C(X)
+vec3 violation[NC]; // constraint violation values, ie. C(X)
 mat3 delassus_inv[NC];
 int constraint_list[NC * 2]; // constraint indices, ordered by body
 ```
@@ -518,7 +518,7 @@ void compute_violation_and_jacobian_and_delassus(int ic) {
     vec3 r1 = to_mat3(rot[b1]) * r1[ic]
 
     // compute current constraint violation
-    violations[ic] = pos[b0] - pos[b1] + r0 - r1;
+    violation[ic] = pos[b0] - pos[b1] + r0 - r1;
 
     // set up the Jacobian matrix for this constraint in the current orientations
     mat3 jw0 = -cross_mat(r0);
@@ -551,7 +551,7 @@ void update_multipliers(int ic, float dt) {
         = (lin_vel0 - lin_vel1)
         + (jacobian[ic].w0 * ang_vel0)
         + (jacobian[ic].w1 * ang_vel1)
-        + (baumgarte * violations[ic]);
+        + (baumgarte * violation[ic]);
 
     // increment the multiplier: lambda += A_ll^-1 * h^-1 * J_l * X_dot
     multiplier[ic] += delassus_inv[ic] * constraint_vel * (1.f/dt);
