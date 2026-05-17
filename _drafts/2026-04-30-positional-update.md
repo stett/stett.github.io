@@ -124,3 +124,70 @@ In fact, if we want to be able to solve systems with high mass ratios, we may we
 
 I've rushed through this derivation a bit faster than the velocity solve because it shares many similarities. The final step now is to integrate it into our previous algorithm. There are a number of approaches that we could take, but for now I will start with the following overall idea of solving for position, and _then_ solving for velocity, with the most accurate possible linearization of the equations of motion. Later I may experiment with interleaved approaches which may reduce iteration count.
 
+Let's begin by defining our new data structures, assuming the continuing presence of those defined in part 1.
+```c++
+vec3 position_multiplier[NC];
+mat3 position_delassus_inv[NC];
+```
+
+And I'll rewrite the high-level algorithm as well, integrating the position update.
+```c++
+void update(float dt) {
+
+    // recompute the constraint topology mappings
+    // this is NOT a parallel algorithm, and should run once per topological update.
+    if (/* topology has changed */) {
+        compute_connectivity();
+    }
+
+    // update world space rotational inertia tensors
+    parallel_for (int ib : body_indices)
+        compute_inertia(ib);
+
+
+    for (int iter = 0; iter < NPI; ++iter) {
+
+        // since the position and orientation change on every iteration, the jacobians
+        // and delassus inverses need to be recomputed as well, in order to
+        // appropriately update undetermined multipliers for the position update.
+        parallel_for (int ic : constraint_indices) {
+            compute_violation(ic);
+            compute_jacobian(ic);
+            compute_position_delassus_inv(ic);
+            update_position_multipliers(ic);
+        }
+
+        // adjust body positions for this iteration
+        parallel_for (int ib : body_indices)
+            update_positions(ib);
+    }
+
+    // update constraint violation, Jacobian matrix, and Delassus matrix for the
+    // velocity solve.
+    parallel_for (int ic : constraint_indices) {
+        compute_violation(ic);
+        compute_jacobian(ic);
+        compute_velocity_delassus_inv(ic);
+    }
+
+    // integrate forces to get "free" velocities
+    parallel_for (int ib : body_indices)
+        compute_free_velocity(ib, dt);
+
+    // begin Jacobi velocity iterations
+    for (int iter = 0; iter < NVI; ++iter) {
+
+        // update lagrange multipliers (gather)
+        parallel_for (int ic : constraint_indices)
+            update_multipliers(ic, dt);
+
+        // update velocities (scatter)
+        parallel_for (int ib : body_indices)
+            update_velocities(ib, dt);
+    }
+
+    // integrate velocities
+    parallel_for (int ib : body_indices)
+        compute_positions(ib);
+}
+```
