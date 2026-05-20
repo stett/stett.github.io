@@ -562,7 +562,7 @@ void update_velocities(int ib, float dt) {
     // initially clear the velocity deltas
     lin_vel_delta[ib] = vec3(0.f);
     ang_vel_delta[ib] = vec3(0.f);
-    
+
     // iterate over this body's constraints using the CSR structure.
     // ic0[ib] is the start index, ic0[ib+1] is the start of the next body (used as end).
     int start = ic0[ib];
