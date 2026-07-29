@@ -41,7 +41,7 @@ comments: true
 }
 </style>
 
-I spent this weekend fascinated by the interesting patterns that can emerge from the [Particle Life](https://particle-life.com/) algorithm by Jeffrey Ventrella. While this algorithm needs no new implementations (there are many!) I decided to use it as an exercise in WebGL programming.
+I spent a part of this weekend on my own little WebGL implementation of the [Particle Life](https://particle-life.com/) algorithm by Jeffrey Ventrella. While this algorithm needs no new implementations (there are many!) I decided to use it as an exercise in WebGL programming.
 
 <div class="particle-life-embed">
     <iframe id="particle-life-iframe" src="{{ site.url }}/render-particle-life"></iframe>

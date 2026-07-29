@@ -9,7 +9,7 @@ pdf: true
 
 This post contains my derivation notes for the Jacobi iteration of a system of spherical rigid bodies constrained together in a chain by "point" constraints (ie. ball joints) - ie. a pearl necklace :).
 
-I've been working on a little framework project for comparing different GPU based physics solvers, and this is meant to be a solver/scene which can function as a baseline by which to compare the stability and performance of various solvers. I've called this post "Part 1", because I intend to build on the basis which I'm introducing here.
+This is meant to be a solver/scene which can function as a baseline by which to compare the stability and performance of various solvers. I've called this post "Part 1", because I intend to build on the basis which I'm introducing here.
 
 I'm sticking with a specific, very simple constraint type for the scope of this derivation for concreteness, and so that it can immediately map to an actual simulation, although the concepts can be generalized to other equality constraint types.
 
