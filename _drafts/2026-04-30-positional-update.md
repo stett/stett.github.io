@@ -56,10 +56,10 @@ The system in $(1)$ is underdetermined — that is, $\Delta X^k$ is the vector o
 
 From this point on, we are talking about solving for the $\Delta X$ in a single Newton-Raphson iteration for solving $C(X) = 0$. It would be cumbersome to keep the iteration superscript $k$ around for every variable in the sections that follow — especially since we will soon introduce a nested iteration — so I will drop the $k$ superscripts for now.
 
-We reconsider $(1)$ as a constraint on the minimization of $\lVert \Delta X \rVert^2$. Taking $\gamma$ to be a new vector of $3N_c$ undetermined multipliers (equivalently, $N_c$ multiplier 3-vectors $\gamma_\ell$), we have a new Lagrangian
+We reconsider $(1)$ as a constraint on the minimization of $\lVert \Delta X \rVert_M^2$. Taking $\gamma$ to be a new vector of $3N_c$ undetermined multipliers (equivalently, $N_c$ multiplier 3-vectors $\gamma_\ell$), we have a new Lagrangian
 
 $$\begin{align}
-L_X &= \lVert \Delta X \rVert^2 + 2\gamma^T \left( J \Delta X + C(X) \right)
+L_X &= \lVert \Delta X \rVert_M^2 + 2\gamma^T \left( J \Delta X + C(X) \right)
 \end{align}$$
 
 I've added a factor of $2$ to $\gamma$ to avoid carrying a factor of $\tfrac{1}{2}$ in equation $(2)$. Since $\gamma$ is an undetermined multiplier, it can freely absorb constant factors.
