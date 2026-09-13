@@ -56,6 +56,12 @@ article {
     }
 }
 
+// Standalone posts only - on the home page the excerpt articles are nested in
+// div.preview, and this spacing would push them apart.
+#content > article {
+    margin-block-end: 100px;
+}
+
 div.download-pdf {
     padding: 10px;
 }

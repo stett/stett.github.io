@@ -47,11 +47,11 @@ In that paper, the octree construction phase is packed into 2 paragraphs. In ord
 
 In order to check my understanding of each stage of the algorithm, I made this little interactive reference implementation of a parallelizeable quadtree builder.
 
+<!-- excerpt -->
+
 <div class="container-3js" id="{{ page.title | slugify }}-particle-grid"></div>
 
 The grid above represents a region of discretized space, where each 1x1 cell can either be empty or occupied by a particle. Click a cell to toggle it between occupied and empty states.
-
-<!-- excerpt -->
 
 Changes will be reflected in the memory diagrams below, illustrating how memory transforms through every step of the parallel construction of a quadtree.
 
