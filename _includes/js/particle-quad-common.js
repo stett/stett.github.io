@@ -16,12 +16,12 @@ function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
     var canvas = document.createElement("canvas");
     canvas.width = TEXT_RESOLUTION * width;
     canvas.height = TEXT_RESOLUTION * height;
+    // Mipmapped, so the minified glyphs are filtered rather than aliased. This
+    // needs power-of-two canvas dimensions, hence the resolution and the quad
+    // sizes being powers of two.
     var texture = new THREE.CanvasTexture(canvas);
-
-    // The canvas is not power-of-two sized, so skip mipmaps rather than let
-    // three.js rescale it.
-    texture.minFilter = THREE.LinearFilter;
-    texture.generateMipmaps = false;
+    texture.minFilter = THREE.LinearMipMapLinearFilter;
+    texture.generateMipmaps = true;
     var quad = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true,

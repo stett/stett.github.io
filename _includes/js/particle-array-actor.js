@@ -11,7 +11,7 @@ function toBits(value, bits=3) {
 // A horizontal row of quads, one per particle, labelled with the grid cell the
 // particle occupies, over a row of the same coordinates in binary.
 var ParticleArrayActor = ParticleArrayActor || class extends DRAMA.Actor {
-    constructor(sceneActor, cellWidth=3.5) {
+    constructor(sceneActor, cellWidth=4) {
         super();
         this.sceneActor = sceneActor;
         this.cellWidth = cellWidth;
