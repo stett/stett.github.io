@@ -24,11 +24,11 @@ div.container-3js canvas {
 }
 
 #{{ page.title | slugify }}-particle-grid {
-    height: 400px;
+    height: 350px;
 }
 
 #{{ page.title | slugify }}-particle-array {
-    height: 130px;
+    height: 100px;
 }
 </style>
 
@@ -83,19 +83,19 @@ $(document).ready(function() {
     //
 
     {
+        var container = $("#{{ page.title | slugify }}-particle-grid");
+        var scene = new SceneActor(container, 5);
+        DRAMA.add(scene);
+        particleGridActor = new ParticleGridActor(scene, 8, interactUpdateParticles);
+        DRAMA.add(particleGridActor);
+    }
+
+    {
         var container = $("#{{ page.title | slugify }}-particle-array");
         var scene = new SceneActor(container, 1.45);
         DRAMA.add(scene);
         particleArrayActor = new ParticleArrayActor(scene);
         DRAMA.add(particleArrayActor);
-    }
-
-    {
-        var container = $("#{{ page.title | slugify }}-particle-grid");
-        var scene = new SceneActor(container, 4.5);
-        DRAMA.add(scene);
-        particleGridActor = new ParticleGridActor(scene, 8, interactUpdateParticles);
-        DRAMA.add(particleGridActor);
     }
 
     // Start with a few particles already placed.
