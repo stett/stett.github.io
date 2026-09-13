@@ -1,43 +1,10 @@
-{% include js/quad-actor-common.js %}
-
-var emptyMaterial = emptyMaterial || new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 });
-var outlineMaterial = outlineMaterial || new THREE.LineBasicMaterial({ color: 0x000000 });
-// Double sided, because the y-flipped camera reverses the quad winding.
-var fillMaterial = fillMaterial || new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide });
-var quadGeometry = quadGeometry || new THREE.PlaneGeometry(1, 1);
-var outlineGeometry = outlineGeometry || new THREE.EdgesGeometry(quadGeometry);
-
-// Text drawn to a canvas texture on a unit quad. The scene camera is y-flipped,
-// so the quad is flipped back and drawn double sided.
-function makeTextQuad(color) {
-    var canvas = document.createElement("canvas");
-    canvas.width = canvas.height = 64;
-    var texture = new THREE.CanvasTexture(canvas);
-    var quad = new THREE.Mesh(quadGeometry, new THREE.MeshBasicMaterial({
-        map: texture,
-        transparent: true,
-        side: THREE.DoubleSide,
-        depthTest: false }));
-    quad.renderOrder = 1;
-    quad.scale.set(0.9, -0.9, 1);
-    quad.setText = function(text) {
-        var ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, 64, 64);
-        ctx.fillStyle = color;
-        ctx.font = "bold 34px 'Ubuntu Mono', monospace";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(text, 32, 32);
-        texture.needsUpdate = true;
-        quad.visible = true;
-    };
-    return quad;
-}
+{% include js/particle-quad-common.js %}
 
 var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
-    constructor(sceneActor, size=8) {
+    constructor(sceneActor, size=8, onchange=function(particles) {}) {
         super();
         this.size = size;
+        this.onchange = onchange;
         this.scene = sceneActor.scene;
         this.camera = sceneActor.camera;
         this.canvas = sceneActor.renderer.domElement;
@@ -51,13 +18,13 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
             var x = this._x(i % size);
             var y = this._y(Math.floor(i / size));
 
-            var cell = new THREE.Mesh(quadGeometry, emptyMaterial);
+            var cell = makeQuad(emptyMaterial);
             cell.position.set(x, y, 0);
             cell.cellId = i;
             this.cells.push(cell);
             this.object.add(cell);
 
-            var outline = new THREE.LineSegments(outlineGeometry, outlineMaterial);
+            var outline = makeOutline();
             outline.position.set(x, y, 0);
             this.object.add(outline);
 
@@ -105,6 +72,18 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
         }
     }
 
+    // Occupy count distinct random cells, in random order.
+    randomize(count) {
+        count = Math.min(count, this.size * this.size);
+        while (this.order.length < count) {
+            var id = Math.floor(Math.random() * this.size * this.size);
+            if (this.order.indexOf(id) < 0) {
+                this.order.push(id);
+            }
+        }
+        this._refresh();
+    }
+
     toggle(id) {
         var at = this.order.indexOf(id);
         if (at < 0) {
@@ -121,9 +100,12 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
             this.cells[i].material = emptyMaterial;
             this.labels[i].visible = false;
         }
+        var particles = [];
         for (var p = 0; p < this.order.length; ++p) {
             this.cells[this.order[p]].material = fillMaterial;
             this.labels[this.order[p]].setText(p);
+            particles.push({ x: this.order[p] % this.size, y: Math.floor(this.order[p] / this.size) });
         }
+        this.onchange(particles);
     }
 }
