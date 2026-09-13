@@ -41,13 +41,17 @@ div.container-3js canvas {
 var interactUpdateParticles;
 </script>
 
-The purpose of this post is to interactively demonstrate the construction of an octree structure using purely parallel methods. This is largely based on the classic [Karras 2012](https://dl.acm.org/doi/10.5555/2383795.2383801) paper. I've modified it slightly to accomadate a particular octree data format which works well for faster traversal.
+The purpose of this post is to interactively demonstrate the construction of an octree structure using purely parallel methods. This is largely based on the classic [Karras 2012](https://dl.acm.org/doi/10.5555/2383795.2383801) paper. I've modified it slightly to accomadate a particular octree data format which works well for faster traversal, with the ultimate goal of fully parallelizing [my nbody implementation]({% post_url 2025-02-24-nbody-262k %})
 
-In that paper, the octree construction phase is packed into 2 paragraphs. In order to really clearly understand the entire tree construction process - from morton encoding, to radix tree construction, to building the final octree - I found myself writing up many 8x8 plots of points which I expected to exhibit edge cases and stepping through the algorithm and its memory transformations on paper.
-
-In order to check my understanding of each stage of the algorithm, I made this little interactive reference implementation of a parallelizeable quadtree builder.
+<video width="100%" controls>
+  <source src="{{ '/assets/video/parallel-octree.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 <!-- excerpt -->
+
+In Karras' paper, the octree construction phase is packed into 2 paragraphs. In order to really clearly understand the entire tree construction process - from morton encoding, to radix tree construction, to building the final octree - I found myself writing up many 8x8 plots of points which I expected to exhibit edge cases and stepping through the algorithm and its memory transformations on paper.
+
+In order to check my understanding of each stage of the algorithm, I made this little interactive reference implementation of a parallelizeable quadtree builder.
 
 <div class="container-3js" id="{{ page.title | slugify }}-particle-grid"></div>
 
@@ -66,6 +70,9 @@ The array containing particle positions is our input vector. For each entry, a m
 Sorting an array of morton keys puts them into an order where spatial proximity correlates with proximity in address space. Because we may also have other data than positions associated with leaf nodes, we will simultaneously produce a reverse map - an array of indices back into the original particle positions array.
 
 <div class="container-3js" id="{{ page.title | slugify }}-sorted-keys"></div>
+
+<h4>Step 2: Radix Tree Construction</h4>
+
 
 
 <script type="text/javascript">
