@@ -15,6 +15,7 @@ var ParticleArrayActor = ParticleArrayActor || class extends DRAMA.Actor {
     set_particles(particles) {
         if (this.object) {
             this.sceneActor.scene.remove(this.object);
+            disposeObject(this.object);
         }
 
         this.object = new THREE.Object3D();

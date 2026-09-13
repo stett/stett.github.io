@@ -15,6 +15,7 @@ var SortedKeysActor = SortedKeysActor || class extends DRAMA.Actor {
     set_particles(particles) {
         if (this.object) {
             this.sceneActor.scene.remove(this.object);
+            disposeObject(this.object);
         }
 
         // Sort the particle indices by the morton key of the cell they occupy.

@@ -73,6 +73,21 @@ function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
     return quad;
 }
 
+// Rebuilt diagrams have to free their own GPU resources: three.js holds onto
+// geometries and textures until they are disposed. Shared materials (the ones
+// without a canvas texture of their own) are left alone.
+function disposeObject(object) {
+    object.traverse(function(node) {
+        if (node.geometry) {
+            node.geometry.dispose();
+        }
+        if (node.material && node.material.map) {
+            node.material.map.dispose();
+            node.material.dispose();
+        }
+    });
+}
+
 function makeQuad(material, width=1, height=1) {
     return new THREE.Mesh(new THREE.PlaneGeometry(width, height), material);
 }
