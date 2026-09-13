@@ -1,10 +1,11 @@
 {% include js/particle-quad-common.js %}
 
 var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
-    constructor(sceneActor, size=8, onchange=function(particles) {}) {
+    constructor(sceneActor, size=8, onchange=function(particles) {}, max=10) {
         super();
         this.size = size;
         this.onchange = onchange;
+        this.max = Math.min(max, size * size);
         this.scene = sceneActor.scene;
         this.camera = sceneActor.camera;
         this.canvas = sceneActor.renderer.domElement;
@@ -48,6 +49,9 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
             this.object.add(row);
         }
 
+        // The index labels only sit along two sides, so shift the grid to keep
+        // the whole diagram centered in the view.
+        this.object.position.y = -0.37;
         this.scene.add(this.object);
 
         this.raycaster = new THREE.Raycaster();
@@ -74,7 +78,7 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
 
     // Occupy count distinct random cells, in random order.
     randomize(count) {
-        count = Math.min(count, this.size * this.size);
+        count = Math.min(count, this.max);
         while (this.order.length < count) {
             var id = Math.floor(Math.random() * this.size * this.size);
             if (this.order.indexOf(id) < 0) {
@@ -87,8 +91,12 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
     toggle(id) {
         var at = this.order.indexOf(id);
         if (at < 0) {
-            if (this.order.length >= this.size * this.size) return;
             this.order.push(id);
+
+            // Past the cap, the oldest particle drops off and the rest shift down.
+            if (this.order.length > this.max) {
+                this.order.shift();
+            }
         } else {
             this.order.splice(at, 1);
         }
