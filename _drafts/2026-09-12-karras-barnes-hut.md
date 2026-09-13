@@ -28,7 +28,11 @@ div.container-3js canvas {
 }
 
 #{{ page.title | slugify }}-particle-array {
-    height: 100px;
+    height: 150px;
+}
+
+#{{ page.title | slugify }}-sorted-keys {
+    height: 120px;
 }
 </style>
 
@@ -57,18 +61,26 @@ The array containing particle positions is our input vector. For each entry, a m
 
 <div class="container-3js" id="{{ page.title | slugify }}-particle-array"></div>
 
+<h4>Step 1: Morton Key Sort</h4>
+
+Sorting an array of morton keys puts them into an order where spatial proximity correlates with proximity in address space. Because we may also have other data than positions associated with leaf nodes, we will simultaneously produce a reverse map - an array of indices back into the original particle positions array.
+
+<div class="container-3js" id="{{ page.title | slugify }}-sorted-keys"></div>
+
 
 <script type="text/javascript">
 
 {% include js/sceneactor.js %}
 {% include js/particle-grid-actor.js %}
 {% include js/particle-array-actor.js %}
+{% include js/sorted-keys-actor.js %}
 
 $(document).ready(function() {
 
     // Actor references
     var particleGridActor;
     var particleArrayActor;
+    var sortedKeysActor;
 
     //
     // Interaction callbacks
@@ -76,6 +88,7 @@ $(document).ready(function() {
 
     interactUpdateParticles = function(particles) {
         particleArrayActor.set_particles(particles);
+        sortedKeysActor.set_particles(particles);
     }
 
     //
@@ -92,10 +105,18 @@ $(document).ready(function() {
 
     {
         var container = $("#{{ page.title | slugify }}-particle-array");
-        var scene = new SceneActor(container, 1.45);
+        var scene = new SceneActor(container, 2);
         DRAMA.add(scene);
         particleArrayActor = new ParticleArrayActor(scene);
         DRAMA.add(particleArrayActor);
+    }
+
+    {
+        var container = $("#{{ page.title | slugify }}-sorted-keys");
+        var scene = new SceneActor(container, 2);
+        DRAMA.add(scene);
+        sortedKeysActor = new SortedKeysActor(scene);
+        DRAMA.add(sortedKeysActor);
     }
 
     // Start with a few particles already placed.

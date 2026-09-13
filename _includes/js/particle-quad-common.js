@@ -9,16 +9,23 @@ var outlineMaterial = outlineMaterial || new THREE.LineBasicMaterial({ color: 0x
 // minified on screen, rather than magnified and blurry.
 var TEXT_RESOLUTION = 256;
 
+function nextPowerOfTwo(value) {
+    var pot = 1;
+    while (pot < value) {
+        pot *= 2;
+    }
+    return pot;
+}
+
 // A quad whose texture is a canvas the text is drawn into. fontHeight is in
 // scene units. Call quad.setText() for one color, or
 // quad.setSpans([{ text, color }, ...]) for several.
 function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
     var canvas = document.createElement("canvas");
-    canvas.width = TEXT_RESOLUTION * width;
-    canvas.height = TEXT_RESOLUTION * height;
-    // Mipmapped, so the minified glyphs are filtered rather than aliased. This
-    // needs power-of-two canvas dimensions, hence the resolution and the quad
-    // sizes being powers of two.
+    canvas.width = nextPowerOfTwo(TEXT_RESOLUTION * width);
+    canvas.height = nextPowerOfTwo(TEXT_RESOLUTION * height);
+    // Mipmapped, so the minified glyphs are filtered rather than aliased. That
+    // needs power-of-two canvas dimensions, which the draw below corrects for.
     var texture = new THREE.CanvasTexture(canvas);
     texture.minFilter = THREE.LinearMipMapLinearFilter;
     texture.generateMipmaps = true;
@@ -31,8 +38,16 @@ function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
     quad.scale.set(0.9, -0.9, 1);
     quad.setSpans = function(spans) {
         var ctx = canvas.getContext("2d");
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.font = "bold " + (fontHeight * TEXT_RESOLUTION) + "px 'Ubuntu Mono', monospace";
+
+        // The canvas was rounded up to a power of two, so it is stretched onto
+        // the quad horizontally. Draw into a square-pixel space of the same
+        // height and pre-stretch it by the same amount, so text is not squashed.
+        var pixelsPerUnit = canvas.height / height;
+        var logicalWidth = pixelsPerUnit * width;
+        ctx.setTransform(canvas.width / logicalWidth, 0, 0, 1, 0, 0);
+        ctx.font = "bold " + (fontHeight * pixelsPerUnit) + "px 'Ubuntu Mono', monospace";
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
 
@@ -41,10 +56,10 @@ function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
         for (var i = 0; i < spans.length; ++i) {
             total += ctx.measureText(spans[i].text).width;
         }
-        var x = (canvas.width - total) * 0.5;
+        var x = (logicalWidth - total) * 0.5;
         for (var i = 0; i < spans.length; ++i) {
             ctx.fillStyle = spans[i].color || color;
-            ctx.fillText(spans[i].text, x, canvas.height / 2);
+            ctx.fillText(spans[i].text, x, canvas.height * 0.5);
             x += ctx.measureText(spans[i].text).width;
         }
 
@@ -65,4 +80,48 @@ function makeQuad(material, width=1, height=1) {
 function makeOutline(width=1, height=1) {
     return new THREE.LineSegments(
         new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height)), outlineMaterial);
+}
+
+var X_COLOR = "#c00";
+var Y_COLOR = "#0a0";
+
+function toBits(value, bits=3) {
+    var s = value.toString(2);
+    while (s.length < bits) {
+        s = "0" + s;
+    }
+    return s;
+}
+
+// The coordinate bits interleaved from the most significant down, x first.
+function toMorton(x, y, bits=3) {
+    var key = 0;
+    for (var i = 0; i < bits; ++i) {
+        key |= ((x >> i) & 1) << (2 * i + 1);
+        key |= ((y >> i) & 1) << (2 * i);
+    }
+    return key;
+}
+
+// The morton code as a bit string.
+function toMortonBits(x, y, bits=3) {
+    var xb = toBits(x, bits);
+    var yb = toBits(y, bits);
+    var s = "";
+    for (var i = 0; i < bits; ++i) {
+        s += xb[i] + yb[i];
+    }
+    return s;
+}
+
+// Morton code text spans, each bit kept in its axis color.
+function toMortonSpans(x, y, bits=3) {
+    var xb = toBits(x, bits);
+    var yb = toBits(y, bits);
+    var spans = [];
+    for (var i = 0; i < bits; ++i) {
+        spans.push({ text: xb[i], color: X_COLOR });
+        spans.push({ text: yb[i], color: Y_COLOR });
+    }
+    return spans;
 }

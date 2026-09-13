@@ -1,20 +1,13 @@
 {% include js/particle-quad-common.js %}
 
-function toBits(value, bits=3) {
-    var s = value.toString(2);
-    while (s.length < bits) {
-        s = "0" + s;
-    }
-    return s;
-}
-
 // A horizontal row of quads, one per particle, labelled with the grid cell the
 // particle occupies, over a row of the same coordinates in binary.
 var ParticleArrayActor = ParticleArrayActor || class extends DRAMA.Actor {
-    constructor(sceneActor, cellWidth=4) {
+    constructor(sceneActor, cellWidth=3, rowPitch=1.25) {
         super();
         this.sceneActor = sceneActor;
         this.cellWidth = cellWidth;
+        this.rowPitch = rowPitch;
         this.object = null;
         this.set_particles([]);
     }
@@ -39,18 +32,28 @@ var ParticleArrayActor = ParticleArrayActor || class extends DRAMA.Actor {
 
             // The 3 bit binary form of each coordinate, in the row below.
             var binOutline = makeOutline(this.cellWidth, 1);
-            binOutline.position.set(x, 1, 0);
+            binOutline.position.set(x, this.rowPitch, 0);
             this.object.add(binOutline);
 
             var bits = makeTextQuad("#000", this.cellWidth, 1);
-            bits.position.set(x, 1, 0);
+            bits.position.set(x, this.rowPitch, 0);
             bits.setSpans([
                 { text: "(" },
-                { text: toBits(particles[i].x), color: "#c00" },
+                { text: toBits(particles[i].x), color: X_COLOR },
                 { text: "," },
-                { text: toBits(particles[i].y), color: "#0a0" },
+                { text: toBits(particles[i].y), color: Y_COLOR },
                 { text: ")" }]);
             this.object.add(bits);
+
+            // The interleaved bits, in the row below that.
+            var mortonOutline = makeOutline(this.cellWidth, 1);
+            mortonOutline.position.set(x, this.rowPitch * 2, 0);
+            this.object.add(mortonOutline);
+
+            var morton = makeTextQuad("#000", this.cellWidth, 1);
+            morton.position.set(x, this.rowPitch * 2, 0);
+            morton.setSpans(toMortonSpans(particles[i].x, particles[i].y));
+            this.object.add(morton);
 
             // The camera is y-flipped, so -y is above the cell on screen.
             var index = makeTextQuad("#000", this.cellWidth, 1);
@@ -58,14 +61,17 @@ var ParticleArrayActor = ParticleArrayActor || class extends DRAMA.Actor {
             index.setText(i);
             this.object.add(index);
         }
-        // Center the rows vertically in the view. The index glyphs fill about
-        // half of their quad, so the drawn content runs from -1.14 (top of the
-        // digits) to 1.5 (bottom of the binary row).
-        this.object.position.y = -0.18;
+        // Center the rows vertically in the view: from the top of the index
+        // digits down to the bottom edge of the last row.
+        var top = -0.9 - 0.25;
+        var bottom = this.rowPitch * 2 + 0.5;
+        this.object.position.y = -(top + bottom) * 0.5;
+        this.contentHeight = bottom - top;
         this.sceneActor.scene.add(this.object);
 
         // Fit the whole row in view.
         var halfWidth = particles.length * this.cellWidth * 0.5 + 0.5;
-        this.sceneActor.cameraHeightTarget = Math.max(1.45, halfWidth / this.sceneActor.aspect);
+        this.sceneActor.cameraHeightTarget = Math.max(
+            this.contentHeight * 0.5 + 0.15, halfWidth / this.sceneActor.aspect);
     }
 }
