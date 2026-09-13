@@ -18,19 +18,17 @@ var SortedKeysActor = SortedKeysActor || class extends DRAMA.Actor {
             disposeObject(this.object);
         }
 
-        // Sort the particle indices by the morton key of the cell they occupy.
-        var sorted = [];
-        for (var i = 0; i < particles.length; ++i) {
-            sorted.push(i);
+        var entries = sortedMortonKeys(particles);
+
+        // The sorted keys on their own, as the input to step 2.
+        this.keys = [];
+        for (var i = 0; i < entries.length; ++i) {
+            this.keys.push(entries[i].key);
         }
-        sorted.sort(function(a, b) {
-            return toMorton(particles[a].x, particles[a].y) - toMorton(particles[b].x, particles[b].y);
-        });
 
         this.object = new THREE.Object3D();
-        for (var i = 0; i < sorted.length; ++i) {
-            var x = (i - (sorted.length - 1) * 0.5) * this.cellWidth;
-            var particle = particles[sorted[i]];
+        for (var i = 0; i < entries.length; ++i) {
+            var x = (i - (entries.length - 1) * 0.5) * this.cellWidth;
 
             var keyOutline = makeOutline(this.cellWidth, 1);
             keyOutline.position.set(x, 0, 0);
@@ -38,7 +36,7 @@ var SortedKeysActor = SortedKeysActor || class extends DRAMA.Actor {
 
             var key = makeTextQuad("#000", this.cellWidth, 1);
             key.position.set(x, 0, 0);
-            key.setText(toMortonBits(particle.x, particle.y));
+            key.setText(toKeyBits(entries[i].key));
             this.object.add(key);
 
             // The index the key came from, in the row below.
@@ -48,7 +46,7 @@ var SortedKeysActor = SortedKeysActor || class extends DRAMA.Actor {
 
             var map = makeTextQuad("#000", this.cellWidth, 1);
             map.position.set(x, this.rowPitch, 0);
-            map.setText(sorted[i]);
+            map.setText(entries[i].index);
             this.object.add(map);
 
             // The camera is y-flipped, so -y is above the cell on screen.
@@ -67,7 +65,7 @@ var SortedKeysActor = SortedKeysActor || class extends DRAMA.Actor {
         this.sceneActor.scene.add(this.object);
 
         // Fit the whole row in view.
-        var halfWidth = sorted.length * this.cellWidth * 0.5 + 0.5;
+        var halfWidth = entries.length * this.cellWidth * 0.5 + 0.5;
         this.sceneActor.cameraHeightTarget = Math.max(
             this.contentHeight * 0.5 + 0.15, halfWidth / this.sceneActor.aspect);
     }

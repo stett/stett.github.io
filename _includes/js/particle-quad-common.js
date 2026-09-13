@@ -118,15 +118,24 @@ function toMorton(x, y, bits=3) {
     return key;
 }
 
-// The morton code as a bit string.
-function toMortonBits(x, y, bits=3) {
-    var xb = toBits(x, bits);
-    var yb = toBits(y, bits);
-    var s = "";
-    for (var i = 0; i < bits; ++i) {
-        s += xb[i] + yb[i];
+// A morton key as a bit string.
+function toKeyBits(key, bits=6) {
+    var s = key.toString(2);
+    while (s.length < bits) {
+        s = "0" + s;
     }
     return s;
+}
+
+// The particles' morton keys sorted ascending, each paired with the index of
+// the particle it came from.
+function sortedMortonKeys(particles) {
+    var entries = [];
+    for (var i = 0; i < particles.length; ++i) {
+        entries.push({ index: i, key: toMorton(particles[i].x, particles[i].y) });
+    }
+    entries.sort(function(a, b) { return a.key - b.key; });
+    return entries;
 }
 
 // Morton code text spans, each bit kept in its axis color.

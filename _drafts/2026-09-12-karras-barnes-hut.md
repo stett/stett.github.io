@@ -34,6 +34,10 @@ div.container-3js canvas {
 #{{ page.title | slugify }}-sorted-keys {
     height: 120px;
 }
+
+#{{ page.title | slugify }}-radix-tree-arrays {
+    height: 80px;
+}
 </style>
 
 <script>
@@ -49,7 +53,7 @@ The purpose of this post is to interactively demonstrate the construction of an 
 
 <!-- excerpt -->
 
-In Karras' paper, the octree construction phase is packed into 2 paragraphs. In order to really clearly understand the entire tree construction process - from morton encoding, to radix tree construction, to building the final octree - I found myself writing up many 8x8 plots of points which I expected to exhibit edge cases and stepping through the algorithm and its memory transformations on paper.
+In Karras' paper, the octree construction phase is packed into 2 paragraphs. In order to really clearly understand the entire tree construction process - from morton encoding to radix tree construction and building the final octree - I found myself writing up many 8x8 plots of points which I expected to exhibit edge cases and stepping through the algorithm and its memory transformations on paper.
 
 In order to check my understanding of each stage of the algorithm, I made this little interactive reference implementation of a parallelizeable quadtree builder.
 
@@ -73,6 +77,7 @@ Sorting an array of morton keys puts them into an order where spatial proximity 
 
 <h4>Step 2: Radix Tree Construction</h4>
 
+<div class="container-3js" id="{{ page.title | slugify }}-radix-tree-arrays"></div>
 
 
 <script type="text/javascript">
@@ -81,6 +86,7 @@ Sorting an array of morton keys puts them into an order where spatial proximity 
 {% include js/particle-grid-actor.js %}
 {% include js/particle-array-actor.js %}
 {% include js/sorted-keys-actor.js %}
+{% include js/radix-tree-arrays-actor.js %}
 
 $(document).ready(function() {
 
@@ -88,6 +94,7 @@ $(document).ready(function() {
     var particleGridActor;
     var particleArrayActor;
     var sortedKeysActor;
+    var radixTreeArraysActor;
 
     //
     // Interaction callbacks
@@ -96,6 +103,7 @@ $(document).ready(function() {
     interactUpdateParticles = function(particles) {
         particleArrayActor.set_particles(particles);
         sortedKeysActor.set_particles(particles);
+        radixTreeArraysActor.set_keys(sortedKeysActor.keys);
     }
 
     //
@@ -124,6 +132,14 @@ $(document).ready(function() {
         DRAMA.add(scene);
         sortedKeysActor = new SortedKeysActor(scene);
         DRAMA.add(sortedKeysActor);
+    }
+
+    {
+        var container = $("#{{ page.title | slugify }}-radix-tree-arrays");
+        var scene = new SceneActor(container, 2);
+        DRAMA.add(scene);
+        radixTreeArraysActor = new RadixTreeArraysActor(scene);
+        DRAMA.add(radixTreeArraysActor);
     }
 
     // Start with a few particles already placed.
