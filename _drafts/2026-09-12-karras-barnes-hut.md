@@ -35,6 +35,10 @@ div.container-3js canvas {
     height: 120px;
 }
 
+#{{ page.title | slugify }}-radix-tree-split {
+    height: 320px;
+}
+
 #{{ page.title | slugify }}-radix-tree-arrays {
     height: 80px;
 }
@@ -77,6 +81,8 @@ Sorting an array of morton keys puts them into an order where spatial proximity 
 
 <h4>Step 2: Radix Tree Construction</h4>
 
+<div class="container-3js" id="{{ page.title | slugify }}-radix-tree-split"></div>
+
 <div class="container-3js" id="{{ page.title | slugify }}-radix-tree-arrays"></div>
 
 
@@ -86,6 +92,7 @@ Sorting an array of morton keys puts them into an order where spatial proximity 
 {% include js/particle-grid-actor.js %}
 {% include js/particle-array-actor.js %}
 {% include js/sorted-keys-actor.js %}
+{% include js/radix-tree-split-actor.js %}
 {% include js/radix-tree-arrays-actor.js %}
 
 $(document).ready(function() {
@@ -94,6 +101,7 @@ $(document).ready(function() {
     var particleGridActor;
     var particleArrayActor;
     var sortedKeysActor;
+    var radixTreeSplitActor;
     var radixTreeArraysActor;
 
     //
@@ -103,6 +111,7 @@ $(document).ready(function() {
     interactUpdateParticles = function(particles) {
         particleArrayActor.set_particles(particles);
         sortedKeysActor.set_particles(particles);
+        radixTreeSplitActor.set_keys(sortedKeysActor.keys);
         radixTreeArraysActor.set_keys(sortedKeysActor.keys);
     }
 
@@ -132,6 +141,14 @@ $(document).ready(function() {
         DRAMA.add(scene);
         sortedKeysActor = new SortedKeysActor(scene);
         DRAMA.add(sortedKeysActor);
+    }
+
+    {
+        var container = $("#{{ page.title | slugify }}-radix-tree-split");
+        var scene = new SceneActor(container, 4.5);
+        DRAMA.add(scene);
+        radixTreeSplitActor = new RadixTreeSplitActor(scene);
+        DRAMA.add(radixTreeSplitActor);
     }
 
     {

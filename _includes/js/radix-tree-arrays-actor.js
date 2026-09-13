@@ -1,10 +1,5 @@
 {% include js/particle-quad-common.js %}
-
-// Stub. The radix tree node covering internal node index i, derived from the
-// sorted morton keys. There are keys.length - 1 internal nodes.
-function radixTreeNode(keys, i) {
-    return { child0: 0, child1: 0 };
-}
+{% include js/radix-tree.js %}
 
 // One row of cells, one per internal radix tree node, showing its children.
 var RadixTreeArraysActor = RadixTreeArraysActor || class extends DRAMA.Actor {
@@ -36,7 +31,7 @@ var RadixTreeArraysActor = RadixTreeArraysActor || class extends DRAMA.Actor {
 
             var children = makeTextQuad("#000", this.cellWidth, 1);
             children.position.set(x, 0, 0);
-            children.setText("(" + node.child0 + "," + node.child1 + ")");
+            children.setText("(" + node.child0_index + "," + node.child1_index + ")");
             this.object.add(children);
 
             // The camera is y-flipped, so -y is above the cell on screen.
