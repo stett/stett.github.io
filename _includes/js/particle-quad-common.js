@@ -104,6 +104,34 @@ var RED_CSS = RED_CSS || "#" + RED.getHexString();
 var GREEN = GREEN || new THREE.Color(0x00aa00);
 var GREEN_CSS = GREEN_CSS || "#" + GREEN.getHexString();
 
+// A dashed rectangle, for cells which are not really part of an array.
+function makeDashedOutline(width=1, height=1, dash=0.12) {
+    var geometry = new THREE.Geometry();
+    var hw = width * 0.5;
+    var hh = height * 0.5;
+
+    function edge(x0, y0, x1, y1) {
+        var length = Math.sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+        var dashes = Math.max(1, Math.round(length / (dash * 2)));
+        var step = length / dashes;
+        var dx = (x1 - x0) / length;
+        var dy = (y1 - y0) / length;
+        for (var i = 0; i < dashes; ++i) {
+            var a = i * step;
+            var b = a + step * 0.5;
+            geometry.vertices.push(
+                new THREE.Vector3(x0 + dx * a, y0 + dy * a, 0),
+                new THREE.Vector3(x0 + dx * b, y0 + dy * b, 0));
+        }
+    }
+
+    edge(-hw, -hh, hw, -hh);
+    edge(hw, -hh, hw, hh);
+    edge(hw, hh, -hw, hh);
+    edge(-hw, hh, -hw, -hh);
+    return new THREE.LineSegments(geometry, outlineMaterial);
+}
+
 var X_COLOR = RED_CSS;
 var Y_COLOR = GREEN_CSS;
 

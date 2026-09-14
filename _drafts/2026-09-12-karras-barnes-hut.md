@@ -39,6 +39,10 @@ div.container-3js canvas {
     height: 320px;
 }
 
+#{{ page.title | slugify }}-octree-allocations {
+    height: 220px;
+}
+
 #{{ page.title | slugify }}-radix-tree-arrays {
     height: 270px;
 }
@@ -97,9 +101,15 @@ The `quad_internals` and `quad_leaves` values indicate the number of internal an
 
 The number of nodes in the quadtree that we will produce does not have a simple relationship to the number of radix nodes or keys like every other buffer up to this point. from the `quad_internals` and `quad_leaves` arrays, we know how octree nodes to allocate per each radix tree node. To get the total, we first compute the sum `quad_internals + quad_leaves`, and then the exclusive prefix sum on the result.
 
-The entries of the resulting buffer will be the offsets into the quadtree node array for each radix node. The last value will indicate the total number of quadtree nodes to allocate.
+The entries of the resulting buffer will be the offsets into the quadtree node array for each radix node. The last value (plus one, for the root node) will indicate the total number of quadtree nodes to allocate.
 
 <div class="container-3js" id="{{ page.title | slugify }}-octree-allocations"></div>
+
+<h4>Step 4: Create Leaf Node Map (optional)</h4>
+
+<h4>Step 5: Construct Quadtree/Octree</h4>
+
+
 
 <script type="text/javascript">
 
@@ -109,6 +119,7 @@ The entries of the resulting buffer will be the offsets into the quadtree node a
 {% include js/sorted-keys-actor.js %}
 {% include js/radix-tree-split-actor.js %}
 {% include js/radix-tree-arrays-actor.js %}
+{% include js/octree-allocations-actor.js %}
 
 $(document).ready(function() {
 
@@ -118,6 +129,7 @@ $(document).ready(function() {
     var sortedKeysActor;
     var radixTreeSplitActor;
     var radixTreeArraysActor;
+    var octreeAllocationsActor;
 
     //
     // Interaction callbacks
@@ -128,6 +140,7 @@ $(document).ready(function() {
         sortedKeysActor.set_particles(particles);
         radixTreeSplitActor.set_keys(sortedKeysActor.keys);
         radixTreeArraysActor.set_keys(sortedKeysActor.keys);
+        octreeAllocationsActor.set_keys(sortedKeysActor.keys);
     }
 
     //
@@ -172,6 +185,14 @@ $(document).ready(function() {
         DRAMA.add(scene);
         radixTreeArraysActor = new RadixTreeArraysActor(scene);
         DRAMA.add(radixTreeArraysActor);
+    }
+
+    {
+        var container = $("#{{ page.title | slugify }}-octree-allocations");
+        var scene = new SceneActor(container, 2.2);
+        DRAMA.add(scene);
+        octreeAllocationsActor = new OctreeAllocationsActor(scene);
+        DRAMA.add(octreeAllocationsActor);
     }
 
     // Start with a few particles already placed.
