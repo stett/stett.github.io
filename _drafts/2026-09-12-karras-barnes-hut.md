@@ -89,8 +89,17 @@ The node splitting pattern is illustrated in the following diagram. The first ro
 
 The following arrays are the radix node data, which will be fed into the next step for construction of the octree structure. Internal node indices are prefixed with an `*`. Other indices refer to leaves (the sorted morton key array).
 
+The `quad_internals` and `quad_leaves` values indicate the number of internal and leaf _quadtree_ nodes that will be emitted by each radix node. Karras uses only the first of these two numbers, but I'll need the second as well for the linear quadtree format that I'll construct in the final step.
+
 <div class="container-3js" id="{{ page.title | slugify }}-radix-tree-arrays"></div>
 
+<h4>Step 3: Quadtree/Octree Allocation</h4>
+
+The number of nodes in the quadtree that we will produce does not have a simple relationship to the number of radix nodes or keys like every other buffer up to this point. from the `quad_internals` and `quad_leaves` arrays, we know how octree nodes to allocate per each radix tree node. To get the total, we first compute the sum `quad_internals + quad_leaves`, and then the exclusive prefix sum on the result.
+
+The entries of the resulting buffer will be the offsets into the quadtree node array for each radix node. The last value will indicate the total number of quadtree nodes to allocate.
+
+<div class="container-3js" id="{{ page.title | slugify }}-octree-allocations"></div>
 
 <script type="text/javascript">
 

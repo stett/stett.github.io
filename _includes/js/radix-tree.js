@@ -100,8 +100,8 @@ function radixTreeNode(keys, i, parents)
     node.index_child1 = node.index_child0 + 1;
     node.leaf_child0 = (node.index_child0 == node.index_min);
     node.leaf_child1 = (node.index_child1 == node.index_max);
-    node.octree_internals = compute_internal_count(node.cpl_depth, node.cpl_parent);
-    node.octree_children = node.leaf_child0 + node.leaf_child1;
+    node.quadtree_internals = compute_internal_count(node.cpl_depth, node.cpl_parent);
+    node.quadtree_leaves = node.leaf_child0 + node.leaf_child1;
 
     if (parents)
     {

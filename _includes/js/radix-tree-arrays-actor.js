@@ -49,11 +49,11 @@ var RadixTreeArraysActor = RadixTreeArraysActor || class extends DRAMA.Actor {
             { label: "parents", text: function(node, i) {
                 return parents[i] === undefined ? "-" : "*" + parents[i];
             } },
-            { label: "octree_internals", text: function(node, i) {
-                return node.octree_internals;
+            { label: "quad_internals", text: function(node, i) {
+                return node.quadtree_internals;
             } },
-            { label: "octree_children", text: function(node, i) {
-                return node.octree_children;
+            { label: "quad_leaves", text: function(node, i) {
+                return node.quadtree_leaves;
             } }
         ];
 
