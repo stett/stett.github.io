@@ -36,11 +36,11 @@ div.container-3js canvas {
 }
 
 #{{ page.title | slugify }}-radix-tree-split {
-    height: 280px;
+    height: 320px;
 }
 
 #{{ page.title | slugify }}-radix-tree-arrays {
-    height: 130px;
+    height: 270px;
 }
 </style>
 
@@ -151,7 +151,7 @@ $(document).ready(function() {
 
     {
         var container = $("#{{ page.title | slugify }}-radix-tree-split");
-        var scene = new SceneActor(container, 4.5);
+        var scene = new SceneActor(container, 5.9);
         DRAMA.add(scene);
         radixTreeSplitActor = new RadixTreeSplitActor(scene);
         DRAMA.add(radixTreeSplitActor);

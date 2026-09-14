@@ -101,8 +101,11 @@ function makeOutline(width=1, height=1) {
 var RED = RED || new THREE.Color(0xcc0000);
 var RED_CSS = RED_CSS || "#" + RED.getHexString();
 
+var GREEN = GREEN || new THREE.Color(0x00aa00);
+var GREEN_CSS = GREEN_CSS || "#" + GREEN.getHexString();
+
 var X_COLOR = RED_CSS;
-var Y_COLOR = "#00aa00";
+var Y_COLOR = GREEN_CSS;
 
 function toBits(value, bits=3) {
     var s = value.toString(2);

@@ -76,6 +76,13 @@ function compute_range_split(keys, i, range_dir, range_len, cpl_depth)
     return i + (s * range_dir) + Math.min(range_dir, 0);
 }
 
+function compute_internal_count(cpl_depth, cpl_parent)
+{
+    var octree_levels = Math.trunc(cpl_depth / 2);
+    var octree_levels_parent = Math.trunc(Math.max(cpl_parent, 0) / 2);
+    return octree_levels - octree_levels_parent;
+}
+
 // build radix tree node data. if a parents array is given, each child which is
 // an internal node has its parent entry filled in.
 function radixTreeNode(keys, i, parents)
@@ -88,11 +95,13 @@ function radixTreeNode(keys, i, parents)
     node.index_min = Math.min(i, node.index_last);
     node.index_max = Math.max(i, node.index_last);
     node.cpl_depth = compute_cpl(keys, i, node.index_last);
+    node.prefix_str = toKeyBits(keys[i]).substring(0, node.cpl_depth);
     node.index_child0 = compute_range_split(keys, i, node.range_dir, node.range_len, node.cpl_depth);
     node.index_child1 = node.index_child0 + 1;
     node.leaf_child0 = (node.index_child0 == node.index_min);
     node.leaf_child1 = (node.index_child1 == node.index_max);
-    node.prefix_str = toKeyBits(keys[i]).substring(0, node.cpl_depth);
+    node.octree_internals = compute_internal_count(node.cpl_depth, node.cpl_parent);
+    node.octree_children = node.leaf_child0 + node.leaf_child1;
 
     if (parents)
     {

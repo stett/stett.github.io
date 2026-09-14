@@ -14,6 +14,16 @@ function makeArrow(from, to, head=0.3) {
     return new THREE.LineSegments(geometry, rangeMaterial);
 }
 
+// A vertical arrow from one y to another, in the same style as makeArrow.
+function makeVArrow(from, to, material=outlineMaterial, head=0.25) {
+    var dir = to < from ? -1 : 1;
+    var geometry = new THREE.Geometry();
+    geometry.vertices.push(new THREE.Vector3(0, from, 0), new THREE.Vector3(0, to, 0));
+    geometry.vertices.push(new THREE.Vector3(0, to, 0), new THREE.Vector3(-head * 0.7, to - dir * head, 0));
+    geometry.vertices.push(new THREE.Vector3(0, to, 0), new THREE.Vector3(head * 0.7, to - dir * head, 0));
+    return new THREE.LineSegments(geometry, material);
+}
+
 // A vertical dotted line, dotted in from the top and bottom of a cell so that
 // it does not run through the text and arrow in the middle of it.
 function makeDottedLine(halfHeight=0.45, inner=0.22, dashes=2) {
@@ -32,7 +42,7 @@ function makeDottedLine(halfHeight=0.45, inner=0.22, dashes=2) {
 // covers, with an arrow for the direction the range runs in and a dotted line
 // at the split between its two children.
 var RadixTreeSplitActor = RadixTreeSplitActor || class extends DRAMA.Actor {
-    constructor(sceneActor, cellWidth=2.4, rowPitch=1.25) {
+    constructor(sceneActor, cellWidth=2.4, rowPitch=1.9) {
         super();
         this.sceneActor = sceneActor;
         this.cellWidth = cellWidth;
@@ -81,9 +91,21 @@ var RadixTreeSplitActor = RadixTreeSplitActor || class extends DRAMA.Actor {
         var indexWidth = 1.5;
         var indexX = colX(0) - cw * 0.5 - gap - indexWidth * 0.5;
 
+        var rowPitch = this.rowPitch;
+
+        // Center of the row holding node i.
+        function rowY(i) {
+            return (i + 1) * rowPitch;
+        }
+
+        var nodes = [];
         for (var i = 0; i < count; ++i) {
-            var y = (i + 1) * this.rowPitch;
-            var node = radixTreeNode(keys, i);
+            nodes.push(radixTreeNode(keys, i));
+        }
+
+        for (var i = 0; i < count; ++i) {
+            var y = rowY(i);
+            var node = nodes[i];
 
             addText(indexX, y, indexWidth, "*" + i, "#000");
 
@@ -109,6 +131,22 @@ var RadixTreeSplitActor = RadixTreeSplitActor || class extends DRAMA.Actor {
             var split = makeDottedLine();
             split.position.set(colX(node.index_child0) + cw * 0.5, y, 0);
             object.add(split);
+
+            // Arrows to whichever children are internal nodes, pointing at the
+            // row that holds them. Leaf children are keys in the top row.
+            if (!node.leaf_child0) {
+                addChildArrow(i, node.index_child0);
+            }
+            if (!node.leaf_child1) {
+                addChildArrow(i, node.index_child1);
+            }
+        }
+
+        function addChildArrow(parent, child) {
+            var dir = child > parent ? 1 : -1;
+            var arrow = makeVArrow(rowY(parent) + dir * 0.5, rowY(child) - dir * 0.5);
+            arrow.position.set(colX(child), 0, 0);
+            object.add(arrow);
         }
 
         // Center everything in the view, from the top of the index digits and

@@ -3,7 +3,7 @@
 
 // A row of cells per radix tree array, one cell per internal node.
 var RadixTreeArraysActor = RadixTreeArraysActor || class extends DRAMA.Actor {
-    constructor(sceneActor, cellWidth=3, rowPitch=1.25) {
+    constructor(sceneActor, cellWidth=2.4, rowPitch=1.25) {
         super();
         this.sceneActor = sceneActor;
         this.cellWidth = cellWidth;
@@ -41,32 +41,42 @@ var RadixTreeArraysActor = RadixTreeArraysActor || class extends DRAMA.Actor {
             nodes.push(radixTreeNode(keys, i, parents));
         }
 
-        for (var i = 0; i < count; ++i) {
-            var node = nodes[i];
-
-            var childOutline = makeOutline(cw, 1);
-            childOutline.position.set(colX(i), 0, 0);
-            object.add(childOutline);
-            addText(colX(i), 0, cw,
-                "(" + (node.leaf_child0 ? "" : "*") + node.index_child0 + "," +
-                (node.leaf_child1 ? "" : "*") + node.index_child1 + ")");
-
-            var parentOutline = makeOutline(cw, 1);
-            parentOutline.position.set(colX(i), this.rowPitch, 0);
-            object.add(parentOutline);
-            addText(colX(i), this.rowPitch, cw,
-                parents[i] === undefined ? "-" : "*" + parents[i]);
-
-            // The camera is y-flipped, so -y is above the cell on screen.
-            addText(colX(i), -0.9, cw, i);
-        }
+        var rows = [
+            { label: "children", text: function(node, i) {
+                return "(" + (node.leaf_child0 ? "" : "*") + node.index_child0 + "," +
+                    (node.leaf_child1 ? "" : "*") + node.index_child1 + ")";
+            } },
+            { label: "parents", text: function(node, i) {
+                return parents[i] === undefined ? "-" : "*" + parents[i];
+            } },
+            { label: "octree_internals", text: function(node, i) {
+                return node.octree_internals;
+            } },
+            { label: "octree_children", text: function(node, i) {
+                return node.octree_children;
+            } }
+        ];
 
         // Row labels, to the left of each row.
-        var labelWidth = 3;
+        var labelWidth = 5.5;
         var labelX = colX(0) - cw * 0.5 - 0.2 - labelWidth * 0.5;
-        if (count > 0) {
-            addText(labelX, 0, labelWidth, "children");
-            addText(labelX, this.rowPitch, labelWidth, "parents");
+
+        for (var r = 0; r < rows.length; ++r) {
+            var y = r * this.rowPitch;
+            if (count > 0) {
+                addText(labelX, y, labelWidth, rows[r].label);
+            }
+            for (var i = 0; i < count; ++i) {
+                var outline = makeOutline(cw, 1);
+                outline.position.set(colX(i), y, 0);
+                object.add(outline);
+                addText(colX(i), y, cw, rows[r].text(nodes[i], i));
+            }
+        }
+
+        // The camera is y-flipped, so -y is above the cells on screen.
+        for (var i = 0; i < count; ++i) {
+            addText(colX(i), -0.9, cw, i);
         }
 
         // Center everything in the view, from the top of the index digits and
@@ -74,7 +84,7 @@ var RadixTreeArraysActor = RadixTreeArraysActor || class extends DRAMA.Actor {
         var left = labelX - labelWidth * 0.5;
         var right = colX(count - 1) + cw * 0.5;
         var top = -0.9 - 0.25;
-        var bottom = this.rowPitch + 0.5;
+        var bottom = (rows.length - 1) * this.rowPitch + 0.5;
         this.object.position.set(-(left + right) * 0.5, -(top + bottom) * 0.5, 0);
         this.contentHeight = bottom - top;
         this.sceneActor.scene.add(this.object);
