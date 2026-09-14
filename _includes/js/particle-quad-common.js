@@ -7,7 +7,7 @@ var outlineMaterial = outlineMaterial || new THREE.LineBasicMaterial({ color: 0x
 
 // Canvas pixels per scene unit. High enough that glyphs are drawn large and
 // minified on screen, rather than magnified and blurry.
-var TEXT_RESOLUTION = 256;
+var TEXT_RESOLUTION = 512;
 
 function nextPowerOfTwo(value) {
     var pot = 1;
@@ -97,8 +97,12 @@ function makeOutline(width=1, height=1) {
         new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height)), outlineMaterial);
 }
 
-var X_COLOR = "#c00";
-var Y_COLOR = "#0a0";
+// One source for the red, so canvas text and line materials cannot drift apart.
+var RED = RED || new THREE.Color(0xcc0000);
+var RED_CSS = RED_CSS || "#" + RED.getHexString();
+
+var X_COLOR = RED_CSS;
+var Y_COLOR = "#00aa00";
 
 function toBits(value, bits=3) {
     var s = value.toString(2);

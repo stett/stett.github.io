@@ -1,8 +1,8 @@
 {% include js/particle-quad-common.js %}
 {% include js/radix-tree.js %}
 
-var RANGE_COLOR = "#c00";
-var rangeMaterial = rangeMaterial || new THREE.LineBasicMaterial({ color: 0xcc0000 });
+var RANGE_COLOR = RED_CSS;
+var rangeMaterial = rangeMaterial || new THREE.LineBasicMaterial({ color: RED });
 
 // A horizontal arrow from one x to another, as a shaft plus two head strokes.
 function makeArrow(from, to, head=0.3) {
@@ -14,13 +14,15 @@ function makeArrow(from, to, head=0.3) {
     return new THREE.LineSegments(geometry, rangeMaterial);
 }
 
-// A vertical dotted line, centered on the origin.
-function makeDottedLine(halfHeight=0.45, dashes=5) {
+// A vertical dotted line, dotted in from the top and bottom of a cell so that
+// it does not run through the text and arrow in the middle of it.
+function makeDottedLine(halfHeight=0.45, inner=0.22, dashes=2) {
     var geometry = new THREE.Geometry();
-    var step = halfHeight * 2 / (dashes * 2 - 1);
+    var step = (halfHeight - inner) / (dashes * 2 - 1);
     for (var i = 0; i < dashes; ++i) {
-        var y = -halfHeight + i * 2 * step;
+        var y = inner + i * 2 * step;
         geometry.vertices.push(new THREE.Vector3(0, y, 0), new THREE.Vector3(0, y + step, 0));
+        geometry.vertices.push(new THREE.Vector3(0, -y, 0), new THREE.Vector3(0, -y - step, 0));
     }
     return new THREE.LineSegments(geometry, rangeMaterial);
 }
@@ -30,7 +32,7 @@ function makeDottedLine(halfHeight=0.45, dashes=5) {
 // covers, with an arrow for the direction the range runs in and a dotted line
 // at the split between its two children.
 var RadixTreeSplitActor = RadixTreeSplitActor || class extends DRAMA.Actor {
-    constructor(sceneActor, cellWidth=3, rowPitch=1.25) {
+    constructor(sceneActor, cellWidth=2.4, rowPitch=1.25) {
         super();
         this.sceneActor = sceneActor;
         this.cellWidth = cellWidth;
@@ -73,19 +75,17 @@ var RadixTreeSplitActor = RadixTreeSplitActor || class extends DRAMA.Actor {
             addText(colX(j), -0.9, cw, j, "#000");
         }
 
-        // Labels to the left of each node's range.
+        // The node index, to the left of each node's range.
         var gap = 0.2;
-        var prefixWidth = 3;
+        var prefixWidth = 2.5;
         var indexWidth = 1.5;
-        var prefixX = colX(0) - cw * 0.5 - gap - prefixWidth * 0.5;
-        var indexX = prefixX - (prefixWidth + indexWidth) * 0.5 - gap;
+        var indexX = colX(0) - cw * 0.5 - gap - indexWidth * 0.5;
 
         for (var i = 0; i < count; ++i) {
             var y = (i + 1) * this.rowPitch;
             var node = radixTreeNode(keys, i);
 
             addText(indexX, y, indexWidth, "*" + i, "#000");
-            addText(prefixX, y, prefixWidth, "[" + prefixDashes(node.prefix_str) + "]", RANGE_COLOR);
 
             // The span of keys the node covers.
             var first = node.index_min;
@@ -95,12 +95,13 @@ var RadixTreeSplitActor = RadixTreeSplitActor || class extends DRAMA.Actor {
             range.position.set(center, y, 0);
             object.add(range);
 
-            // The arrow runs from the node's own key out to the far end.
-            var inset = cw * 0.5 - 0.3;
-            var arrow0 = colX(node.index_min) - inset;
-            var arrow1 = colX(node.index_max) + inset;
-            if (node.range_dir < 0) { [arrow0, arrow1] = [arrow1, arrow0]; }
-            var arrow = makeArrow(arrow0, arrow1);
+            // The node's common prefix, at the end of the range the node's own
+            // key sits at, with the arrow running from it out to the far end.
+            var dir = node.range_dir < 0 ? -1 : 1;
+            var head = dir > 0 ? colX(last) + cw * 0.5 : colX(first) - cw * 0.5;
+            addText(colX(i), y, prefixWidth, "[" + prefixDashes(node.prefix_str) + "]", RANGE_COLOR);
+
+            var arrow = makeArrow(colX(i) + dir * (cw * 0.4 + 0.1), head - dir * 0.3);
             arrow.position.set(0, y, 0);
             object.add(arrow);
 

@@ -76,8 +76,9 @@ function compute_range_split(keys, i, range_dir, range_len, cpl_depth)
     return i + (s * range_dir) + Math.min(range_dir, 0);
 }
 
-// build radix tree node data
-function radixTreeNode(keys, i)
+// build radix tree node data. if a parents array is given, each child which is
+// an internal node has its parent entry filled in.
+function radixTreeNode(keys, i, parents)
 {
     var node = {};
     node.range_dir = compute_range_dir(keys, i);
@@ -91,7 +92,19 @@ function radixTreeNode(keys, i)
     node.index_child1 = node.index_child0 + 1;
     node.leaf_child0 = (node.index_child0 == node.index_min);
     node.leaf_child1 = (node.index_child1 == node.index_max);
-    node.prefix_str = toKeyBits(keys[i], node.cpl_depth);
+    node.prefix_str = toKeyBits(keys[i]).substring(0, node.cpl_depth);
+
+    if (parents)
+    {
+        if (!node.leaf_child0)
+        {
+            parents[node.index_child0] = i;
+        }
+        if (!node.leaf_child1)
+        {
+            parents[node.index_child1] = i;
+        }
+    }
 
     console.log(node);
     return node;

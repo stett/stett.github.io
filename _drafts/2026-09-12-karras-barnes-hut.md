@@ -36,11 +36,11 @@ div.container-3js canvas {
 }
 
 #{{ page.title | slugify }}-radix-tree-split {
-    height: 320px;
+    height: 280px;
 }
 
 #{{ page.title | slugify }}-radix-tree-arrays {
-    height: 80px;
+    height: 130px;
 }
 </style>
 
@@ -87,7 +87,7 @@ The node splitting pattern is illustrated in the following diagram. The first ro
 
 <div class="container-3js" id="{{ page.title | slugify }}-radix-tree-split"></div>
 
-For each of the radix nodes 
+The following arrays are the radix node data, which will be fed into the next step for construction of the octree structure. Internal node indices are prefixed with an `*`. Other indices refer to leaves (the sorted morton key array).
 
 <div class="container-3js" id="{{ page.title | slugify }}-radix-tree-arrays"></div>
 
