@@ -81,7 +81,13 @@ Sorting an array of morton keys puts them into an order where spatial proximity 
 
 <h4>Step 2: Radix Tree Construction</h4>
 
+Each of the $n$ morton keys is a leaf node in a radix tree which has $n-1$ internal nodes. Each internal node in a radix tree represents a splitting index - given a range of keys which share a common prefix, the splitting point for that range is the point at which the next most significant bit past the common prefix begins to differ. For example, if you have a range containing the keys `0:110001`, `1:1100101`, and `2:111001`, the common prefix is `11` and the splitting point would be between elements 1 and 2 because that is where the bit just past the prefix changes from `0` to `1`.
+
+The node splitting pattern is illustrated in the following diagram. The first row shows the leaf nodes of the radix tree - ie the sorted morton keys from the diagram above. The subsequent rows show the prefixes, ranges, and split positions for each of the internal radix tree nodes.
+
 <div class="container-3js" id="{{ page.title | slugify }}-radix-tree-split"></div>
+
+For each of the radix nodes 
 
 <div class="container-3js" id="{{ page.title | slugify }}-radix-tree-arrays"></div>
 

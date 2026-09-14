@@ -88,23 +88,25 @@ var RadixTreeSplitActor = RadixTreeSplitActor || class extends DRAMA.Actor {
             addText(prefixX, y, prefixWidth, "[" + prefixDashes(node.prefix_str) + "]", RANGE_COLOR);
 
             // The span of keys the node covers.
-            var first = Math.min(i, node.range_end);
-            var last = Math.max(i, node.range_end);
+            var first = node.index_min;
+            var last = node.index_max;
             var center = (colX(first) + colX(last)) * 0.5;
             var range = makeOutline((last - first + 1) * cw, 1);
             range.position.set(center, y, 0);
             object.add(range);
 
             // The arrow runs from the node's own key out to the far end.
-            var dir = node.range_dir < 0 ? -1 : 1;
             var inset = cw * 0.5 - 0.3;
-            var arrow = makeArrow(colX(i) - dir * inset, colX(node.range_end) + dir * inset);
+            var arrow0 = colX(node.index_min) - inset;
+            var arrow1 = colX(node.index_max) + inset;
+            if (node.range_dir < 0) { [arrow0, arrow1] = [arrow1, arrow0]; }
+            var arrow = makeArrow(arrow0, arrow1);
             arrow.position.set(0, y, 0);
             object.add(arrow);
 
             // The split between the node's two children.
             var split = makeDottedLine();
-            split.position.set(colX(node.child0_index) + cw * 0.5, y, 0);
+            split.position.set(colX(node.index_child0) + cw * 0.5, y, 0);
             object.add(split);
         }
 

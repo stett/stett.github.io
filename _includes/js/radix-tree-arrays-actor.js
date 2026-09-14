@@ -31,7 +31,7 @@ var RadixTreeArraysActor = RadixTreeArraysActor || class extends DRAMA.Actor {
 
             var children = makeTextQuad("#000", this.cellWidth, 1);
             children.position.set(x, 0, 0);
-            children.setText("(" + node.child0_index + "," + node.child1_index + ")");
+            children.setText("(" + node.index_child0 + "," + node.index_child1 + ")");
             this.object.add(children);
 
             // The camera is y-flipped, so -y is above the cell on screen.

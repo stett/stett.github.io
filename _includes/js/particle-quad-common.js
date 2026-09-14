@@ -121,9 +121,8 @@ function toMorton(x, y, bits=3) {
 // A morton key as a bit string.
 function toKeyBits(key, bits=6) {
     var s = key.toString(2);
-    while (s.length < bits) {
-        s = "0" + s;
-    }
+    while (s.length < bits) { s = "0" + s; }
+    if (s.length > bits) { s = s.substring(0, bits); }
     return s;
 }
 
