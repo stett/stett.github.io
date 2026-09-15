@@ -83,6 +83,23 @@ function compute_internal_count(cpl_depth, cpl_parent)
     return octree_levels - octree_levels_parent;
 }
 
+// compute the index to the octree leaf node which correlates with a leaf data
+function compute_leaf_octree_parent(radix_nodes, octree_offets, i_radix, leaf_parents)
+{
+    var radix_node = radix_nodes[i_radix];
+    var octree_offset = octree_offets[i_radix];
+    var i_octree_leaf = 1 + octree_offset + radix_node.quadtree_internals;
+    var slot = 0;
+    if (radix_node.leaf_child0)
+    {
+        leaf_parents[radix_node.index_child0] = (i_octree_leaf + slot++);
+    }
+    if (radix_node.leaf_child1)
+    {
+        leaf_parents[radix_node.index_child1] = (i_octree_leaf + slot++);
+    }
+}
+
 // build radix tree node data. if a parents array is given, each child which is
 // an internal node has its parent entry filled in.
 function radixTreeNode(keys, i, parents)
@@ -117,4 +134,20 @@ function radixTreeNode(keys, i, parents)
 
     console.log(node);
     return node;
+}
+
+// build every radix node, the internal node parent map, the per node octree
+// allocation counts and the exclusive prefix sum of those counts
+function radixTreeArrays(keys)
+{
+    var arrays = { nodes: [], parents: [], counts: [], offsets: [], sum: 0 };
+    for (var i = 0; i < keys.length - 1; ++i)
+    {
+        var node = radixTreeNode(keys, i, arrays.parents);
+        arrays.nodes.push(node);
+        arrays.counts.push(node.quadtree_internals + node.quadtree_leaves);
+        arrays.offsets.push(arrays.sum);
+        arrays.sum += arrays.counts[i];
+    }
+    return arrays;
 }
