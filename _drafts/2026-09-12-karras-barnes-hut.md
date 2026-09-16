@@ -50,6 +50,10 @@ div.container-3js canvas {
 #{{ page.title | slugify }}-radix-tree-arrays {
     height: 220px;
 }
+
+#{{ page.title | slugify }}-quadtree-nodes {
+    height: 380px;
+}
 </style>
 
 <script>
@@ -125,7 +129,15 @@ This is an intermediate step to create an index map from the leaves/keys array i
 
 <h4>Step 5: Construct Quadtree/Octree</h4>
 
+Finally the quadtree nodes themselves. The array is as long as the `total` from
+step 3, and each node holds the index of its `parent`, of its first `child`, and
+of the `next` sibling after it, so the children of a node are walked by
+following `child` once and then `next` until it runs out. A `-` is no link.
 
+Below, the array is laid out one row per group of siblings, labelled with the
+parent the group hangs off of. Leaf nodes are drawn with a dashed outline.
+
+<div class="container-3js" id="{{ page.title | slugify }}-quadtree-nodes"></div>
 
 <script type="text/javascript">
 
@@ -137,6 +149,7 @@ This is an intermediate step to create an index map from the leaves/keys array i
 {% include js/radix-tree-arrays-actor.js %}
 {% include js/octree-allocations-actor.js %}
 {% include js/leaf-parents-actor.js %}
+{% include js/quadtree-nodes-actor.js %}
 
 $(document).ready(function() {
 
@@ -148,6 +161,7 @@ $(document).ready(function() {
     var radixTreeArraysActor;
     var octreeAllocationsActor;
     var leafParentsActor;
+    var quadtreeNodesActor;
 
     //
     // Interaction callbacks
@@ -160,6 +174,7 @@ $(document).ready(function() {
         radixTreeArraysActor.set_keys(sortedKeysActor.keys);
         octreeAllocationsActor.set_keys(sortedKeysActor.keys);
         leafParentsActor.set_keys(sortedKeysActor.keys);
+        quadtreeNodesActor.set_keys(sortedKeysActor.keys);
     }
 
     //
@@ -220,6 +235,14 @@ $(document).ready(function() {
         DRAMA.add(scene);
         leafParentsActor = new LeafParentsActor(scene);
         DRAMA.add(leafParentsActor);
+    }
+
+    {
+        var container = $("#{{ page.title | slugify }}-quadtree-nodes");
+        var scene = new SceneActor(container, 3);
+        DRAMA.add(scene);
+        quadtreeNodesActor = new QuadtreeNodesActor(scene);
+        DRAMA.add(quadtreeNodesActor);
     }
 
     // Start with a few particles already placed.
