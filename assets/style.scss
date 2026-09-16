@@ -1,12 +1,30 @@
 ---
 ---
 
+:root {
+    color-scheme: light dark;
+
+    --content-bg: #FCFAF7;
+    --content-fg: #291700;
+    --content-border: #ddd;
+    --content-rule: #D9D5D0;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --content-bg: #272727;
+        --content-fg: #FCFAF7;
+        --content-border: #494949;
+        --content-rule: #494949;
+    }
+}
+
 html {
     height: 100%;
     min-height: 100%;
     font-family: 'Lora', serif;
     font-size: 11pt;
-    color: #291700;
+    color: var(--content-fg);
 };
 
 body {
@@ -24,11 +42,11 @@ main {
     max-width: 520px;
     width: 100%;
     min-height: 100%;
-    border-left: 1px solid #ddd;
-    border-right: 1px solid #ddd;
+    border-left: 1px solid var(--content-border);
+    border-right: 1px solid var(--content-border);
     padding: 0 10px;
     display: inline-block;
-    background-color: #FCFAF7;
+    background-color: var(--content-bg);
     z-index: 1;
 }
 
@@ -47,7 +65,7 @@ footer {
 }
 
 article {
-    border-bottom: 1px dashed #D9D5D0;
+    border-bottom: 1px dashed var(--content-rule);
     img {
         max-width: 100%;
         display: block;
@@ -99,7 +117,7 @@ nav a {
 }
 
 div#header {
-    border-bottom: 1px dashed #D9D5D0;
+    border-bottom: 1px dashed var(--content-rule);
     margin-bottom: 5px;
     h1 { margin: 0; }
 }
@@ -136,7 +154,7 @@ div.preview {
 
     &.archive {
         margin-bottom: 10px;
-        border: 1px dashed #D9D5D0;
+        border: 1px dashed var(--content-rule);
         border-radius: 2px;
         padding: 3px;
     }
@@ -144,9 +162,9 @@ div.preview {
     span.date {
         position: absolute;
         right: 540px;
-        background-color: #FCFAF7;
-        border: 1px solid #ddd;
-        border-radius: 2px;
+        //background-color: var(--content-bg);
+        //border: 1px solid var(--content-border);
+        //border-radius: 2px;
         padding: 2px;
         display: none;
     }
@@ -159,7 +177,7 @@ div.preview {
 div.continue-reading {
     text-align: center;
     margin-bottom: 10px;
-    border: 1px dashed #D9D5D0;
+    border: 1px dashed var(--content-rule);
     border-radius: 2px;
     padding: 3px;
 }
