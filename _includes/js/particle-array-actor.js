@@ -26,7 +26,7 @@ var ParticleArrayActor = ParticleArrayActor || class extends DRAMA.Actor {
             outline.position.set(x, 0, 0);
             this.object.add(outline);
 
-            var label = makeTextQuad("#000", this.cellWidth, 1);
+            var label = makeTextQuad(fgColor, this.cellWidth, 1);
             label.position.set(x, 0, 0);
             label.setText("(" + particles[i].x + "," + particles[i].y + ")");
             this.object.add(label);
@@ -36,7 +36,7 @@ var ParticleArrayActor = ParticleArrayActor || class extends DRAMA.Actor {
             binOutline.position.set(x, this.rowPitch, 0);
             this.object.add(binOutline);
 
-            var bits = makeTextQuad("#000", this.cellWidth, 1);
+            var bits = makeTextQuad(fgColor, this.cellWidth, 1);
             bits.position.set(x, this.rowPitch, 0);
             bits.setSpans([
                 { text: "(" },
@@ -51,13 +51,13 @@ var ParticleArrayActor = ParticleArrayActor || class extends DRAMA.Actor {
             mortonOutline.position.set(x, this.rowPitch * 2, 0);
             this.object.add(mortonOutline);
 
-            var morton = makeTextQuad("#000", this.cellWidth, 1);
+            var morton = makeTextQuad(fgColor, this.cellWidth, 1);
             morton.position.set(x, this.rowPitch * 2, 0);
             morton.setSpans(toMortonSpans(particles[i].x, particles[i].y));
             this.object.add(morton);
 
             // The camera is y-flipped, so -y is above the cell on screen.
-            var index = makeTextQuad("#000", this.cellWidth, 1);
+            var index = makeTextQuad(fgColor, this.cellWidth, 1);
             index.position.set(x, -0.9, 0);
             index.setText(i);
             this.object.add(index);

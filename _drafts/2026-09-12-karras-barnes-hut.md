@@ -10,7 +10,7 @@ math: true
 
 <style>
 div.container-3js canvas {
-    background-color: #000;
+    background-color: var(--content-bg);
     width: 100%;
     height: 100%;
     padding: 0;
@@ -48,7 +48,7 @@ div.container-3js canvas {
 }
 
 #{{ page.title | slugify }}-radix-tree-arrays {
-    height: 270px;
+    height: 220px;
 }
 </style>
 

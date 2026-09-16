@@ -29,7 +29,7 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
             outline.position.set(x, y, 0);
             this.object.add(outline);
 
-            var label = makeTextQuad("#fff");
+            var label = makeTextQuad(bgColor);
             label.position.set(x, y, 0);
             label.visible = false;
             this.labels.push(label);
@@ -38,12 +38,12 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
 
         // Row and column indices.
         for (var i = 0; i < size; ++i) {
-            var col = makeTextQuad("#000");
+            var col = makeTextQuad(fgColor);
             col.position.set(this._x(i), this._y(-1), 0);
             col.setText(i);
             this.object.add(col);
 
-            var row = makeTextQuad("#000");
+            var row = makeTextQuad(fgColor);
             row.position.set(this._x(-1), this._y(i), 0);
             row.setText(i);
             this.object.add(row);

@@ -8,6 +8,10 @@
     --content-fg: #291700;
     --content-border: #ddd;
     --content-rule: #D9D5D0;
+
+    // Diagram accents: the x and y axes in the morton bit plots.
+    --accent-red: #cc0000;
+    --accent-green: #00aa00;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -16,6 +20,11 @@
         --content-fg: #FCFAF7;
         --content-border: #494949;
         --content-rule: #494949;
+
+        // Lifted off the dark background. The green needs much more of a lift
+        // than the red to read at the same weight.
+        --accent-red: #E63939;
+        --accent-green: #3CBA3C;
     }
 }
 

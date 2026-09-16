@@ -34,7 +34,7 @@ var SortedKeysActor = SortedKeysActor || class extends DRAMA.Actor {
             keyOutline.position.set(x, 0, 0);
             this.object.add(keyOutline);
 
-            var key = makeTextQuad("#000", this.cellWidth, 1);
+            var key = makeTextQuad(fgColor, this.cellWidth, 1);
             key.position.set(x, 0, 0);
             key.setText(toKeyBits(entries[i].key));
             this.object.add(key);
@@ -44,13 +44,13 @@ var SortedKeysActor = SortedKeysActor || class extends DRAMA.Actor {
             mapOutline.position.set(x, this.rowPitch, 0);
             this.object.add(mapOutline);
 
-            var map = makeTextQuad("#000", this.cellWidth, 1);
+            var map = makeTextQuad(fgColor, this.cellWidth, 1);
             map.position.set(x, this.rowPitch, 0);
             map.setText(entries[i].index);
             this.object.add(map);
 
             // The camera is y-flipped, so -y is above the cell on screen.
-            var index = makeTextQuad("#000", this.cellWidth, 1);
+            var index = makeTextQuad(fgColor, this.cellWidth, 1);
             index.position.set(x, -0.9, 0);
             index.setText(i);
             this.object.add(index);

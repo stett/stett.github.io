@@ -28,7 +28,7 @@ var RadixTreeArraysActor = RadixTreeArraysActor || class extends DRAMA.Actor {
         }
 
         function addText(x, y, width, text) {
-            var quad = makeTextQuad("#000", width, 1);
+            var quad = makeTextQuad(fgColor, width, 1);
             quad.position.set(x, y, 0);
             quad.setText(text);
             object.add(quad);

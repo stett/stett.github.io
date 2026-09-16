@@ -1,9 +1,76 @@
 // Shared pieces for the particle grid/array diagrams. The SceneActor camera is
 // y-flipped, so quads are flipped back and drawn double sided.
 
+// The diagrams take their foreground and background from the same custom
+// properties the stylesheet defines, so they follow the OS light/dark
+// preference exactly instead of keeping a second copy of the palette here.
+var colorCache = colorCache || {};
+
+function cssColor(name, fallback) {
+    if (!(name in colorCache)) {
+        var value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        colorCache[name] = value || fallback;
+    }
+    return colorCache[name];
+}
+
+// Passed around as functions rather than strings, so a quad drawn once still
+// picks up a later switch of the preference.
+function fgColor() { return cssColor("--content-fg", "#291700"); }
+function bgColor() { return cssColor("--content-bg", "#FCFAF7"); }
+
+// One source for the accents, so canvas text and line materials cannot drift
+// apart. Both are lifted in dark mode; see the stylesheet.
+function redColor() { return cssColor("--accent-red", "#cc0000"); }
+function greenColor() { return cssColor("--accent-green", "#00aa00"); }
+
+function resolveColor(color) {
+    return typeof color === "function" ? color() : color;
+}
+
+// Materials hold a color of their own rather than reading one per draw, so they
+// are tracked and repainted on a preference switch.
+var themedMaterials = themedMaterials || [];
+
+function themedMaterial(material, color) {
+    material.color.set(resolveColor(color));
+    themedMaterials.push({ material: material, color: color });
+    return material;
+}
+
 var emptyMaterial = emptyMaterial || new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 });
-var fillMaterial = fillMaterial || new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide });
-var outlineMaterial = outlineMaterial || new THREE.LineBasicMaterial({ color: 0x000000 });
+var fillMaterial = fillMaterial ||
+    themedMaterial(new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }), fgColor);
+var outlineMaterial = outlineMaterial ||
+    themedMaterial(new THREE.LineBasicMaterial({}), fgColor);
+
+// SceneActor registers here when these diagrams are on the page, so a live
+// switch of the preference can repaint every canvas.
+var themedScenes = themedScenes || [];
+
+function registerThemedScene(sceneActor) {
+    themedScenes.push(sceneActor);
+}
+
+if (typeof themeWatched === "undefined") {
+    var themeWatched = true;
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function() {
+        colorCache = {};
+        for (var m = 0; m < themedMaterials.length; ++m) {
+            var themed = themedMaterials[m];
+            themed.material.color.set(resolveColor(themed.color));
+        }
+        for (var i = 0; i < themedScenes.length; ++i) {
+            var sceneActor = themedScenes[i];
+            sceneActor.renderer.setClearColor(bgColor(), 1);
+            sceneActor.scene.traverse(function(node) {
+                if (node.refreshColors) {
+                    node.refreshColors();
+                }
+            });
+        }
+    });
+}
 
 // Canvas pixels per scene unit. High enough that glyphs are drawn large and
 // minified on screen, rather than magnified and blurry.
@@ -36,7 +103,9 @@ function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
         depthTest: false }));
     quad.renderOrder = 1;
     quad.scale.set(0.9, -0.9, 1);
+    var lastSpans = null;
     quad.setSpans = function(spans) {
+        lastSpans = spans;
         var ctx = canvas.getContext("2d");
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -58,7 +127,7 @@ function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
         }
         var x = (logicalWidth - total) * 0.5;
         for (var i = 0; i < spans.length; ++i) {
-            ctx.fillStyle = spans[i].color || color;
+            ctx.fillStyle = resolveColor(spans[i].color || color);
             ctx.fillText(spans[i].text, x, canvas.height * 0.5);
             x += ctx.measureText(spans[i].text).width;
         }
@@ -69,6 +138,16 @@ function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
 
     quad.setText = function(text) {
         quad.setSpans([{ text: String(text), color: color }]);
+    };
+
+    // Redraw in the current colors. setSpans reveals the quad, so a label that
+    // was hidden stays hidden.
+    quad.refreshColors = function() {
+        if (lastSpans) {
+            var wasVisible = quad.visible;
+            quad.setSpans(lastSpans);
+            quad.visible = wasVisible;
+        }
     };
     return quad;
 }
@@ -96,13 +175,6 @@ function makeOutline(width=1, height=1) {
     return new THREE.LineSegments(
         new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height)), outlineMaterial);
 }
-
-// One source for the red, so canvas text and line materials cannot drift apart.
-var RED = RED || new THREE.Color(0xcc0000);
-var RED_CSS = RED_CSS || "#" + RED.getHexString();
-
-var GREEN = GREEN || new THREE.Color(0x00aa00);
-var GREEN_CSS = GREEN_CSS || "#" + GREEN.getHexString();
 
 // A dashed rectangle, for cells which are not really part of an array.
 function makeDashedOutline(width=1, height=1, dash=0.12) {
@@ -132,8 +204,8 @@ function makeDashedOutline(width=1, height=1, dash=0.12) {
     return new THREE.LineSegments(geometry, outlineMaterial);
 }
 
-var X_COLOR = RED_CSS;
-var Y_COLOR = GREEN_CSS;
+var X_COLOR = redColor;
+var Y_COLOR = greenColor;
 
 function toBits(value, bits=3) {
     var s = value.toString(2);

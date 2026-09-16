@@ -21,9 +21,18 @@ var SceneActor = SceneActor || class extends DRAMA.Actor {
 
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setSize( containerWidth, containerHeight );
-        this.renderer.setClearColor(0xFCFAF7, 1);
         this.camera.position.z = 50;
         container.get(0).appendChild( this.renderer.domElement );
+
+        // Diagrams that define a themed palette (see particle-quad-common.js)
+        // clear to the page background and repaint on a preference switch.
+        // Everywhere else the original light background is kept.
+        if (typeof bgColor === "function") {
+            this.renderer.setClearColor(bgColor(), 1);
+            registerThemedScene(this);
+        } else {
+            this.renderer.setClearColor(0xFCFAF7, 1);
+        }
     }
 
     update() {

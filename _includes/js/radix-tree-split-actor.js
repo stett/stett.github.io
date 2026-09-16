@@ -1,8 +1,9 @@
 {% include js/particle-quad-common.js %}
 {% include js/radix-tree.js %}
 
-var RANGE_COLOR = RED_CSS;
-var rangeMaterial = rangeMaterial || new THREE.LineBasicMaterial({ color: RED });
+var RANGE_COLOR = redColor;
+var rangeMaterial = rangeMaterial ||
+    themedMaterial(new THREE.LineBasicMaterial({}), redColor);
 
 // A horizontal arrow from one x to another, as a shaft plus two head strokes.
 function makeArrow(from, to, head=0.3) {
@@ -79,10 +80,10 @@ var RadixTreeSplitActor = RadixTreeSplitActor || class extends DRAMA.Actor {
             var outline = makeOutline(cw, 1);
             outline.position.set(colX(j), 0, 0);
             object.add(outline);
-            addText(colX(j), 0, cw, toKeyBits(keys[j]), "#000");
+            addText(colX(j), 0, cw, toKeyBits(keys[j]), fgColor);
 
             // The camera is y-flipped, so -y is above the cell on screen.
-            addText(colX(j), -0.9, cw, j, "#000");
+            addText(colX(j), -0.9, cw, j, fgColor);
         }
 
         // The node index, to the left of each node's range.
@@ -107,7 +108,7 @@ var RadixTreeSplitActor = RadixTreeSplitActor || class extends DRAMA.Actor {
             var y = rowY(i);
             var node = nodes[i];
 
-            addText(indexX, y, indexWidth, "*" + i, "#000");
+            addText(indexX, y, indexWidth, "*" + i, fgColor);
 
             // The span of keys the node covers.
             var first = node.index_min;
