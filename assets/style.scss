@@ -12,6 +12,11 @@
     // Diagram accents: the x and y axes in the morton bit plots.
     --accent-red: #cc0000;
     --accent-green: #00aa00;
+
+    // For text sitting on the blue body background rather than on the content
+    // panel. Deliberately not overridden in dark mode - the body stays blue, so
+    // this stays light.
+    --body-fg: #FCFAF7;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -171,6 +176,7 @@ div.preview {
     span.date {
         position: absolute;
         right: 540px;
+        color: var(--body-fg);
         //background-color: var(--content-bg);
         //border: 1px solid var(--content-border);
         //border-radius: 2px;
