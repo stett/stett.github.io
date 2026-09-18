@@ -17,13 +17,14 @@ function compute_first_octree_node(arrays, i_radix)
     //    arrays.nodes[i_radix].child0_index)
 }
 
-// Get the octree index corresponding to a radix node index
-function compute_octree_child(arrays, i_octree_or_leaf)
+// Get the octree index corresponding to one of a radix node's children.
+// i_child indexes the keys when that child is a leaf and the radix nodes when
+// it is not, which only the parent knows, so it is passed in.
+function compute_octree_child(arrays, i_child, is_leaf)
 {
-    var is_leaf = arrays.nodes[i_radix].is_leaf
     return is_leaf
-        ? arrays.leaf_parents[i_radix]
-        : compute_first_octree_node(arrays, i_radix);
+        ? arrays.leaf_parents[i_child]
+        : compute_first_octree_node(arrays, i_child);
 }
 
 // Fill in the quadtree nodes which radix node i_radix is responsible for. Every
@@ -50,13 +51,17 @@ function quadtreeNodes(keys)
     }
 
     // populate the root node
-    var node = nodes[0];
-    node.parent = 0;
-    node.next = 0;
-    node.child
-        = (arrays.nodes[0].quadtree_internals > 0)
-        ? (1 + arrays.offsets[0])
-        : compute_octree_child(arrays, arrays.nodes[0].index_child0);
+    if (total > 0)
+    {
+        var quad_root = nodes[0];
+        var radix_root = arrays.nodes[0];
+        quad_root.parent = 0;
+        quad_root.next = 0;
+        quad_root.child
+            = (radix_root.quadtree_internals > 0)
+            ? (1 + arrays.offsets[0])
+            : compute_octree_child(arrays, radix_root.index_child0, radix_root.leaf_child0);
+    }
 
     // populate quadtree nodes corresponding to each radix node
     for (var i = 0; i < arrays.nodes.length; ++i)

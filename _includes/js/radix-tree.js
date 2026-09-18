@@ -150,9 +150,8 @@ function radixTreeArrays(keys)
         arrays.sum += arrays.counts[i];
     }
 
-    arrays.leaf_parents = [];
     for (var i = 0; i < arrays.nodes.length; ++i) {
-        compute_leaf_octree_parent(arrays.nodes, arrays.offsets, i, leaf_parents);
+        compute_leaf_octree_parent(arrays.nodes, arrays.offsets, i, arrays.leaf_parents);
     }
 
     return arrays;

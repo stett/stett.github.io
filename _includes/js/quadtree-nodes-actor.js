@@ -40,7 +40,8 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
         }
 
         function link(value) {
-            return value < 0 ? "-" : value;
+            // undefined while the construction pass is still unwritten.
+            return (value === undefined || value < 0) ? "-" : value;
         }
 
         var nodes = quadtreeNodes(keys);
