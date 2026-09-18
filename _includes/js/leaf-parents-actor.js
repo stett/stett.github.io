@@ -36,16 +36,16 @@ var LeafParentsActor = LeafParentsActor || class extends DRAMA.Actor {
         // Every radix node fills in the entries for whichever of its children
         // are leaves.
         var arrays = radixTreeArrays(keys);
-        var leaf_parents = [];
-        for (var i = 0; i < arrays.nodes.length; ++i) {
-            compute_leaf_octree_parent(arrays.nodes, arrays.offsets, i, leaf_parents);
-        }
+        //var leaf_parents = [];
+        //for (var i = 0; i < arrays.nodes.length; ++i) {
+        //    compute_leaf_octree_parent(arrays.nodes, arrays.offsets, i, leaf_parents);
+        //}
 
         for (var i = 0; i < keys.length; ++i) {
             var outline = makeOutline(cw, 1);
             outline.position.set(colX(i), 0, 0);
             object.add(outline);
-            addText(colX(i), 0, leaf_parents[i] === undefined ? "-" : leaf_parents[i]);
+            addText(colX(i), 0, arrays.leaf_parents[i] === undefined ? "-" : arrays.leaf_parents[i]);
 
             // The camera is y-flipped, so -y is above the cells on screen.
             addText(colX(i), -0.9, i);

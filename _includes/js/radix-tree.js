@@ -140,7 +140,7 @@ function radixTreeNode(keys, i, parents)
 // allocation counts and the exclusive prefix sum of those counts
 function radixTreeArrays(keys)
 {
-    var arrays = { nodes: [], parents: [], counts: [], offsets: [], sum: 0 };
+    var arrays = { nodes: [], parents: [], counts: [], offsets: [], leaf_parents: [], sum: 0 };
     for (var i = 0; i < keys.length - 1; ++i)
     {
         var node = radixTreeNode(keys, i, arrays.parents);
@@ -149,5 +149,11 @@ function radixTreeArrays(keys)
         arrays.offsets.push(arrays.sum);
         arrays.sum += arrays.counts[i];
     }
+
+    arrays.leaf_parents = [];
+    for (var i = 0; i < arrays.nodes.length; ++i) {
+        compute_leaf_octree_parent(arrays.nodes, arrays.offsets, i, leaf_parents);
+    }
+
     return arrays;
 }
