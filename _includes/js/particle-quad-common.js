@@ -23,6 +23,7 @@ function bgColor() { return cssColor("--content-bg", "#FCFAF7"); }
 // apart. Both are lifted in dark mode; see the stylesheet.
 function redColor() { return cssColor("--accent-red", "#cc0000"); }
 function greenColor() { return cssColor("--accent-green", "#00aa00"); }
+function blueColor() { return cssColor("--accent-blue", "#00ADDF"); }
 
 function resolveColor(color) {
     return typeof color === "function" ? color() : color;
@@ -43,6 +44,16 @@ var fillMaterial = fillMaterial ||
     themedMaterial(new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }), fgColor);
 var outlineMaterial = outlineMaterial ||
     themedMaterial(new THREE.LineBasicMaterial({}), fgColor);
+
+// The wash over the cell the mouse is on. Coplanar with the cell it covers, so
+// it is drawn without depth rather than fighting for it, and it sits between
+// the cells and the labels.
+var hoverMaterial = hoverMaterial || themedMaterial(new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 0.35,
+    side: THREE.DoubleSide,
+    depthTest: false,
+    depthWrite: false }), blueColor);
 
 // SceneActor registers here when these diagrams are on the page, so a live
 // switch of the preference can repaint every canvas.

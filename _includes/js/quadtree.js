@@ -12,9 +12,21 @@ function quadtreeNode()
 // Get the first octree node index, given a radix node's key range
 function compute_first_octree_node(arrays, i_radix)
 {
-    //while (
-    //    arrays.nodes[i_radix].quadtree_internals == 0
-    //    arrays.nodes[i_radix].child0_index)
+    // traverse the radix tree down to the first node that resolved a level,
+    // or a leaf node if it didn't resolve anything.
+    while (
+        arrays.nodes[i_radix].quadtree_internals == 0 &&
+        arrays.nodes[i_radix].leaf_child0 == false)
+    {
+        i_radix = arrays.nodes[i_radix].index_child0;
+    }
+
+    // either it resolved a level, and its chain begins the range, or it resolved
+    // none and its own first leaf begins the range.
+    return (arrays.nodes[i_radix].quadtree_internals > 0)
+        ? 1 + arrays.offsets[i_radix]
+        : arrays.leaf_parents[arrays.nodes[i_radix].index_child0];
+
 }
 
 // Get the octree index corresponding to one of a radix node's children.

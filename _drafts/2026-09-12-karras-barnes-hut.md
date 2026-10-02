@@ -54,6 +54,27 @@ div.container-3js canvas {
 #{{ page.title | slugify }}-quadtree-nodes {
     height: 380px;
 }
+
+div.diagram-controls {
+    text-align: center;
+    margin-top: 4px;
+}
+
+div.diagram-controls button {
+    font-family: 'Ubuntu Mono';
+    font-size: 11pt;
+    color: var(--content-fg);
+    background: none;
+    border: 1px dashed var(--content-rule);
+    border-radius: 2px;
+    padding: 3px 10px;
+    cursor: pointer;
+}
+
+div.diagram-controls button:hover {
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
 </style>
 
 <script>
@@ -102,6 +123,10 @@ Each of the $n$ morton keys is a leaf node in a radix tree which has $n-1$ inter
 The node splitting pattern is illustrated in the following diagram. The first row shows the leaf nodes of the radix tree - ie the sorted morton keys from the diagram above. The subsequent rows show the prefixes, ranges, and split positions for each of the internal radix tree nodes.
 
 <div class="container-3js" id="{{ page.title | slugify }}-radix-tree-split"></div>
+
+<div class="diagram-controls">
+    <button type="button" id="{{ page.title | slugify }}-radix-tree-split-order">index order</button>
+</div>
 
 The following arrays are the radix node data, which will be fed into the next step for construction of the octree structure. Internal node indices are prefixed with an `*`. Other indices refer to leaves (the sorted morton key array).
 
@@ -211,6 +236,12 @@ $(document).ready(function() {
         DRAMA.add(scene);
         radixTreeSplitActor = new RadixTreeSplitActor(scene);
         DRAMA.add(radixTreeSplitActor);
+
+        // The button reads as the order currently on screen, not the one a
+        // click would switch to.
+        $("#{{ page.title | slugify }}-radix-tree-split-order").click(function() {
+            $(this).text(radixTreeSplitActor.toggle_order() ? "tree order" : "index order");
+        });
     }
 
     {

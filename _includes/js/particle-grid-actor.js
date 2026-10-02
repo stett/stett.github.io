@@ -36,6 +36,13 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
             this.object.add(label);
         }
 
+        // Moved onto whichever cell the mouse is over. renderOrder puts it
+        // above the cells and below the labels, which are at 1.
+        this.hover = makeQuad(hoverMaterial);
+        this.hover.renderOrder = 0.5;
+        this.hover.visible = false;
+        this.object.add(this.hover);
+
         // Row and column indices.
         for (var i = 0; i < size; ++i) {
             var col = makeTextQuad(fgColor);
@@ -57,6 +64,8 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
         this.raycaster = new THREE.Raycaster();
         var self = this;
         this.canvas.addEventListener("mousedown", function(event) { self._click(event); });
+        this.canvas.addEventListener("mousemove", function(event) { self._hover(event); });
+        this.canvas.addEventListener("mouseleave", function() { self._unhover(); });
     }
 
     _x(col) { return col - (this.size - 1) * 0.5; }
@@ -64,16 +73,39 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
     // The camera is y-flipped, so scene +y is down on screen.
     _y(row) { return (this.size - 1) * 0.5 - row; }
 
-    _click(event) {
+    _pick(event) {
         var rect = this.canvas.getBoundingClientRect();
         var mouse = new THREE.Vector2(
             ((event.clientX - rect.left) / rect.width) * 2 - 1,
             -((event.clientY - rect.top) / rect.height) * 2 + 1);
         this.raycaster.setFromCamera(mouse, this.camera);
         var hits = this.raycaster.intersectObjects(this.cells);
-        if (hits.length) {
-            this.toggle(hits[0].object.cellId);
+        return hits.length ? hits[0].object : null;
+    }
+
+    _click(event) {
+        var cell = this._pick(event);
+        if (cell) {
+            this.toggle(cell.cellId);
         }
+    }
+
+    // The cells are the only thing on the canvas worth clicking, so the cursor
+    // and the highlight both track whether one is under the pointer.
+    _hover(event) {
+        var cell = this._pick(event);
+        if (cell) {
+            this.hover.position.copy(cell.position);
+            this.hover.visible = true;
+            this.canvas.style.cursor = "pointer";
+        } else {
+            this._unhover();
+        }
+    }
+
+    _unhover() {
+        this.hover.visible = false;
+        this.canvas.style.cursor = "";
     }
 
     // Occupy count distinct random cells, in random order.
