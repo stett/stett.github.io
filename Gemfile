@@ -14,6 +14,9 @@ gem "github-pages", group: :jekyll_plugins
 # Github pages uses old jekyll, so webrick needed
 gem "webrick"
 
+# Required by liquid/activesupport; no longer a default gem as of Ruby 3.4
+gem "bigdecimal"
+
 # If you have any plugins, put them here!
 group :jekyll_plugins do
   gem "jekyll-feed", "~> 0.12"
