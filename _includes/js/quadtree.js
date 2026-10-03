@@ -39,19 +39,115 @@ function compute_octree_child(arrays, i_child, is_leaf)
         : compute_first_octree_node(arrays, i_child);
 }
 
+// Find the first quadree node index corresponding to a radix node's index range.
+// If this radix node resolves to a quadtree level, this will be the first
+// quadtree node in the chain. Otherwise, this will be the index of the leaf node.
+function compute_quadtree_first_node(radix_nodes, leaf_parents, offsets, i_radix)
+{
+    // traverse the radix tree down to the first radix node in the range that resolved a level,
+    // or to a leaf if none did
+    var radix_node = radix_nodes[i_radix];
+    while (
+        radix_node.quadtree_internals == 0 &&
+        radix_node.leaf_child0 == false)
+    {
+        i_radix = radix_node.index_child0;
+    }
+
+    // either it resolved a level and its chain begins the range, or it didn't and its
+    // first leaf begins the range.
+    if (radix_node.quadtree_internals > 0)
+    {
+        return 1 + offsets[i_radix];
+    }
+    else
+    {
+        return leaf_parents[radix_node.index_child0]
+    }
+}
+
 // Find the common quadtree node "next" index for the radix nodes in range which ends with
 // i_radix_last
-function compute_quadtree_next(keys, radix_nodes, i_key_last)
+function compute_quadtree_next(keys, radix_nodes, leaf_parents, offsets, i_key_last)
 {
     // if we've gone past the end of the keys, "next" is the root which signals "finished"
-    var i_radix = i_key_last + 1;
-    if (i_radix >= keys.length)
+    var i_radix_next = i_key_last + 1;
+    if (i_radix_next >= keys.length)
     {
         return 0;
     }
 
-    //
-    //if (i_radix < radix_nodes.length && radix_nodes[i_radix].)
+    // a radix node's index is one of the ends of its range. so i_radix < index_last
+    // means the range of the radix node at i_radix 
+    if (i_radix_next < radix_nodes.length && i_radix_next < radix_nodes[i_radix_next].index_last)
+    {
+        return compute_quadtree_first_node(radix_nodes, leaf_parents, offsets, i_radix_next);
+    }
+    else
+    {
+        return leaf_parents[i_radix_next];
+    }
+}
+
+// Compute the level of depth of the first quadtree node in the chain of quadtree
+// nodes produced by the range starting with a particular radix node.
+function compute_quadtree_top_level(keys, radix_nodes, i_radix)
+{
+    var radix_node = radix_nodes[i_radix];
+    var i_split = Math.abs(radix_node.index_child0);
+    var i_quadtree_last_node = compute_cpl(keys, i_split, i_split + 1) / 2;
+    var i_quadtree_first_node = i_quadtree_last_node - radix_node.quadtree_internals + 1;
+    return i_quadtree_first_node;
+}
+
+// Find the index of the quadtree node which is the parent of the chain of quadtree nodes
+// which are spanned by a radix node's range.
+function compute_quadtree_parent(radix_nodes, radix_parents, offsets, i_radix)
+{
+    // radix node 0 covers every key, so its chain begins at level 1 and hangs
+    // straight from the root. It has no radix parent to consult.
+    if (i_radix == 0)
+    {
+        return 0;
+    }
+
+    // traverse up the radix tree, past any ancestors which resolved to no octree level,
+    // thus producing no internal octree nodes.
+    var i_radix_parent = radix_parents[i_radix];
+    while (i_radix_parent > 0 && radix_nodes[i_radix_parent].quadtree_internals == 0)
+    {
+        i_radix_parent = radix_parents[i_radix_parent];
+    }
+
+    // the parent is the last internal quadtree node of the ancestor radix-node's chain
+    // of quadtree nodes. if the radix node resolves to zero internal quadtree nodes,
+    // this is the root.
+    var radix_parent_quadtree_internals = radix_nodes[i_radix_parent].quadtree_internals;
+    if (radix_parent_quadtree_internals > 0)
+    {
+        return offsets[i_radix_parent] + radix_parent_quadtree_internals;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+// find the child of the last quadtree node in a chain of nodes which were
+// resolved by the radix node which is the parent of i_radix_child.
+//
+// for every i_radix_child except for the first one (ie at index 0), this will
+// simply be a lookup into leaf_parents.
+function compute_quadtree_child(radix_nodes, offsets, leaf_parents, i_radix_child)
+{
+    if (i_radix_child >= 0)
+    {
+        return leaf_parents[i_radix_child];
+    }
+    else
+    {
+        return compute_quadtree_first_node(radix_nodes, leaf_parents, offsets, i_radix_child);
+    }
 }
 
 // Fill in the quadtree nodes which radix node i_radix is responsible for. Every
@@ -60,7 +156,7 @@ function compute_quadtree_next(keys, radix_nodes, i_key_last)
 // the calls are independent of each other.
 //
 // Not written yet; the nodes are left at their defaults.
-function compute_quadtree_nodes(keys, radix_nodes, offsets, parents, i_radix, quadtree_nodes)
+function compute_quadtree_nodes(keys, radix_nodes, offsets, parents, leaf_parents, i_radix, quadtree_nodes)
 {
     var radix_node = radix_nodes[i_radix];
 
@@ -77,7 +173,44 @@ function compute_quadtree_nodes(keys, radix_nodes, offsets, parents, i_radix, qu
 
     // every node of this chain covers the same key range, so one escape serves them all.
     // in other words, they all share the same "next"
-    var i_next = compute_quadtree_next(keys, radix_nodes, radix.index_last);
+    var i_next = compute_quadtree_next(keys, radix_nodes, leaf_parents, offsets, radix_node.index_last);
+
+    // this radix node's level - its chain ends there and its leafs sit one below it
+    var i_level = compute_quadtree_top_level(keys, radix_nodes, i_radix);
+
+    // populate the intermediate nodes
+    for (var i_internal = 0; i_internal < radix_node.quadtree_internals; ++i_internal)
+    {
+        var i_node = i_node_0 + i_internal;
+
+        var quad_node = quadtree_nodes[i_node];
+
+        // the first internal node's parent is the parent of the whole chain.
+        // the rest of the parent's of nodes in the chain are just the preceding node.
+        if (i_internal == 0)
+        {
+            quad_node.parent = compute_quadtree_parent(radix_nodes, parents, offsets, i_radix);
+        }
+        else
+        {
+            quad_node.parent = i_node - 1;
+        }
+
+        // already computed once, outside the loop. all elements of the chain have the
+        // same "next" since they have no same-level siblings.
+        quad_node.next = i_next;
+
+        // every node in the chain until the last one has one child, which is just the
+        // next node in the chain. the last node may point to a totally different block
+        if (i_internal + 1 < radix_node.quadtree_internals)
+        {
+            quad_node.child = i_node + 1;
+        }
+        else
+        {
+            quad_node.child = compute_quadtree_child(radix_nodes, offsets, leaf_parents, radix_node.index_child0);
+        }
+    }
 }
 
 // The whole quadtree node array. Its length is the total from the allocation
@@ -109,7 +242,7 @@ function quadtreeNodes(keys)
     // populate quadtree nodes corresponding to each radix node
     for (var i = 0; i < arrays.nodes.length; ++i)
     {
-        compute_quadtree_nodes(keys, arrays.nodes, arrays.offsets, arrays.parents, i, nodes);
+        compute_quadtree_nodes(keys, arrays.nodes, arrays.offsets, arrays.parents, arrays.leaf_parents, i, nodes);
     }
 
     return nodes;
