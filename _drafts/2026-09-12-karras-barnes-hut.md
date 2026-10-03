@@ -154,13 +154,9 @@ This is an intermediate step to create an index map from the leaves/keys array i
 
 <h4>Step 5: Construct Quadtree/Octree</h4>
 
-Finally the quadtree nodes themselves. The array is as long as the `total` from
-step 3, and each node holds the index of its `parent`, of its first `child`, and
-of the `next` sibling after it, so the children of a node are walked by
-following `child` once and then `next` until it runs out. A `-` is no link.
+Finally the quadtree nodes themselves. The array is as long as the `total` from step 3, and each node holds the index of its `parent`, its first `child`, and the `next` sibling after it. The children of a node are walked by following `child` once and then `next` until `next` points to the parent's `next`.
 
-Below, the array is laid out one row per group of siblings, labelled with the
-parent the group hangs off of. Leaf nodes are drawn with a dashed outline.
+The array is laid out one row per group of siblings, labelled with the parent that they share. Leaf nodes are drawn with a dashed outline.
 
 <div class="container-3js" id="{{ page.title | slugify }}-quadtree-nodes"></div>
 

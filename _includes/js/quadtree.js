@@ -39,14 +39,45 @@ function compute_octree_child(arrays, i_child, is_leaf)
         : compute_first_octree_node(arrays, i_child);
 }
 
+// Find the common quadtree node "next" index for the radix nodes in range which ends with
+// i_radix_last
+function compute_quadtree_next(keys, radix_nodes, i_key_last)
+{
+    // if we've gone past the end of the keys, "next" is the root which signals "finished"
+    var i_radix = i_key_last + 1;
+    if (i_radix >= keys.length)
+    {
+        return 0;
+    }
+
+    //
+    //if (i_radix < radix_nodes.length && radix_nodes[i_radix].)
+}
+
 // Fill in the quadtree nodes which radix node i_radix is responsible for. Every
 // radix node owns a run of the quadtree array - the run starting at its entry
 // in the offsets array - so one call per radix node covers the whole tree and
 // the calls are independent of each other.
 //
 // Not written yet; the nodes are left at their defaults.
-function compute_quadtree_nodes(keys, radix_nodes, parents, i_radix, quadtree_nodes)
+function compute_quadtree_nodes(keys, radix_nodes, offsets, parents, i_radix, quadtree_nodes)
 {
+    var radix_node = radix_nodes[i_radix];
+
+    // if this radix node produced zero octree nodes, early out
+    var node_count_total = radix_node.quadtree_internals + radix_node.quadtree_leaves;
+    if (node_count_total == 0)
+    {
+        return;
+    }
+
+    // get the first octree node index
+    var offset = offsets[i_radix];
+    var i_node_0 = 1 + offset;
+
+    // every node of this chain covers the same key range, so one escape serves them all.
+    // in other words, they all share the same "next"
+    var i_next = compute_quadtree_next(keys, radix_nodes, radix.index_last);
 }
 
 // The whole quadtree node array. Its length is the total from the allocation
@@ -78,7 +109,7 @@ function quadtreeNodes(keys)
     // populate quadtree nodes corresponding to each radix node
     for (var i = 0; i < arrays.nodes.length; ++i)
     {
-        compute_quadtree_nodes(keys, arrays.nodes, arrays.parents, i, nodes);
+        compute_quadtree_nodes(keys, arrays.nodes, arrays.offsets, arrays.parents, i, nodes);
     }
 
     return nodes;
