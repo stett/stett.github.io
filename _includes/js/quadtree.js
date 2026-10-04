@@ -210,6 +210,55 @@ function compute_quadtree_nodes(keys, radix_nodes, offsets, parents, leaf_parent
         {
             quad_node.child = compute_quadtree_child(radix_nodes, offsets, leaf_parents, radix_node.index_child0);
         }
+
+        // these nodes are intermediate - none of them are leaves
+        quad_node.is_leaf = false;
+    }
+
+    // the leafs hang from the deepest node of the chain, or from whatever is above
+    // the block when this radix node resolved no level of its own
+    var i_leaf_parent = (radix_node.quadtree_internals > 0)
+        ? i_node_0 + radix_node.quadtree_internals - 1
+        : compute_quadtree_parent(radix_nodes, parents, offsets, i_radix);
+
+    // both children of a radix node sit one level below it, on either side of the
+    // split that defines it
+    var i_leaf_level = i_level + 1;
+
+    // populate corresponding leaf nodes after the internals
+    for (var i_child = 0; i_child < 2; ++i_child)
+    {
+        // if the child is not a leaf, continue - this leaf will get its own block
+        //
+        // NOTE: we start with child1 for some reason in the c++ implementation...
+        // not sure if that's significant.
+        var leaf_child = i_child ? radix_node.leaf_child1 : radix_node.leaf_child0;
+        if (!leaf_child)
+        {
+            continue;
+        }
+
+        // get the index of the radix key which corresponds to this leaf
+        var i_key = i_child ? radix_node.index_child1 : radix_node.index_child0;
+
+        // get the quadtree node which is the parent of the leaf
+        var i_quad_node = leaf_parents[i_key];
+        var quad_node = quadtree_nodes[i_quad_node];
+
+        // all of these leaf nodes have the same parent, computed outside the loop
+        quad_node.parent = i_leaf_parent;
+
+        // a leaf's range is the single key, so its escape is the range starting at
+        // the next one - the same rule the chain uses
+        quad_node.next = compute_quadtree_next(keys, radix_nodes, leaf_parents, offsets, i_key);
+
+        // for leaf nodes, the child index indicates an index into the original keys array
+        quad_node.child = i_key;
+
+        // 
+        quad_node.is_leaf = true;
+
+        // TODO: compute bounds...
     }
 }
 
@@ -231,6 +280,7 @@ function quadtreeNodes(keys)
     {
         var quad_root = nodes[0];
         var radix_root = arrays.nodes[0];
+        quad_root.is_leaf = false;
         quad_root.parent = 0;
         quad_root.next = 0;
         quad_root.child
@@ -245,6 +295,7 @@ function quadtreeNodes(keys)
         compute_quadtree_nodes(keys, arrays.nodes, arrays.offsets, arrays.parents, arrays.leaf_parents, i, nodes);
     }
 
+    console.log(nodes);
     return nodes;
 }
 

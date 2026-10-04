@@ -132,7 +132,6 @@ function radixTreeNode(keys, i, parents)
         }
     }
 
-    console.log(node);
     return node;
 }
 
