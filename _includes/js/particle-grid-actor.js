@@ -1,5 +1,15 @@
 {% include js/particle-quad-common.js %}
 
+// Small seeded PRNG returning floats in [0, 1), a stand-in for Math.random.
+function mulberry32(seed) {
+    return function() {
+        seed = (seed + 0x6D2B79F5) | 0;
+        var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
 var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
     constructor(sceneActor, size=8, onchange=function(particles) {}, max=10) {
         super();
@@ -108,11 +118,13 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
         this.canvas.style.cursor = "";
     }
 
-    // Occupy count distinct random cells, in random order.
-    randomize(count) {
+    // Occupy count distinct random cells, in random order. Passing a seed
+    // makes the layout repeatable across page loads.
+    randomize(count, seed) {
+        var random = seed === undefined ? Math.random : mulberry32(seed);
         count = Math.min(count, this.max);
         while (this.order.length < count) {
-            var id = Math.floor(Math.random() * this.size * this.size);
+            var id = Math.floor(random() * this.size * this.size);
             if (this.order.indexOf(id) < 0) {
                 this.order.push(id);
             }

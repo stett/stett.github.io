@@ -273,7 +273,9 @@ $(document).ready(function() {
     }
 
     // Start with a few particles already placed.
-    particleGridActor.randomize(5);
+    // TEMP: fixed seed so every refresh builds the same tree. Drop the seed
+    // argument to go back to a fresh layout each load.
+    particleGridActor.randomize(5, 1);
 });
 
 </script>
