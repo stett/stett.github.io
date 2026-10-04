@@ -60,8 +60,11 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
                 var i = groups[r][j];
                 var node = nodes[i];
 
+                // Leaves are inset a little so two of them side by side don't
+                // share a dashed edge.
+                var inset = 0.1;
                 var outline = node.is_leaf ?
-                    makeDashedOutline(cw, 1) : makeOutline(cw, 1);
+                    makeDashedOutline(cw - inset * 2, 1 - inset * 2) : makeOutline(cw, 1);
                 outline.position.set(colX(j), y, 0);
                 object.add(outline);
 

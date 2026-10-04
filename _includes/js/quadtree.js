@@ -46,16 +46,17 @@ function compute_quadtree_first_node(radix_nodes, leaf_parents, offsets, i_radix
 {
     // traverse the radix tree down to the first radix node in the range that resolved a level,
     // or to a leaf if none did
-    var radix_node = radix_nodes[i_radix];
+    //var radix_node = radix_nodes[i_radix];
     while (
-        radix_node.quadtree_internals == 0 &&
-        radix_node.leaf_child0 == false)
+        radix_nodes[i_radix].quadtree_internals == 0 &&
+        radix_nodes[i_radix].leaf_child0 == false)
     {
-        i_radix = radix_node.index_child0;
+        i_radix = radix_nodes[i_radix].index_child0;
     }
 
     // either it resolved a level and its chain begins the range, or it didn't and its
     // first leaf begins the range.
+    var radix_node = radix_nodes[i_radix];
     if (radix_node.quadtree_internals > 0)
     {
         return 1 + offsets[i_radix];
