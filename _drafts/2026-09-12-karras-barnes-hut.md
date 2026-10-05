@@ -90,7 +90,7 @@ var interactUpdateParticles;
 var particleGridActor;
 </script>
 
-The purpose of this post is to interactively demonstrate the construction of an octree structure using purely parallel methods. This is largely based on the classic [Karras 2012](https://dl.acm.org/doi/10.5555/2383795.2383801) paper. I've modified it slightly to accomodate a particular octree data format which works well for faster traversal, with the ultimate goal of fully parallelizing [my n-body implementation]({% post_url 2025-02-24-nbody-262k %}).
+The purpose of this post is to interactively demonstrate the construction of an octree structure using purely parallel methods. This is largely based on the classic [Karras 2012](https://dl.acm.org/doi/10.5555/2383795.2383801) paper. I've modified it slightly to accommodate a particular octree data format which works well for faster traversal, with the ultimate goal of fully parallelizing [my n-body implementation]({% post_url 2025-02-24-nbody-262k %}).
 
 <video width="100%" controls>
   <source src="{{ '/assets/video/parallel-octree.mp4' | relative_url }}" type="video/mp4">
