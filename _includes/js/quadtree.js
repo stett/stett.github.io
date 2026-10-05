@@ -139,9 +139,9 @@ function compute_quadtree_parent(radix_nodes, radix_parents, offsets, i_radix)
 //
 // for every i_radix_child except for the first one (ie at index 0), this will
 // simply be a lookup into leaf_parents.
-function compute_quadtree_child(radix_nodes, offsets, leaf_parents, i_radix_child)
+function compute_quadtree_child(radix_nodes, offsets, leaf_parents, i_radix_child, radix_child_is_leaf)
 {
-    if (i_radix_child >= 0)
+    if (radix_child_is_leaf)
     {
         return leaf_parents[i_radix_child];
     }
@@ -174,7 +174,7 @@ function compute_quadtree_nodes(keys, radix_nodes, offsets, parents, leaf_parent
 
     // every node of this chain covers the same key range, so one escape serves them all.
     // in other words, they all share the same "next"
-    var i_next = compute_quadtree_next(keys, radix_nodes, leaf_parents, offsets, radix_node.index_last);
+    var i_next = compute_quadtree_next(keys, radix_nodes, leaf_parents, offsets, radix_node.index_max);
 
     // this radix node's level - its chain ends there and its leafs sit one below it
     var i_level = compute_quadtree_top_level(keys, radix_nodes, i_radix);
@@ -209,7 +209,7 @@ function compute_quadtree_nodes(keys, radix_nodes, offsets, parents, leaf_parent
         }
         else
         {
-            quad_node.child = compute_quadtree_child(radix_nodes, offsets, leaf_parents, radix_node.index_child0);
+            quad_node.child = compute_quadtree_child(radix_nodes, offsets, leaf_parents, radix_node.index_child0, radix_node.leaf_child0);
         }
 
         // these nodes are intermediate - none of them are leaves
