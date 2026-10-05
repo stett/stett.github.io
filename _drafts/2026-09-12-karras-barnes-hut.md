@@ -84,6 +84,10 @@ div.diagram-controls button:hover {
 <script>
 // Interaction callbacks
 var interactUpdateParticles;
+
+// Shared between the excerpt, which creates it, and the rest of the post,
+// which wires it to the diagrams.
+var particleGridActor;
 </script>
 
 The purpose of this post is to interactively demonstrate the construction of an octree structure using purely parallel methods. This is largely based on the classic [Karras 2012](https://dl.acm.org/doi/10.5555/2383795.2383801) paper. I've modified it slightly to accomadate a particular octree data format which works well for faster traversal, with the ultimate goal of fully parallelizing [my nbody implementation]({% post_url 2025-02-24-nbody-262k %})
@@ -97,6 +101,34 @@ In Karras' paper, the octree construction phase is packed into 2 paragraphs. In 
 In order to check my understanding of each stage of the algorithm, I made this little interactive reference implementation of a parallelizeable quadtree builder.
 
 <div class="container-3js" id="{{ page.title | slugify }}-particle-grid"></div>
+
+<script type="text/javascript">
+
+// The grid is part of the excerpt, so it has to set itself up: the script at
+// the bottom of the post is not included on the home page. It forwards changes
+// to interactUpdateParticles once the rest of the post has defined it.
+
+{% include js/sceneactor.js %}
+{% include js/particle-grid-actor.js %}
+
+$(document).ready(function() {
+    var container = $("#{{ page.title | slugify }}-particle-grid");
+    var scene = new SceneActor(container, 5);
+    DRAMA.add(scene);
+    particleGridActor = new ParticleGridActor(scene, 8, function(particles) {
+        if (interactUpdateParticles) {
+            interactUpdateParticles(particles);
+        }
+    });
+    DRAMA.add(particleGridActor);
+
+    // Start with a few particles already placed.
+    // TEMP: fixed seed so every refresh builds the same tree. Drop the seed
+    // argument to go back to a fresh layout each load.
+    particleGridActor.randomize(5, 1);
+});
+
+</script>
 
 <!-- excerpt -->
 
@@ -150,9 +182,7 @@ The entries of the resulting buffer will be the offsets into the quadtree node a
 
 <h4>Step 4: Create Leaf Node Map</h4>
 
-This is an intermediate step to create an index map from the leaves/keys array into the octree nodes array. Each key corresponds with a leaf node in the octree, and it's useful to keep these indices around for two reasons:
-1. We can write a pass which will store additional data in the octree nodes (useful in Barnes Hut)
-2. During octree construction
+This is an intermediate step to create an index map from the leaves/keys array into the octree nodes array. Each key corresponds with a leaf node in the quadtree. It's necessary to keep these indices around so that leaf nodes can be inserted into the correct locations in the final quadtree structure, and is also useful for doing bottom up traversals of the tree starting with the leaf nodes, as we will need to do for Barne's Hut.
 
 <div class="container-3js" id="{{ page.title | slugify }}-leaf-parents"></div>
 
@@ -168,11 +198,23 @@ In index order the nodes are laid out in array order. In tree order they are lai
     <button type="button" id="{{ page.title | slugify }}-quadtree-nodes-order">index order</button>
 </div>
 
+Each radix key contains enough information to reconstruct each bounds of the quadtree leading down to the corresponding leaf. For intermediate nodes, a subset of the bits of the radix key are needed. For a quadtree, every pair of two bits corresponds to a bounds. The first bit is the x-axis, in our case - zero means left half, one means right half. The second bit indicates bottom or top. Every pair of bits is the subdivision of the previous pair's bounds.
+
 Finally, the bounds of every node, drawn over the same square as the particle grid at the top. Each internal node is split into its four quadrants, and each leaf is outlined with a dashed line. The circles mark the particles, numbered as in the grid at the top.
 
 <div class="container-3js" id="{{ page.title | slugify }}-quadtree-bounds"></div>
 
-Each radix key contains enough information to reconstruct each bounds of the quadtree leading down to the corresponding leaf. For intermediate nodes, a subset of the bits of the radix key are needed. For a quadtree, every pair of two bits corresponds to a bounds. The first bit is the x-axis, in our case - zero means left half, one means right half. The second bit indicates bottom or top. Every pair of bits is the subdivision of the previous pair's bounds.
+Though complex and subtle in its implementation, we've demonstrated a set of algorithms for construction of a quadtree/octree which can be accelerated by parallelism at every step.
+
+<h4>Final Notes</h4>
+
+In this article I described each part of the algorithm in English, and purposefully avoided getting into the weeds on implementation subtleties. I wrote this originally as an aid to myself to help debug edge-cases while writing the implementation which I used to generate the n-body simulation which is shown in the video at the front of the article.
+
+*This algorithm is not fully complete yet* - as can be seen from the index/tree orderings in the final construction of the quadtree, the escape-pointer quadtree structure is not optimal. A regular traversal can cause cache misses because the nodes are not sorted into depth-first-search (dfs) order, which is the order that this stucture typically benefits the most from.
+
+While building the nbody simulation, I've gone through many iterations and compared profiles. Putting the tree construction into this form benefits massively from parallelization and use of SIMD, but the cost of traversal increases significantly due to the loss of dfs ordering in the final structure.
+
+I'm currently exploring adding another parallel sort step into this algorithm which will result in a dfs-ordered structure. Careful profiling and attention to memory layout is essential so that each new step in this algorithm is an overall improvement in performance for my use case.
 
 <script type="text/javascript">
 
@@ -190,7 +232,6 @@ Each radix key contains enough information to reconstruct each bounds of the qua
 $(document).ready(function() {
 
     // Actor references
-    var particleGridActor;
     var particleArrayActor;
     var sortedKeysActor;
     var radixTreeSplitActor;
@@ -218,14 +259,6 @@ $(document).ready(function() {
     //
     // Set up scenes
     //
-
-    {
-        var container = $("#{{ page.title | slugify }}-particle-grid");
-        var scene = new SceneActor(container, 5);
-        DRAMA.add(scene);
-        particleGridActor = new ParticleGridActor(scene, 8, interactUpdateParticles);
-        DRAMA.add(particleGridActor);
-    }
 
     {
         var container = $("#{{ page.title | slugify }}-particle-array");
@@ -301,10 +334,9 @@ $(document).ready(function() {
         DRAMA.add(quadtreeBoundsActor);
     }
 
-    // Start with a few particles already placed.
-    // TEMP: fixed seed so every refresh builds the same tree. Drop the seed
-    // argument to go back to a fresh layout each load.
-    particleGridActor.randomize(5, 1);
+    // The grid placed its starting particles before this ran, so catch the
+    // diagrams up with them.
+    interactUpdateParticles(particleGridActor.particles);
 });
 
 </script>

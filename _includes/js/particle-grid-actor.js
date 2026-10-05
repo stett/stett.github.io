@@ -25,6 +25,7 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
         this.canvas = sceneActor.renderer.domElement;
         this.order = []; // cell ids, in the order they were clicked
         this.cells = [];
+        this.particles = [];
         this.tree = null;
         this.object = new THREE.Object3D();
 
@@ -157,6 +158,7 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
         for (var p = 0; p < this.order.length; ++p) {
             particles.push({ x: this.order[p] % this.size, y: Math.floor(this.order[p] / this.size) });
         }
+        this.particles = particles;
         this._show(particles);
         this.onchange(particles);
     }
