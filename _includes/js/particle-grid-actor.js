@@ -1,4 +1,5 @@
 {% include js/particle-quad-common.js %}
+{% include js/quadtree-bounds-actor.js %}
 
 // Small seeded PRNG returning floats in [0, 1), a stand-in for Math.random.
 function mulberry32(seed) {
@@ -10,6 +11,9 @@ function mulberry32(seed) {
     };
 }
 
+// The input grid, where clicking a cell toggles a particle in it. Rather than
+// the cells, it draws the quadtree built from the particles, as in the final
+// bounds diagram, with the particles numbered by their order in the input.
 var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
     constructor(sceneActor, size=8, onchange=function(particles) {}, max=10) {
         super();
@@ -21,10 +25,11 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
         this.canvas = sceneActor.renderer.domElement;
         this.order = []; // cell ids, in the order they were clicked
         this.cells = [];
-        this.labels = [];
+        this.tree = null;
         this.object = new THREE.Object3D();
 
-        // Cells, indexed row-major with (0, 0) at the bottom left.
+        // Cells, indexed row-major with (0, 0) at the bottom left. They are
+        // never drawn, but they are what the clicks land on.
         for (var i = 0; i < size * size; ++i) {
             var x = this._x(i % size);
             var y = this._y(Math.floor(i / size));
@@ -34,20 +39,10 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
             cell.cellId = i;
             this.cells.push(cell);
             this.object.add(cell);
-
-            var outline = makeOutline();
-            outline.position.set(x, y, 0);
-            this.object.add(outline);
-
-            var label = makeTextQuad(bgColor);
-            label.position.set(x, y, 0);
-            label.visible = false;
-            this.labels.push(label);
-            this.object.add(label);
         }
 
         // Moved onto whichever cell the mouse is over. renderOrder puts it
-        // above the cells and below the labels, which are at 1.
+        // above the cells and below the text, which is at 1.
         this.hover = makeQuad(hoverMaterial);
         this.hover.renderOrder = 0.5;
         this.hover.visible = false;
@@ -70,12 +65,22 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
         // the whole diagram centered in the view.
         this.object.position.y = -0.37;
         this.scene.add(this.object);
+        this._show([]);
 
         this.raycaster = new THREE.Raycaster();
         var self = this;
         this.canvas.addEventListener("mousedown", function(event) { self._click(event); });
         this.canvas.addEventListener("mousemove", function(event) { self._hover(event); });
         this.canvas.addEventListener("mouseleave", function() { self._unhover(); });
+    }
+
+    _show(particles) {
+        if (this.tree) {
+            this.object.remove(this.tree);
+            disposeObject(this.tree);
+        }
+        this.tree = makeQuadtreeBounds(particles, this.size);
+        this.object.add(this.tree);
     }
 
     _x(col) { return col - (this.size - 1) * 0.5; }
@@ -148,16 +153,11 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
     }
 
     _refresh() {
-        for (var i = 0; i < this.cells.length; ++i) {
-            this.cells[i].material = emptyMaterial;
-            this.labels[i].visible = false;
-        }
         var particles = [];
         for (var p = 0; p < this.order.length; ++p) {
-            this.cells[this.order[p]].material = fillMaterial;
-            this.labels[this.order[p]].setText(p);
             particles.push({ x: this.order[p] % this.size, y: Math.floor(this.order[p] / this.size) });
         }
+        this._show(particles);
         this.onchange(particles);
     }
 }

@@ -92,13 +92,13 @@ The purpose of this post is to interactively demonstrate the construction of an 
   <source src="{{ '/assets/video/parallel-octree.mp4' | relative_url }}" type="video/mp4">
 </video>
 
-<!-- excerpt -->
-
 In Karras' paper, the octree construction phase is packed into 2 paragraphs. In order to really clearly understand the entire tree construction process - from morton encoding to radix tree construction and building the final octree - I found myself writing up many 8x8 plots of points which I expected to exhibit edge cases and stepping through the algorithm and its memory transformations on paper.
 
 In order to check my understanding of each stage of the algorithm, I made this little interactive reference implementation of a parallelizeable quadtree builder.
 
 <div class="container-3js" id="{{ page.title | slugify }}-particle-grid"></div>
+
+<!-- excerpt -->
 
 The grid above represents a region of discretized space, where each 1x1 cell can either be empty or occupied by a particle. Click a cell to toggle it between occupied and empty states.
 
