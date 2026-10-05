@@ -156,9 +156,13 @@ This is an intermediate step to create an index map from the leaves/keys array i
 
 Finally the quadtree nodes themselves. The array is as long as the `total` from step 3, and each node holds the index of its `parent`, its first `child`, and the `next` sibling after it. The children of a node are walked by following `child` once and then `next` until `next` points to the parent's `next`.
 
-The array is laid out one row per group of siblings, labelled with the parent that they share. Leaf nodes are drawn with a dashed outline.
+In index order the nodes are laid out in array order. In tree order they are laid out one row per depth, with each group of siblings kept together beneath its parent. Leaf nodes are drawn with a dashed outline.
 
 <div class="container-3js" id="{{ page.title | slugify }}-quadtree-nodes"></div>
+
+<div class="diagram-controls">
+    <button type="button" id="{{ page.title | slugify }}-quadtree-nodes-order">index order</button>
+</div>
 
 <script type="text/javascript">
 
@@ -270,6 +274,10 @@ $(document).ready(function() {
         DRAMA.add(scene);
         quadtreeNodesActor = new QuadtreeNodesActor(scene);
         DRAMA.add(quadtreeNodesActor);
+
+        $("#{{ page.title | slugify }}-quadtree-nodes-order").click(function() {
+            $(this).text(quadtreeNodesActor.toggle_order() ? "tree order" : "index order");
+        });
     }
 
     // Start with a few particles already placed.

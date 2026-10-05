@@ -300,20 +300,70 @@ function quadtreeNodes(keys)
     return nodes;
 }
 
-// The node array split into the groups that share a parent. The root is alone
-// in the first group and the rest follow in allocation order, four to a group.
-// Once compute_quadtree_nodes is written this should walk child and next
-// instead, which will also order the groups by depth.
+// The node array split into the groups that share a parent, ordered by depth.
+// The root is alone in the first group. Each group after that is the children
+// of an internal node from an earlier group, found by following its child once
+// and then next until next reaches the parent's own next. Any node the walk
+// never reaches gets a group of its own at the end, so it still shows up in
+// the diagram with its own parent as the row label.
 function quadtreeSiblingGroups(nodes)
 {
     var groups = [];
+    if (nodes.length == 0)
+    {
+        return groups;
+    }
+
+    var visited = [];
     for (var i = 0; i < nodes.length; ++i)
     {
-        if (i == 0 || (i - 1) % 4 == 0)
-        {
-            groups.push([]);
-        }
-        groups[groups.length - 1].push(i);
+        visited.push(false);
     }
+
+    groups.push([0]);
+    visited[0] = true;
+
+    // groups is appended to while it is walked, so this is breadth first
+    for (var g = 0; g < groups.length; ++g)
+    {
+        for (var j = 0; j < groups[g].length; ++j)
+        {
+            var parent = nodes[groups[g][j]];
+
+            // a leaf's child is a key index, not a node
+            if (parent.is_leaf)
+            {
+                continue;
+            }
+
+            // stop at a visited node too, so a bad link can't loop forever
+            var group = [];
+            var i_child = parent.child;
+            while (i_child >= 0 && i_child < nodes.length && !visited[i_child])
+            {
+                visited[i_child] = true;
+                group.push(i_child);
+                if (nodes[i_child].next == parent.next)
+                {
+                    break;
+                }
+                i_child = nodes[i_child].next;
+            }
+
+            if (group.length > 0)
+            {
+                groups.push(group);
+            }
+        }
+    }
+
+    for (var i = 0; i < nodes.length; ++i)
+    {
+        if (!visited[i])
+        {
+            groups.push([i]);
+        }
+    }
+
     return groups;
 }

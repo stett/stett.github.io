@@ -1,18 +1,39 @@
 {% include js/particle-quad-common.js %}
 {% include js/quadtree.js %}
 
-// The quadtree node array, as many cells as the total from the allocation step,
-// laid out one row per sibling group. Each cell holds the node's parent, child
-// and next links, and leaf nodes are drawn dashed.
+// The quadtree node array, as many cells as the total from the allocation step.
+// Each cell holds the node's parent, child and next links, and leaf nodes are
+// drawn dashed.
+//
+// In index order the cells run in array order, wrapped a fixed number to a row.
+// In tree order there is one row per depth, each a little smaller than the one
+// above it. Siblings sit together in a block, and each block is placed as close
+// to under its parent as the blocks to its left allow.
 var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
-    constructor(sceneActor, cellWidth=2.4, rowPitch=2.2, cols=4) {
+    constructor(sceneActor, cellWidth=2.4, rowPitch=2.2, cols=4, shrink=0.85) {
         super();
         this.sceneActor = sceneActor;
         this.cellWidth = cellWidth;
         this.rowPitch = rowPitch;
         this.cols = cols;
+        this.shrink = shrink;
         this.object = null;
+        this.tree_order = false;
         this.set_keys([]);
+    }
+
+    // Returns the order settled on, so a caller can label a button with it.
+    set_order(tree_order) {
+        tree_order = !!tree_order;
+        if (tree_order != this.tree_order) {
+            this.tree_order = tree_order;
+            this._layout(false);
+        }
+        return this.tree_order;
+    }
+
+    toggle_order() {
+        return this.set_order(!this.tree_order);
     }
 
     set_keys(keys) {
@@ -25,69 +46,200 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
         var cols = this.cols;
         this.object = new THREE.Object3D();
         var object = this.object;
+        this.cells = [];
 
         // Every row starts at the same x, so the column is the position within
-        // the sibling group rather than within the row.
+        // the row rather than the node's index.
         function colX(j) {
             return (j - (cols - 1) * 0.5) * cw;
         }
 
-        function addText(x, y, width, text) {
+        function addText(parent, x, y, width, text) {
             var quad = makeTextQuad(fgColor, width, 1);
             quad.position.set(x, y, 0);
             quad.setText(text);
-            object.add(quad);
+            parent.add(quad);
+            return quad;
         }
 
         function link(value) {
-            // undefined while the construction pass is still unwritten.
             return (value === undefined || value < 0) ? "-" : value;
         }
 
         var nodes = quadtreeNodes(keys);
         var groups = quadtreeSiblingGroups(nodes);
 
-        var labelWidth = 4.5;
-        var labelX = colX(0) - cw * 0.5 - 0.2 - labelWidth * 0.5;
+        // Everything belonging to a node moves together, so it goes in a group
+        // and a change of order only has to move the group.
+        for (var i = 0; i < nodes.length; ++i) {
+            var node = nodes[i];
+            var cell = new THREE.Object3D();
+            object.add(cell);
+            this.cells.push(cell);
+
+            // Leaves are inset a little so two of them side by side don't
+            // share a dashed edge.
+            var inset = 0.1;
+            var outline = node.is_leaf ?
+                makeDashedOutline(cw - inset * 2, 1 - inset * 2) : makeOutline(cw, 1);
+            cell.add(outline);
+
+            addText(cell, 0, 0, cw, "(" + link(node.parent) + "," +
+                link(node.child) + "," + link(node.next) + ")");
+
+            // The camera is y-flipped, so -y is above the cell on screen.
+            addText(cell, 0, -0.9, cw, i);
+
+            cell.indexX = colX(i % cols);
+            cell.indexRow = Math.floor(i / cols);
+        }
+
+        // Each group sits one row below its parent's. The walk is breadth first,
+        // so a group's parent is always placed before the group is. A node the
+        // walk never reached may not have a placed parent, so it goes on a row
+        // past the bottom of the tree.
+        var depths = [0];
+        var groupDepths = [0];
+        var deepest = 0;
+        for (var g = 1; g < groups.length; ++g) {
+            var parent = nodes[groups[g][0]].parent;
+            var depth = (depths[parent] === undefined || depths[parent] < 0) ? -1 : depths[parent] + 1;
+            groupDepths.push(depth);
+            for (var j = 0; j < groups[g].length; ++j) {
+                depths[groups[g][j]] = depth;
+            }
+            deepest = Math.max(deepest, depth);
+        }
+        for (var g = 0; g < groups.length; ++g) {
+            if (groupDepths[g] < 0) {
+                groupDepths[g] = deepest + 1;
+            }
+        }
+        var treeRows = 1 + Math.max.apply(null, groupDepths);
+
+        // Every row is shrunk from the one above it, and rows are spaced by the
+        // average of the two sizes so the gap between them shrinks along with them.
+        var rowScales = [];
+        var rowYs = [];
+        for (var d = 0; d < treeRows; ++d) {
+            rowScales.push(Math.pow(this.shrink, d));
+            rowYs.push(d == 0 ? 0 :
+                rowYs[d - 1] + this.rowPitch * (rowScales[d - 1] + rowScales[d]) * 0.5);
+        }
+
+        // Place the blocks a row at a time, left to right in walk order, which is
+        // also the order of their parents in the row above. Each block centers
+        // under its parent unless that would overlap the block before it, in
+        // which case it is pushed right.
+        var rowRight = [];
+        for (var g = 0; g < groups.length; ++g) {
+            var d = groupDepths[g];
+            var scale = rowScales[d];
+            var width = groups[g].length * cw * scale;
+            var gap = 0.5 * scale;
+
+            var parentCell = this.cells[nodes[groups[g][0]].parent];
+            var center = (g == 0 || !parentCell || parentCell.treeX === undefined) ? 0 : parentCell.treeX;
+            var left = center - width * 0.5;
+            if (rowRight[d] !== undefined) {
+                left = Math.max(left, rowRight[d] + gap);
+            }
+            rowRight[d] = left + width;
+
+            for (var j = 0; j < groups[g].length; ++j) {
+                var cell = this.cells[groups[g][j]];
+                cell.treeX = left + (j + 0.5) * cw * scale;
+                cell.treeY = rowYs[d];
+                cell.treeScale = scale;
+            }
+        }
+
+        // The extent of the tree, to center it in the view.
+        var treeLeft = this.cells.length > 0 ? Infinity : 0;
+        var treeRight = this.cells.length > 0 ? -Infinity : 0;
+        for (var i = 0; i < this.cells.length; ++i) {
+            var cell = this.cells[i];
+            treeLeft = Math.min(treeLeft, cell.treeX - cw * 0.5 * cell.treeScale);
+            treeRight = Math.max(treeRight, cell.treeX + cw * 0.5 * cell.treeScale);
+        }
+
+        this.colX = colX;
+        this.indexRows = Math.ceil(nodes.length / cols);
+        this.treeLeft = treeLeft;
+        this.treeRight = treeRight;
+        this.treeBottom = rowYs[treeRows - 1] + 0.5 * rowScales[treeRows - 1];
+
+        this.sceneActor.scene.add(this.object);
+        this._layout(true);
+    }
+
+    // Put every cell where the current order wants it. immediate snaps there,
+    // otherwise update() slides into it.
+    _layout(immediate) {
+        var tree = this.tree_order;
         var rowPitch = this.rowPitch;
 
-        for (var r = 0; r < groups.length; ++r) {
-            var y = r * rowPitch;
-            addText(labelX, y, labelWidth, r == 0 ?
-                "root" : "parent " + link(nodes[groups[r][0]].parent));
-
-            for (var j = 0; j < groups[r].length; ++j) {
-                var i = groups[r][j];
-                var node = nodes[i];
-
-                // Leaves are inset a little so two of them side by side don't
-                // share a dashed edge.
-                var inset = 0.1;
-                var outline = node.is_leaf ?
-                    makeDashedOutline(cw - inset * 2, 1 - inset * 2) : makeOutline(cw, 1);
-                outline.position.set(colX(j), y, 0);
-                object.add(outline);
-
-                addText(colX(j), y, cw, "(" + link(node.parent) + "," +
-                    link(node.child) + "," + link(node.next) + ")");
-
-                // The camera is y-flipped, so -y is above the cell on screen.
-                addText(colX(j), y - 0.9, cw, i);
+        for (var i = 0; i < this.cells.length; ++i) {
+            var cell = this.cells[i];
+            cell.targetX = tree ? cell.treeX : cell.indexX;
+            cell.targetY = tree ? cell.treeY : cell.indexRow * rowPitch;
+            cell.targetScale = tree ? cell.treeScale : 1;
+            if (immediate) {
+                cell.position.set(cell.targetX, cell.targetY, 0);
+                cell.scale.set(cell.targetScale, cell.targetScale, 1);
             }
         }
 
         // Center everything in the view, from the top of the first row's index
-        // digits and the left of the row labels to the bottom of the last row.
-        var left = labelX - labelWidth * 0.5;
-        var right = colX(cols - 1) + cw * 0.5;
+        // digits and the left of the leftmost cell to the bottom of the last row.
+        var left = tree ? this.treeLeft : this.colX(0) - this.cellWidth * 0.5;
+        var right = tree ? this.treeRight : this.colX(this.cols - 1) + this.cellWidth * 0.5;
         var top = -0.9 - 0.25;
-        var bottom = Math.max(0, groups.length - 1) * rowPitch + 0.5;
-        this.object.position.set(-(left + right) * 0.5, -(top + bottom) * 0.5, 0);
-        this.contentHeight = bottom - top;
-        this.sceneActor.scene.add(this.object);
+        var bottom = tree ? this.treeBottom : Math.max(0, this.indexRows - 1) * rowPitch + 0.5;
 
+        this.targetX = -(left + right) * 0.5;
+        this.targetY = -(top + bottom) * 0.5;
+        if (immediate) {
+            this.object.position.set(this.targetX, this.targetY, 0);
+        }
+
+        this.contentHeight = bottom - top;
         this.sceneActor.cameraHeightTarget = Math.max(
             this.contentHeight * 0.5 + 0.15,
             ((right - left) * 0.5 + 0.5) / this.sceneActor.aspect);
+    }
+
+    update() {
+        if (!this.object) {
+            return;
+        }
+
+        var ease = 0.18;
+        var epsilon = 0.002;
+
+        function approach(object, targetX, targetY) {
+            var dx = targetX - object.position.x;
+            var dy = targetY - object.position.y;
+            if (Math.abs(dx) > epsilon || Math.abs(dy) > epsilon) {
+                object.position.x += dx * ease;
+                object.position.y += dy * ease;
+            } else {
+                object.position.x = targetX;
+                object.position.y = targetY;
+            }
+        }
+
+        for (var i = 0; i < this.cells.length; ++i) {
+            var cell = this.cells[i];
+            approach(cell, cell.targetX, cell.targetY);
+
+            var ds = cell.targetScale - cell.scale.x;
+            var scale = Math.abs(ds) > epsilon ? cell.scale.x + ds * ease : cell.targetScale;
+            cell.scale.set(scale, scale, 1);
+        }
+
+        // The two orders have different extents, so the diagram recenters as
+        // the cells move.
+        approach(this.object, this.targetX, this.targetY);
     }
 }
