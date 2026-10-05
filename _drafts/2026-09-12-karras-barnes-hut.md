@@ -206,11 +206,11 @@ Each Morton key contains enough information to reconstruct the bounds of each no
 
 These node bounds are not shown in the memory diagram above, but they're computed and stored in the quadtree nodes during the quadtree construction of step 5, alongside the parent, next, and child indices.
 
-Finally, the bounds of every node, drawn over the same square as the particle grid at the top. Each internal node is split into its four quadrants, and each leaf is outlined with a dashed line. The circles mark the particles, numbered as in the grid at the top.
+Finally, we've produced the quadtree of bounds that was rendered at the top of this article. Each internal node is split into its four quadrants, and each leaf is outlined with a dashed line. Particles are indicated by their circled indices into the original particle array.
 
 <div class="container-3js" id="{{ page.title | slugify }}-quadtree-bounds"></div>
 
-Though complex and subtle in its implementation, every step of this quadtree/octree construction can be parallelized.
+Though complex and subtle in its implementation, every step of this quadtree/octree construction can be done in parallel.
 
 <h4>Final Notes</h4>
 
