@@ -132,9 +132,13 @@ $(document).ready(function() {
 
 <!-- excerpt -->
 
-The grid above represents a region of discretized space, where each 1x1 cell can either be empty or occupied by a particle. Click a cell to toggle it between occupied and empty states.
+The square above is a region of space, sparsely populated by particles in any order. Each cell is a unique location which is the most finely representable point in space given a certain number of bits. In this case we limit ourselves to just 3 bits for simplicity, so the x and y coordinates each are constrained to the range of values from $[0,8)$.
 
-Changes will be reflected in the memory diagrams below, illustrating how memory transforms through every step of the parallel construction of a quadtree.
+Click anywhere to add or remove a particle from a point in space. This widget supports up to 10 particles, so if you add an 11th, the 1st particle will be removed and all indices will be updated. You should see the quadtree structure become updated in real time over the grid, demonstrating the algorithm which this article will describe in the following steps.
+
+Changes to the input data in the tree above will be reflected in the memory diagrams below, illustrating how memory transforms through every step of the construction of a quadtree. Crucially, each step of this algorithm can be executed in parallel. Some of them lend themselves well to the use of SIMD primitives, but any of them can be done using SIMT (ie, GPU kernels).
+
+This article, the algorithm it describes, and the  C++ implementation which I've written [here](https://github.com/stett/nbody) are all still a work in progress.
 
 <h4>Step 0: Morton Encoding</h4>
 
@@ -154,7 +158,7 @@ A [Radix Sort](https://en.wikipedia.org/wiki/Radix_sort) can be used here, which
 
 <h4>Step 2: Radix Tree Construction</h4>
 
-Each of the $n$ morton keys is a leaf node in a radix tree which has $n-1$ internal nodes. Each internal node in a radix tree represents a splitting index - given a range of keys which share a common prefix, the splitting point for that range is the point at which the next most significant bit past the common prefix begins to differ. For example, if you have a range containing the keys `0:110001`, `1:1100101`, and `2:111001`, the common prefix is `11` and the splitting point would be between elements 1 and 2 because that is where the bit just past the prefix changes from `0` to `1`.
+Each of the $n$ morton keys is a leaf node in a radix tree which has $n-1$ internal nodes. Each internal node in a radix tree represents a splitting index - given a range of keys which share a common prefix, the splitting point for that range is the point at which the next most significant bit past the common prefix begins to differ. For example, if you have a range containing the keys `0:110001`, `1:110010`, and `2:111001`, the common prefix is `11` and the splitting point would be between elements 1 and 2 because that is where the bit just past the prefix changes from `0` to `1`.
 
 The node splitting pattern is illustrated in the following diagram. The first row shows the leaf nodes of the radix tree - ie the sorted morton keys from the diagram above. The subsequent rows show the prefixes, ranges, and split positions for each of the internal radix tree nodes.
 
@@ -170,7 +174,7 @@ The `quad_internals` and `quad_leaves` values indicate the number of internal an
 
 <div class="container-3js" id="{{ page.title | slugify }}-radix-tree-arrays"></div>
 
-It's possible that for some applications the `parents` array is not actually necessary. However, for my use case I'll need it in order to propagate 
+It's possible that for some applications the `parents` array is not actually necessary. However, for a Barnes-Hut implementation a bottom-up traversal of the tree is needed in order to populate each node with average mass data from child nodes. Parent indices are needed for bottom-up traversal.
 
 <h4>Step 3: Quadtree/Octree Allocation</h4>
 
@@ -188,7 +192,9 @@ This is an intermediate step to create an index map from the leaves/keys array i
 
 <h4>Step 5: Construct Quadtree/Octree</h4>
 
-The quadtree nodes themselves. The array is as long as the `total` from step 3, and each node holds the index of its `parent`, its first `child`, and the `next` sibling after it. The children of a node are walked by following `child` once and then `next` until `next` points to the parent's `next`.
+The quadtree nodes themselves. The array is as long as the `total` from step 3, and each node holds the index of its `parent`, its first `child`, and the "escape index", `next`. `next` carries two meanings - in the case that a node has a sibling that follows it, `next` will be the index of that sibling. Otherwise, if the node is the last child of its parent, `next` will equal its parents `next`.
+
+`next` is referred to as the escape index because during depth-first traversal a nodes `next` is compared to its parent's in order to end the iteration or "escape" the current branch of the tree once all children have been exhausted.
 
 In index order the nodes are laid out in array order. In tree order they are laid out one row per depth, with each group of siblings kept together beneath its parent. Leaf nodes are drawn with a dashed outline.
 
@@ -213,6 +219,8 @@ In this article I described each part of the algorithm in English, and purposefu
 *This algorithm is not fully complete yet* - as can be seen from the index/tree orderings in the final construction of the quadtree, the escape-pointer quadtree structure is not optimal. A regular traversal can cause cache misses because the nodes are not sorted into depth-first-search (dfs) order, which is the order that this stucture typically benefits the most from.
 
 While building the nbody simulation, I've gone through many iterations and compared profiles. Putting the tree construction into this form benefits massively from parallelization and use of SIMD, but the cost of traversal increases significantly due to the loss of dfs ordering in the final structure.
+
+Besides just optimization of memory access, dfs ordering of the quadtree/octree could potentially allow removal of the `parent` and `next` indices, which would be a significant savings in memory usage, while further improving cache friendliness.
 
 I'm currently exploring adding another parallel sort step into this algorithm which will result in a dfs-ordered structure. Careful profiling and attention to memory layout is essential so that each new step in this algorithm is an overall improvement in performance for my use case.
 
