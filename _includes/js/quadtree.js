@@ -96,7 +96,7 @@ function compute_quadtree_top_level(keys, radix_nodes, i_radix)
 {
     var radix_node = radix_nodes[i_radix];
     var i_split = Math.abs(radix_node.index_child0);
-    var i_quadtree_last_node = compute_cpl(keys, i_split, i_split + 1) / 2;
+    var i_quadtree_last_node = Math.floor(compute_cpl(keys, i_split, i_split + 1) / 2);
     var i_quadtree_first_node = i_quadtree_last_node - radix_node.quadtree_internals + 1;
     return i_quadtree_first_node;
 }
@@ -149,6 +149,35 @@ function compute_quadtree_child(radix_nodes, offsets, leaf_parents, i_radix_chil
     {
         return compute_quadtree_first_node(radix_nodes, leaf_parents, offsets, i_radix_child);
     }
+}
+
+// The bounds of the quadtree cell at level i_level which contains key, in the
+// unit square. Each level down reads the next two bits of the key, x then y,
+// and appends one to each axis' cell index. Level 0 leaves both indices at 0,
+// which is the whole square - the root.
+function compute_quadtree_bounds(i_level, key, bits=6)
+{
+    var modulus = 2;
+    var group_mask = (1 << modulus) - 1;
+
+    var index = [0, 0];
+    for (var l = 1; l <= i_level; ++l)
+    {
+        var group = (key >> (bits - modulus * l)) & group_mask;
+        for (var axis = 0; axis < modulus; ++axis)
+        {
+            index[axis] = (index[axis] << 1) | ((group >> (modulus - 1 - axis)) & 1);
+        }
+    }
+
+    var cell_size = Math.pow(2, -i_level);
+
+    var center = [];
+    for (var axis = 0; axis < modulus; ++axis)
+    {
+        center.push((index[axis] + 0.5) * cell_size);
+    }
+    return { center: center, half_extent: 0.5 * cell_size };
 }
 
 // Fill in the quadtree nodes which radix node i_radix is responsible for. Every
@@ -214,6 +243,8 @@ function compute_quadtree_nodes(keys, radix_nodes, offsets, parents, leaf_parent
 
         // these nodes are intermediate - none of them are leaves
         quad_node.is_leaf = false;
+
+        quad_node.bounds = compute_quadtree_bounds(i_level + i_internal, keys[radix_node.index_max]);
     }
 
     // the leafs hang from the deepest node of the chain, or from whatever is above
@@ -222,9 +253,9 @@ function compute_quadtree_nodes(keys, radix_nodes, offsets, parents, leaf_parent
         ? i_node_0 + radix_node.quadtree_internals - 1
         : compute_quadtree_parent(radix_nodes, parents, offsets, i_radix);
 
-    // both children of a radix node sit one level below it, on either side of the
-    // split that defines it
-    var i_leaf_level = i_level + 1;
+    // both children of a radix node sit one level below the end of its chain, on
+    // either side of the split that defines it
+    var i_leaf_level = i_level + radix_node.quadtree_internals;
 
     // populate corresponding leaf nodes after the internals
     for (var i_child = 0; i_child < 2; ++i_child)
@@ -259,7 +290,7 @@ function compute_quadtree_nodes(keys, radix_nodes, offsets, parents, leaf_parent
         // 
         quad_node.is_leaf = true;
 
-        // TODO: compute bounds...
+        quad_node.bounds = compute_quadtree_bounds(i_leaf_level, keys[i_key]);
     }
 }
 
@@ -296,7 +327,6 @@ function quadtreeNodes(keys)
         compute_quadtree_nodes(keys, arrays.nodes, arrays.offsets, arrays.parents, arrays.leaf_parents, i, nodes);
     }
 
-    console.log(nodes);
     return nodes;
 }
 

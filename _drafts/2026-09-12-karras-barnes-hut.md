@@ -55,6 +55,10 @@ div.container-3js canvas {
     height: 380px;
 }
 
+#{{ page.title | slugify }}-quadtree-bounds {
+    height: 350px;
+}
+
 div.diagram-controls {
     text-align: center;
     margin-top: 4px;
@@ -154,7 +158,7 @@ This is an intermediate step to create an index map from the leaves/keys array i
 
 <h4>Step 5: Construct Quadtree/Octree</h4>
 
-Finally the quadtree nodes themselves. The array is as long as the `total` from step 3, and each node holds the index of its `parent`, its first `child`, and the `next` sibling after it. The children of a node are walked by following `child` once and then `next` until `next` points to the parent's `next`.
+The quadtree nodes themselves. The array is as long as the `total` from step 3, and each node holds the index of its `parent`, its first `child`, and the `next` sibling after it. The children of a node are walked by following `child` once and then `next` until `next` points to the parent's `next`.
 
 In index order the nodes are laid out in array order. In tree order they are laid out one row per depth, with each group of siblings kept together beneath its parent. Leaf nodes are drawn with a dashed outline.
 
@@ -163,6 +167,12 @@ In index order the nodes are laid out in array order. In tree order they are lai
 <div class="diagram-controls">
     <button type="button" id="{{ page.title | slugify }}-quadtree-nodes-order">index order</button>
 </div>
+
+Finally, the bounds of every node, drawn over the same square as the particle grid at the top. Each internal node is split into its four quadrants, and each leaf is outlined with a dashed line. The circles mark the particles, numbered as in the grid at the top.
+
+<div class="container-3js" id="{{ page.title | slugify }}-quadtree-bounds"></div>
+
+Each radix key contains enough information to reconstruct each bounds of the quadtree leading down to the corresponding leaf. For intermediate nodes, a subset of the bits of the radix key are needed. For a quadtree, every pair of two bits corresponds to a bounds. The first bit is the x-axis, in our case - zero means left half, one means right half. The second bit indicates bottom or top. Every pair of bits is the subdivision of the previous pair's bounds.
 
 <script type="text/javascript">
 
@@ -175,6 +185,7 @@ In index order the nodes are laid out in array order. In tree order they are lai
 {% include js/octree-allocations-actor.js %}
 {% include js/leaf-parents-actor.js %}
 {% include js/quadtree-nodes-actor.js %}
+{% include js/quadtree-bounds-actor.js %}
 
 $(document).ready(function() {
 
@@ -187,6 +198,7 @@ $(document).ready(function() {
     var octreeAllocationsActor;
     var leafParentsActor;
     var quadtreeNodesActor;
+    var quadtreeBoundsActor;
 
     //
     // Interaction callbacks
@@ -200,6 +212,7 @@ $(document).ready(function() {
         octreeAllocationsActor.set_keys(sortedKeysActor.keys);
         leafParentsActor.set_keys(sortedKeysActor.keys);
         quadtreeNodesActor.set_keys(sortedKeysActor.keys);
+        quadtreeBoundsActor.set_particles(particles);
     }
 
     //
@@ -278,6 +291,14 @@ $(document).ready(function() {
         $("#{{ page.title | slugify }}-quadtree-nodes-order").click(function() {
             $(this).text(quadtreeNodesActor.toggle_order() ? "tree order" : "index order");
         });
+    }
+
+    {
+        var container = $("#{{ page.title | slugify }}-quadtree-bounds");
+        var scene = new SceneActor(container, 5);
+        DRAMA.add(scene);
+        quadtreeBoundsActor = new QuadtreeBoundsActor(scene);
+        DRAMA.add(quadtreeBoundsActor);
     }
 
     // Start with a few particles already placed.
