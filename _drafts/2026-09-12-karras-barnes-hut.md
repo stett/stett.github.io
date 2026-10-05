@@ -90,15 +90,15 @@ var interactUpdateParticles;
 var particleGridActor;
 </script>
 
-The purpose of this post is to interactively demonstrate the construction of an octree structure using purely parallel methods. This is largely based on the classic [Karras 2012](https://dl.acm.org/doi/10.5555/2383795.2383801) paper. I've modified it slightly to accomadate a particular octree data format which works well for faster traversal, with the ultimate goal of fully parallelizing [my nbody implementation]({% post_url 2025-02-24-nbody-262k %})
+The purpose of this post is to interactively demonstrate the construction of an octree structure using purely parallel methods. This is largely based on the classic [Karras 2012](https://dl.acm.org/doi/10.5555/2383795.2383801) paper. I've modified it slightly to accomodate a particular octree data format which works well for faster traversal, with the ultimate goal of fully parallelizing [my nbody implementation]({% post_url 2025-02-24-nbody-262k %}).
 
 <video width="100%" controls>
   <source src="{{ '/assets/video/parallel-octree.mp4' | relative_url }}" type="video/mp4">
 </video>
 
-In Karras' paper, the octree construction phase is packed into 2 paragraphs. In order to really clearly understand the entire tree construction process - from morton encoding to radix tree construction and building the final octree - I found myself writing up many 8x8 plots of points which I expected to exhibit edge cases and stepping through the algorithm and its memory transformations on paper.
+In Karras' paper, the octree construction phase is packed into two paragraphs. In order to really clearly understand the entire tree construction process - from morton encoding to radix tree construction and building the final octree - I found myself writing up many 8x8 plots of points which I expected to exhibit edge cases and stepping through the algorithm and its memory transformations on paper.
 
-In order to check my understanding of each stage of the algorithm, I made this little interactive reference implementation of a parallelizeable quadtree builder.
+In order to check my understanding of each stage of the algorithm, I made this little interactive reference implementation of a parallelizable quadtree builder. This demonstrates construction of a quadtree, but the extension of the concept to octrees in three dimensions doesn't significantly change the algorithm in any way.
 
 <div class="container-3js" id="{{ page.title | slugify }}-particle-grid"></div>
 
@@ -123,8 +123,6 @@ $(document).ready(function() {
     DRAMA.add(particleGridActor);
 
     // Start with a few particles already placed.
-    // TEMP: fixed seed so every refresh builds the same tree. Drop the seed
-    // argument to go back to a fresh layout each load.
     particleGridActor.randomize(5, 1);
 });
 
@@ -132,13 +130,13 @@ $(document).ready(function() {
 
 <!-- excerpt -->
 
-The square above is a region of space, sparsely populated by particles in any order. Each cell is a unique location which is the most finely representable point in space given a certain number of bits. In this case we limit ourselves to just 3 bits for simplicity, so the x and y coordinates each are constrained to the range of values from $[0,8)$.
+The square above is a region of space, sparsely populated by particles in any order. Each cell is a point in space which is most finely representable given a certain number of bits. In this case we limit ourselves to just 3 bits for simplicity, so the x and y coordinates are each integers in the range $[0,8)$.
 
-Click anywhere to add or remove a particle from a point in space. This widget supports up to 10 particles, so if you add an 11th, the 1st particle will be removed and all indices will be updated. You should see the quadtree structure become updated in real time over the grid, demonstrating the algorithm which this article will describe in the following steps.
+Click anywhere to add or remove a particle from a point in space. This widget supports up to 10 particles, so if you add an 11th, the 1st particle will be removed and all indices will be updated. You should see the quadtree structure update in real time, demonstrating the algorithm which this article will describe in the following steps.
 
-Changes to the input data in the tree above will be reflected in the memory diagrams below, illustrating how memory transforms through every step of the construction of a quadtree. Crucially, each step of this algorithm can be executed in parallel. Some of them lend themselves well to the use of SIMD primitives, but any of them can be done using SIMT (ie, GPU kernels).
+Changes made above will be reflected in the memory diagrams below, illustrating how memory transforms through every step of the construction of a quadtree. Crucially, each step of this algorithm can be executed in parallel. Some of them lend themselves well to the use of SIMD primitives, but any of them can be done using SIMT (i.e., GPU kernels).
 
-This article, the algorithm it describes, and the  C++ implementation which I've written [here](https://github.com/stett/nbody) are all still a work in progress.
+This article, the algorithm it describes, and the [C++ implementation](https://github.com/stett/nbody) are all still a work in progress.
 
 <h4>Step 0: Morton Encoding</h4>
 
@@ -150,7 +148,7 @@ This process is trivially parallel and has complexity $O\(N\)$ in the number of 
 
 <h4>Step 1: Morton Key Sort</h4>
 
-Sorting an array of morton keys puts them into an order where spatial proximity correlates with proximity in address space. Because we may also have other data than positions associated with leaf nodes, we will simultaneously produce a reverse map - an array of indices back into the original particle positions array.
+Sorting an array of morton keys puts them into an order where spatial proximity correlates with proximity in address space. Because we may also have data other than positions associated with leaf nodes, we will simultaneously produce a reverse map - an array of indices back into the original particle positions array.
 
 A [Radix Sort](https://en.wikipedia.org/wiki/Radix_sort) can be used here, which is also $O\(N\)$.
 
@@ -160,7 +158,7 @@ A [Radix Sort](https://en.wikipedia.org/wiki/Radix_sort) can be used here, which
 
 Each of the $n$ morton keys is a leaf node in a radix tree which has $n-1$ internal nodes. Each internal node in a radix tree represents a splitting index - given a range of keys which share a common prefix, the splitting point for that range is the point at which the next most significant bit past the common prefix begins to differ. For example, if you have a range containing the keys `0:110001`, `1:110010`, and `2:111001`, the common prefix is `11` and the splitting point would be between elements 1 and 2 because that is where the bit just past the prefix changes from `0` to `1`.
 
-The node splitting pattern is illustrated in the following diagram. The first row shows the leaf nodes of the radix tree - ie the sorted morton keys from the diagram above. The subsequent rows show the prefixes, ranges, and split positions for each of the internal radix tree nodes.
+The node splitting pattern is illustrated in the following diagram. The first row shows the leaf nodes of the radix tree - i.e. the sorted morton keys from the diagram above. The subsequent rows show the prefixes, ranges, and split positions for each of the internal radix tree nodes.
 
 <div class="container-3js" id="{{ page.title | slugify }}-radix-tree-split"></div>
 
@@ -174,11 +172,11 @@ The `quad_internals` and `quad_leaves` values indicate the number of internal an
 
 <div class="container-3js" id="{{ page.title | slugify }}-radix-tree-arrays"></div>
 
-It's possible that for some applications the `parents` array is not actually necessary. However, for a Barnes-Hut implementation a bottom-up traversal of the tree is needed in order to populate each node with average mass data from child nodes. Parent indices are needed for bottom-up traversal.
+It's possible that for some applications the `parents` array is not actually necessary. However, for a Barnes-Hut implementation a bottom-up traversal of the tree is needed in order to populate each node with total mass data from child nodes. Parent indices are needed for bottom-up traversal.
 
 <h4>Step 3: Quadtree/Octree Allocation</h4>
 
-The number of nodes in the quadtree that we will produce does not have a simple relationship to the number of radix nodes or keys like every other buffer up to this point. from the `quad_internals` and `quad_leaves` arrays, we know how octree nodes to allocate per each radix tree node. To get the total, we first compute the sum `quad_internals + quad_leaves`, and then the exclusive prefix sum on the result.
+The number of nodes in the quadtree that we will produce does not have a simple relationship to the number of radix nodes or keys, unlike every other buffer described up to this point. From the `quad_internals` and `quad_leaves` arrays, we know how many octree nodes to allocate per each radix tree node. To get the total, we first compute the sum `quad_internals + quad_leaves`, and then the exclusive prefix sum on the result.
 
 The entries of the resulting buffer will be the offsets into the quadtree node array for each radix node. The last value (plus one, for the root node) will indicate the total number of quadtree nodes to allocate.
 
@@ -186,15 +184,15 @@ The entries of the resulting buffer will be the offsets into the quadtree node a
 
 <h4>Step 4: Create Leaf Node Map</h4>
 
-This is an intermediate step to create an index map from the leaves/keys array into the octree nodes array. Each key corresponds with a leaf node in the quadtree. It's necessary to keep these indices around so that leaf nodes can be inserted into the correct locations in the final quadtree structure, and is also useful for doing bottom up traversals of the tree starting with the leaf nodes, as we will need to do for Barne's Hut.
+This is an intermediate step to create an index map from the leaves/keys array into the octree nodes array. Each key corresponds to a leaf node in the quadtree. It's necessary to keep these indices around so that leaf nodes can be inserted into the correct locations in the final quadtree structure. It is also useful for bottom up traversals of the tree starting with the leaf nodes, as we will need to do for Barnes-Hut.
 
 <div class="container-3js" id="{{ page.title | slugify }}-leaf-parents"></div>
 
 <h4>Step 5: Construct Quadtree/Octree</h4>
 
-The quadtree nodes themselves. The array is as long as the `total` from step 3, and each node holds the index of its `parent`, its first `child`, and the "escape index", `next`. `next` carries two meanings - in the case that a node has a sibling that follows it, `next` will be the index of that sibling. Otherwise, if the node is the last child of its parent, `next` will equal its parents `next`.
+The quadtree nodes themselves. The array is as long as the `total` from step 3, and each node holds the index of its `parent`, its first `child`, and the "escape index", `next`. `next` carries two meanings - in the case that a node has a sibling that follows it, `next` will be the index of that sibling. Otherwise, if the node is the last child of its parent, `next` will equal its parent's `next`.
 
-`next` is referred to as the escape index because during depth-first traversal a nodes `next` is compared to its parent's in order to end the iteration or "escape" the current branch of the tree once all children have been exhausted.
+`next` is referred to as the escape index because a node's `next` is used to escape a branch of the tree when a traversal decides not to go any deeper. For example when a node's mass approximation is "good enough" in a Barnes-Hut implementation, the `next` pointer can be used to jump to the next branch and skip the whole subtree.
 
 In index order the nodes are laid out in array order. In tree order they are laid out one row per depth, with each group of siblings kept together beneath its parent. Leaf nodes are drawn with a dashed outline.
 
@@ -204,23 +202,25 @@ In index order the nodes are laid out in array order. In tree order they are lai
     <button type="button" id="{{ page.title | slugify }}-quadtree-nodes-order">index order</button>
 </div>
 
-Each radix key contains enough information to reconstruct each bounds of the quadtree leading down to the corresponding leaf. For intermediate nodes, a subset of the bits of the radix key are needed. For a quadtree, every pair of two bits corresponds to a bounds. The first bit is the x-axis, in our case - zero means left half, one means right half. The second bit indicates bottom or top. Every pair of bits is the subdivision of the previous pair's bounds.
+Each Morton key contains enough information to reconstruct the bounds of each node of the quadtree, down to the corresponding leaf. For intermediate nodes, a subset of the bits of the Morton key are needed. For a quadtree, each pair of bits corresponds to a bounds. The most significant two bits will be the outermost bounds, and the least significant two bits will be the innermost bounds - every pair of bits in between is a level in the quadtree. The first bit in a pair is the x-axis, in our case - zero means left half, one means right half. The second bit indicates bottom or top. Every pair of bits is the subdivision of the previous pair's bounds.
+
+These node bounds are not shown in the memory diagram above, but they're computed and stored in the quadtree nodes during the quadtree construction of step 5, alongside the parent, next, and child indices.
 
 Finally, the bounds of every node, drawn over the same square as the particle grid at the top. Each internal node is split into its four quadrants, and each leaf is outlined with a dashed line. The circles mark the particles, numbered as in the grid at the top.
 
 <div class="container-3js" id="{{ page.title | slugify }}-quadtree-bounds"></div>
 
-Though complex and subtle in its implementation, we've demonstrated a set of algorithms for construction of a quadtree/octree which can be accelerated by parallelism at every step.
+Though complex and subtle in its implementation, every step of this quadtree/octree construction can be parallelized.
 
 <h4>Final Notes</h4>
 
 In this article I described each part of the algorithm in English, and purposefully avoided getting into the weeds on implementation subtleties. I wrote this originally as an aid to myself to help debug edge-cases while writing the implementation which I used to generate the n-body simulation which is shown in the video at the front of the article.
 
-*This algorithm is not fully complete yet* - as can be seen from the index/tree orderings in the final construction of the quadtree, the escape-pointer quadtree structure is not optimal. A regular traversal can cause cache misses because the nodes are not sorted into depth-first-search (dfs) order, which is the order that this stucture typically benefits the most from.
+*This algorithm is not fully complete yet* - as can be seen from the index/tree orderings in the final construction of the quadtree, the escape-pointer quadtree structure is not optimal. A regular traversal can cause cache misses because the nodes are not sorted into depth-first-search (dfs) order, which is the order that this structure typically benefits the most from.
 
 While building the nbody simulation, I've gone through many iterations and compared profiles. Putting the tree construction into this form benefits massively from parallelization and use of SIMD, but the cost of traversal increases significantly due to the loss of dfs ordering in the final structure.
 
-Besides just optimization of memory access, dfs ordering of the quadtree/octree could potentially allow removal of the `parent` and `next` indices, which would be a significant savings in memory usage, while further improving cache friendliness.
+Besides just optimization of memory access, dfs ordering of the quadtree/octree could potentially allow removal of the `parent` and `child` indices since the first child of a node would always immediately follow its parent in memory. A bottom up traversal would be a scan from right to left, and a top down traversal would be a scan from left to right. This would be a significant savings in memory usage, while further improving cache friendliness.
 
 I'm currently exploring adding another parallel sort step into this algorithm which will result in a dfs-ordered structure. Careful profiling and attention to memory layout is essential so that each new step in this algorithm is an overall improvement in performance for my use case.
 
