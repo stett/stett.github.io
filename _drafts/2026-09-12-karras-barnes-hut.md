@@ -132,7 +132,7 @@ $(document).ready(function() {
 
 The square above is a region of space, sparsely populated by particles in any order. Each cell is a point in space which is most finely representable given a certain number of bits. In this case we limit ourselves to just 3 bits for simplicity, so the x and y coordinates are each integers in the range $[0,8)$.
 
-Click anywhere to add or remove a particle from a point in space. This widget supports up to 10 particles, so if you add an 11th, the 1st particle will be removed and all indices will be updated. You should see the quadtree structure update in real time, demonstrating the algorithm which this article will describe in the following steps.
+Click anywhere to add or remove a particle from a point in space. This widget supports up to 10 particles, so if you add an 11th, the oldest particle will be removed and all indices will be updated. You should see the quadtree structure update in real time, demonstrating the algorithm which this article will describe in the following steps.
 
 Changes made above will be reflected in the memory diagrams below, illustrating how memory transforms through every step of the construction of a quadtree. Crucially, each step of this algorithm can be executed in parallel. Some of them lend themselves well to the use of SIMD primitives, but any of them can be done using SIMT (i.e., GPU kernels).
 
@@ -166,17 +166,17 @@ The node splitting pattern is illustrated in the following diagram. The first ro
     <button type="button" id="{{ page.title | slugify }}-radix-tree-split-order">index order</button>
 </div>
 
-The following arrays are the radix node data, which will be fed into the next step for construction of the octree structure. Internal node indices are prefixed with an `*`. Other indices refer to leaves (the sorted Morton key array).
+The following arrays are the radix node data, which will be fed into the next step for construction of the quadtree structure. Internal node indices are prefixed with an `*`. Other indices refer to leaves (the sorted Morton key array).
 
 The `quad_internals` and `quad_leaves` values indicate the number of internal and leaf _quadtree_ nodes that will be emitted by each radix node. Karras uses only the first of these two numbers, but I'll need the second as well for the linear quadtree format that I'll construct in the final step.
 
 <div class="container-3js" id="{{ page.title | slugify }}-radix-tree-arrays"></div>
 
-It's possible that for some applications the `parents` array is not actually necessary. However, for a Barnes-Hut implementation a bottom-up traversal of the tree is needed in order to populate each node with total mass data from child nodes. Parent indices are needed for bottom-up traversal.
+It's possible that for some applications the `parents` array is not actually necessary. However, for a Barnes-Hut implementation a bottom-up traversal of the tree is needed in order to accumulate mass data from child nodes. Parent indices are needed for bottom-up traversal.
 
-<h4>Step 3: Quadtree/Octree Allocation</h4>
+<h4>Step 3: Quadtree Allocation</h4>
 
-The number of nodes in the quadtree that we will produce does not have a simple relationship to the number of radix nodes or keys, unlike every other buffer described up to this point. From the `quad_internals` and `quad_leaves` arrays, we know how many octree nodes to allocate per each radix tree node. To get the total, we first compute the sum `quad_internals + quad_leaves`, and then the exclusive prefix sum on the result.
+The number of nodes in the quadtree that we will produce does not have a simple relationship to the number of radix nodes or keys, unlike every other buffer described up to this point. From the `quad_internals` and `quad_leaves` arrays, we know how many quadtree nodes to allocate for each radix tree node. To get the total, we first compute the sum `quad_internals + quad_leaves`, and then the exclusive prefix sum on the result.
 
 The entries of the resulting buffer will be the offsets into the quadtree node array for each radix node. The last value (plus one, for the root node) will indicate the total number of quadtree nodes to allocate.
 
@@ -184,7 +184,7 @@ The entries of the resulting buffer will be the offsets into the quadtree node a
 
 <h4>Step 4: Create Leaf Node Map</h4>
 
-This is an intermediate step to create an index map from the leaves/keys array into the quadtree nodes array. Each key corresponds to a leaf node in the quadtree. It's necessary to keep these indices around so that leaf nodes can be inserted into the correct locations in the final quadtree structure. It is also useful for bottom up traversals of the tree starting with the leaf nodes, as we will need to do for Barnes-Hut.
+This is an intermediate step to create an index map from the leaves/keys array into the quadtree nodes array. Each key corresponds to a leaf node in the quadtree. It's necessary to keep these indices around so that leaf nodes can be inserted into the correct locations in the final quadtree structure. It is also useful for bottom-up traversals of the tree starting with the leaf nodes, as we will need to do for Barnes-Hut.
 
 <div class="container-3js" id="{{ page.title | slugify }}-leaf-parents"></div>
 
@@ -214,15 +214,17 @@ Though complex and subtle in its implementation, every step of this quadtree/oct
 
 <h4>Final Notes</h4>
 
-In this article I described each part of the algorithm in English, and purposefully avoided getting into the weeds on implementation subtleties. I wrote this originally as an aid to myself to help debug edge-cases while writing the implementation which I used to generate the n-body simulation which is shown in the video at the front of the article.
+In this article I described each part of the algorithm in English, and purposefully avoided getting into the weeds on implementation subtleties. I wrote this originally as an aid to myself to help debug edge cases while writing the implementation which I used to generate the n-body simulation which is shown in the video at the front of the article.
 
 *This algorithm is not fully complete yet* - as can be seen from the index/tree orderings in the final construction of the quadtree, the escape-pointer quadtree structure is not optimal. A regular traversal can cause cache misses because the nodes are not sorted into depth-first-search (DFS) order, which is the order that this structure typically benefits the most from.
 
 While building the n-body simulation, I've gone through many iterations and compared profiles. Putting the tree construction into this form benefits massively from parallelization and use of SIMD, but the cost of traversal increases significantly due to the loss of DFS ordering in the final structure.
 
-Besides just optimization of memory access, DFS ordering of the quadtree/octree could potentially allow removal of the `parent` and `child` indices since the first child of a node would always immediately follow its parent in memory. A bottom up traversal would be a scan from right to left, and a top down traversal would be a scan from left to right. This would be a significant savings in memory usage, while further improving cache friendliness.
+Besides just optimization of memory access, DFS ordering of the quadtree/octree could potentially allow removal of the `parent` and `child` indices since the first child of a node would always immediately follow its parent in memory. A bottom-up traversal would be a scan from right to left, and a top-down traversal would be a scan from left to right. This would be a significant savings in memory usage, while further improving cache friendliness.
 
-I'm currently exploring adding another parallel sort step into this algorithm which will result in a DFS-ordered structure. Careful profiling and attention to memory layout is essential so that each new step in this algorithm is an overall improvement in performance for my use case.
+I'm currently exploring adding another parallel sort step into this algorithm which will result in a DFS-ordered structure in order to realize these optimizations. Careful profiling and attention to memory layout are essential to check my assumptions on how the changes I described will actually affect performance.
+
+In the meantime, building these diagrams has helped me to visualize the memory layout of the radix tree and quadtree data structures. Hopefully if you've stumbled upon this page after having read Karras, you've found these visualizations a helpful supplement.
 
 <script type="text/javascript">
 
