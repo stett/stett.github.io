@@ -63,6 +63,20 @@ function registerThemedScene(sceneActor) {
     themedScenes.push(sceneActor);
 }
 
+// Repaint every diagram canvas, redrawing text in the current colors and font.
+function repaintThemedScenes() {
+    for (var i = 0; i < themedScenes.length; ++i) {
+        var sceneActor = themedScenes[i];
+        sceneActor.renderer.setClearColor(bgColor(), 1);
+        sceneActor.invalidate();
+        sceneActor.scene.traverse(function(node) {
+            if (node.refreshColors) {
+                node.refreshColors();
+            }
+        });
+    }
+}
+
 if (typeof themeWatched === "undefined") {
     var themeWatched = true;
     window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function() {
@@ -71,24 +85,27 @@ if (typeof themeWatched === "undefined") {
             var themed = themedMaterials[m];
             themed.material.color.set(resolveColor(themed.color));
         }
-        for (var i = 0; i < themedScenes.length; ++i) {
-            var sceneActor = themedScenes[i];
-            sceneActor.renderer.setClearColor(bgColor(), 1);
-            sceneActor.invalidate();
-            sceneActor.scene.traverse(function(node) {
-                if (node.refreshColors) {
-                    node.refreshColors();
-                }
-            });
-        }
+        repaintThemedScenes();
     });
 }
 
-// Canvas pixels per scene unit. High enough that glyphs are drawn large and
-// minified on screen, rather than magnified and blurry, even on a high DPI
-// screen. Every label is its own texture and the diagrams rebuild all of them
-// on each click, so this is also most of what a click costs.
-var TEXT_RESOLUTION = 128;
+// Text is drawn from a glyph atlas: every printable ASCII character drawn once,
+// in white, into one shared texture. A label is then just a quad per character,
+// tinted with vertex colors. The diagrams rebuild all their labels on every
+// click, and this way that never draws to a canvas or uploads a texture, which
+// is slow everywhere and very slow in Safari.
+var ATLAS_FIRST = 32;
+var ATLAS_LAST = 126;
+var ATLAS_COLS = 16;
+
+// Atlas pixels per em. High enough that glyphs are drawn large and minified on
+// screen, rather than magnified and blurry, even on a high DPI screen.
+var ATLAS_FONT_PX = 64;
+
+// Space around each glyph, so neighbors don't bleed in at the smaller mipmaps.
+var ATLAS_PAD = 8;
+
+var textAtlas = textAtlas || null;
 
 function nextPowerOfTwo(value) {
     var pot = 1;
@@ -98,55 +115,135 @@ function nextPowerOfTwo(value) {
     return pot;
 }
 
-// A quad whose texture is a canvas the text is drawn into. fontHeight is in
-// scene units. Call quad.setText() for one color, or
-// quad.setSpans([{ text, color }, ...]) for several.
-function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
+function drawTextAtlas(atlas) {
+    var ctx = atlas.canvas.getContext("2d");
+    var font = "bold " + ATLAS_FONT_PX + "px 'Ubuntu Mono', monospace";
+    ctx.font = font;
+
+    // Monospaced, so one advance serves every character.
+    atlas.advance = ctx.measureText("M").width;
+    atlas.cellWidth = Math.ceil(atlas.advance + ATLAS_PAD * 2);
+    atlas.cellHeight = Math.ceil(ATLAS_FONT_PX * 1.25 + ATLAS_PAD * 2);
+    var rows = Math.ceil((ATLAS_LAST - ATLAS_FIRST + 1) / ATLAS_COLS);
+
+    // Power-of-two dimensions, so the atlas can be mipmapped.
+    atlas.canvas.width = nextPowerOfTwo(ATLAS_COLS * atlas.cellWidth);
+    atlas.canvas.height = nextPowerOfTwo(rows * atlas.cellHeight);
+
+    // Resizing the canvas reset the context.
+    ctx.font = font;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#ffffff";
+    for (var c = ATLAS_FIRST; c <= ATLAS_LAST; ++c) {
+        var i = c - ATLAS_FIRST;
+        ctx.fillText(String.fromCharCode(c),
+            (i % ATLAS_COLS) * atlas.cellWidth + ATLAS_PAD,
+            (Math.floor(i / ATLAS_COLS) + 0.5) * atlas.cellHeight);
+    }
+    atlas.texture.needsUpdate = true;
+}
+
+function getTextAtlas() {
+    if (textAtlas) {
+        return textAtlas;
+    }
+
     var canvas = document.createElement("canvas");
-    canvas.width = nextPowerOfTwo(TEXT_RESOLUTION * width);
-    canvas.height = nextPowerOfTwo(TEXT_RESOLUTION * height);
-    // Mipmapped, so the minified glyphs are filtered rather than aliased. That
-    // needs power-of-two canvas dimensions, which the draw below corrects for.
     var texture = new THREE.CanvasTexture(canvas);
     texture.minFilter = THREE.LinearMipMapLinearFilter;
     texture.generateMipmaps = true;
-    var quad = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({
-        map: texture,
-        transparent: true,
-        side: THREE.DoubleSide,
-        depthTest: false }));
+    textAtlas = {
+        canvas: canvas,
+        texture: texture,
+        material: new THREE.MeshBasicMaterial({
+            map: texture,
+            vertexColors: THREE.VertexColors,
+            transparent: true,
+            side: THREE.DoubleSide,
+            depthTest: false })
+    };
+    drawTextAtlas(textAtlas);
+
+    // The web font may still be loading, in which case the atlas was drawn in
+    // the fallback. Redraw it, and every label, once the font arrives.
+    if (document.fonts && document.fonts.load) {
+        document.fonts.load("bold " + ATLAS_FONT_PX + "px 'Ubuntu Mono'").then(function() {
+            drawTextAtlas(textAtlas);
+            repaintThemedScenes();
+        });
+    }
+    return textAtlas;
+}
+
+// A label, centered on its origin. fontHeight is in scene units; width and
+// height are the size of the cell it sits in. Call quad.setText() for one
+// color, or quad.setSpans([{ text, color }, ...]) for several.
+function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
+    var atlas = getTextAtlas();
+    var quad = new THREE.Mesh(new THREE.BufferGeometry(), atlas.material);
     quad.renderOrder = 1;
     quad.scale.set(0.9, -0.9, 1);
     var lastSpans = null;
     quad.setSpans = function(spans) {
         lastSpans = spans;
-        var ctx = canvas.getContext("2d");
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // The canvas was rounded up to a power of two, so it is stretched onto
-        // the quad horizontally. Draw into a square-pixel space of the same
-        // height and pre-stretch it by the same amount, so text is not squashed.
-        var pixelsPerUnit = canvas.height / height;
-        var logicalWidth = pixelsPerUnit * width;
-        ctx.setTransform(canvas.width / logicalWidth, 0, 0, 1, 0, 0);
-        ctx.font = "bold " + (fontHeight * pixelsPerUnit) + "px 'Ubuntu Mono', monospace";
-        ctx.textAlign = "left";
-        ctx.textBaseline = "middle";
-
-        // Center the spans as a group.
-        var total = 0;
+        var text = "";
+        var colors = [];
         for (var i = 0; i < spans.length; ++i) {
-            total += ctx.measureText(spans[i].text).width;
-        }
-        var x = (logicalWidth - total) * 0.5;
-        for (var i = 0; i < spans.length; ++i) {
-            ctx.fillStyle = resolveColor(spans[i].color || color);
-            ctx.fillText(spans[i].text, x, canvas.height * 0.5);
-            x += ctx.measureText(spans[i].text).width;
+            var spanColor = new THREE.Color(resolveColor(spans[i].color || color));
+            for (var j = 0; j < spans[i].text.length; ++j) {
+                text += spans[i].text[j];
+                colors.push(spanColor);
+            }
         }
 
-        texture.needsUpdate = true;
+        // One quad per visible character, the run of them centered as a group.
+        // The atlas canvas is uploaded flipped, so canvas rows run down from
+        // v = 1, and the top of a glyph is +y here.
+        var unit = fontHeight / ATLAS_FONT_PX;
+        var cw = atlas.cellWidth;
+        var ch = atlas.cellHeight;
+        var aw = atlas.canvas.width;
+        var ah = atlas.canvas.height;
+        var x0 = -text.length * atlas.advance * unit * 0.5;
+        var top = ch * unit * 0.5;
+        var positions = [];
+        var uvs = [];
+        var vertexColors = [];
+        var indices = [];
+        for (var i = 0; i < text.length; ++i) {
+            var code = text.charCodeAt(i);
+            if (code == 32) {
+                continue;
+            }
+            if (code < ATLAS_FIRST || code > ATLAS_LAST) {
+                code = 63; // "?"
+            }
+            var cell = code - ATLAS_FIRST;
+            var u0 = (cell % ATLAS_COLS) * cw / aw;
+            var u1 = u0 + cw / aw;
+            var v0 = 1 - Math.floor(cell / ATLAS_COLS) * ch / ah;
+            var v1 = v0 - ch / ah;
+            var left = x0 + (i * atlas.advance - ATLAS_PAD) * unit;
+            var right = left + cw * unit;
+
+            var base = positions.length / 3;
+            positions.push(left, top, 0, right, top, 0, left, -top, 0, right, -top, 0);
+            uvs.push(u0, v0, u1, v0, u0, v1, u1, v1);
+            for (var k = 0; k < 4; ++k) {
+                vertexColors.push(colors[i].r, colors[i].g, colors[i].b);
+            }
+            indices.push(base, base + 2, base + 1, base + 2, base + 3, base + 1);
+        }
+
+        var geometry = new THREE.BufferGeometry();
+        geometry.setIndex(indices);
+        geometry.addAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+        geometry.addAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+        geometry.addAttribute("color", new THREE.Float32BufferAttribute(vertexColors, 3));
+        quad.geometry.dispose();
+        quad.geometry = geometry;
         quad.visible = true;
     };
 
@@ -154,8 +251,8 @@ function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
         quad.setSpans([{ text: String(text), color: color }]);
     };
 
-    // Redraw in the current colors. setSpans reveals the quad, so a label that
-    // was hidden stays hidden.
+    // Rebuild in the current colors and font. setSpans reveals the quad, so a
+    // label that was hidden stays hidden.
     quad.refreshColors = function() {
         if (lastSpans) {
             var wasVisible = quad.visible;
@@ -167,38 +264,12 @@ function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
 }
 
 // Rebuilt diagrams have to free their own GPU resources: three.js holds onto
-// geometries and textures until they are disposed. Shared materials (the ones
-// without a canvas texture of their own) are left alone.
-//
-// Disposal waits until the replacement has been drawn. Disposing every text
-// material at once releases the shader program they share, and the
-// replacements would then recompile it in every renderer on the next frame.
-var pendingDisposals = pendingDisposals || [];
-
+// geometries until they are disposed. Materials are all shared, so they are
+// left alone.
 function disposeObject(object) {
-    if (pendingDisposals.length == 0) {
-        requestAnimationFrame(function() {
-            requestAnimationFrame(disposePending);
-        });
-    }
-    pendingDisposals.push(object);
-}
-
-function disposePending() {
-    var objects = pendingDisposals.splice(0);
-    for (var i = 0; i < objects.length; ++i) {
-        disposeNow(objects[i]);
-    }
-}
-
-function disposeNow(object) {
     object.traverse(function(node) {
         if (node.geometry) {
             node.geometry.dispose();
-        }
-        if (node.material && node.material.map) {
-            node.material.map.dispose();
-            node.material.dispose();
         }
     });
 }
