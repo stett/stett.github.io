@@ -10,6 +10,13 @@
 // Clicking a cell selects it, which keeps its colors up after the mouse leaves.
 // Curved arrows in the same colors join the links to the cells they point to:
 // one into the cell from its parent, and two out of it, to its child and next.
+//
+// Under the nodes is the leaf payload array, one empty cell per key. A leaf's
+// child is the index of its payload, so a leaf's child arrow runs down to it.
+// Hovering or selecting a payload cell traces the traversal from the root down
+// to it, following child into the subtree holding its leaf and next past every
+// other subtree, in the same green and yellow. Each index it passes is colored
+// by the link it arrives by, and the root by the link it leaves by.
 // The hovered and selected cells are drawn a size larger than the rest, and a
 // cell is drawn halfway between the two sizes while the mouse is held down on it.
 //
@@ -39,6 +46,11 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
         this.cols = cols;
         this.shrink = shrink;
         this.treeGap = treeGap;
+        this.payloadWidth = 1.2;
+        this.payloadScale = 0.7;
+        this.payloadGap = 1.8;
+        this.payloadLabelWidth = 3.1;
+        this.payloadLabelGap = 0.2;
         this.object = null;
         this.tree_order = false;
         this.hovered = -1;
@@ -296,6 +308,44 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
         this.links = new THREE.LineSegments(links, treeLinkMaterial);
         object.add(this.links);
 
+        // The leaf payload array, a row of empty cells in key order, drawn a
+        // little smaller than the nodes. _layout() places the row under
+        // whichever order is showing. Its cells are picked like the nodes',
+        // as the indices after the last node.
+        var pw = this.payloadWidth;
+        var inset = 0.1;
+        this.payload = new THREE.Object3D();
+        this.payload.scale.set(this.payloadScale, this.payloadScale, 1);
+        this.payloadCells = [];
+        for (var i = 0; i < keys.length; ++i) {
+            var pcell = new THREE.Object3D();
+            pcell.position.set((i - (keys.length - 1) * 0.5) * pw, 0, 0);
+            pcell.outlines = [
+                makeOutline(pw - inset * 2, 1 - inset * 2),
+                makeOutline(pw - inset, 1 - inset),
+                makeOutline(pw, 1)];
+            for (var k = 0; k < pcell.outlines.length; ++k) {
+                pcell.outlines[k].visible = k == 0;
+                pcell.add(pcell.outlines[k]);
+            }
+
+            var hit = makeQuad(emptyMaterial, pw, 1);
+            hit.nodeIndex = nodes.length + i;
+            pcell.add(hit);
+            this.hits.push(hit);
+
+            pcell.indexLabel = addText(pcell, 0, -0.9, pw, i);
+            this.payload.add(pcell);
+            this.payloadCells.push(pcell);
+        }
+
+        // A row label, to the left of the row as in the leaf parents diagram.
+        if (keys.length > 0) {
+            addText(this.payload, -keys.length * pw * 0.5 - this.payloadLabelGap -
+                this.payloadLabelWidth * 0.5, 0, this.payloadLabelWidth, "leaf data");
+        }
+        object.add(this.payload);
+
         // Filled in by _drawArrows().
         this.arrows = new THREE.Object3D();
         object.add(this.arrows);
@@ -349,48 +399,147 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
         }
     }
 
-    // Color the links of the hovered cell, or the selected one when nothing is
-    // hovered, along with the index digits of the cells they point to.
+    // The hovered cell, or the selected one when nothing is hovered, as the
+    // node it is, or as the payload cell when it is one of those.
+    _active() {
+        var n = this.cells.length;
+        var active = this.hovered >= 0 ? this.hovered : this.selected;
+        return {
+            node: active >= 0 && active < n ? active : -1,
+            payload: active >= n ? active - n : -1 };
+    }
+
+    // The walk from the root to the leaf holding payload p, as a list of steps
+    // { from, link, to }, link 1 being child and 2 next. The last step is the
+    // leaf's child, onto the payload, and has no to. The walk goes into a node's
+    // children only when the node is an ancestor of the leaf, and otherwise
+    // skips past it with next.
+    _trace(p) {
+        var cells = this.cells;
+        var n = cells.length;
+        var leaf = -1;
+        for (var i = 0; i < n; ++i) {
+            if (cells[i].isLeaf && cells[i].links[1] === p) {
+                leaf = i;
+            }
+        }
+        if (leaf < 0) {
+            return [];
+        }
+
+        // The root is its own parent, which ends the climb.
+        var ancestors = {};
+        for (var a = leaf; typeof a === "number" && a < n && !ancestors[a]; a = cells[a].links[0]) {
+            ancestors[a] = true;
+        }
+
+        // The guard stops a malformed tree from walking forever.
+        var steps = [];
+        var node = 0;
+        while (node !== leaf && steps.length <= 2 * n) {
+            var link = ancestors[node] ? 1 : 2;
+            var to = cells[node].links[link];
+            if (typeof to !== "number" || to >= n) {
+                return steps;
+            }
+            steps.push({ from: node, link: link, to: to });
+            node = to;
+        }
+        if (node === leaf) {
+            steps.push({ from: leaf, link: 1 });
+        }
+        return steps;
+    }
+
+    // Color the active node's links, blue, green and yellow, and the index
+    // digits of the cells they point to. For an active payload cell, color the
+    // walk down to it instead: each link it takes, and each index it passes in
+    // the color of the link it arrives by. The walk visits a node at most once,
+    // so that is only ever one color.
     _highlight() {
         var colors = [blueColor, greenColor, yellowColor];
-        var active = this.hovered >= 0 ? this.hovered : this.selected;
-        var targets = active >= 0 ? this.cells[active].links.slice() : [];
+        var n = this.cells.length;
+        var active = this._active();
+        var targets = active.node >= 0 ? this.cells[active.node].links.slice() : [];
 
-        // A leaf's child is not a node, so it has no cell to point to.
-        if (active >= 0 && this.cells[active].isLeaf) {
+        // A leaf's child is not a node but a payload index, so it points to a
+        // payload cell rather than a node cell.
+        var payloadTarget;
+        if (active.node >= 0 && this.cells[active.node].isLeaf) {
+            payloadTarget = targets[1];
             targets[1] = undefined;
         }
 
-        for (var i = 0; i < this.cells.length; ++i) {
-            var cell = this.cells[i];
-            var size = i == this.pressed ? 1 : (i == this.hovered || i == this.selected) ? 2 : 0;
-            for (var k = 0; k < cell.outlines.length; ++k) {
-                cell.outlines[k].visible = k == size;
+        // The link each node on the walk leaves by, and the link each index on
+        // it is arrived at by. The root, where the walk starts, has none, so it
+        // takes the link it leaves by.
+        var traceLinks = {};
+        var traced = {};
+        var payloadTraced = false;
+        if (active.payload >= 0) {
+            var steps = this._trace(active.payload);
+            if (steps.length > 0) {
+                traced[steps[0].from] = steps[0].link;
             }
+            for (var s = 0; s < steps.length; ++s) {
+                traceLinks[steps[s].from] = steps[s].link;
+                if (steps[s].to === undefined) {
+                    payloadTraced = true;
+                } else {
+                    traced[steps[s].to] = steps[s].link;
+                }
+            }
+        }
+
+        // An index in two colors, like the root's when it is active, as its own
+        // parent and next, is split diagonally. The later link, next, takes the
+        // top right, where its arrow comes in, and the earlier the bottom left.
+        function colorIndex(label, i, indexColors) {
+            if (indexColors.length > 1) {
+                label.setSpans([{ text: String(i), color: indexColors[1] }],
+                    { color: indexColors[0], normal: [-1, -1] });
+            } else {
+                label.setSpans([{ text: String(i), color: indexColors[0] || fgColor }]);
+            }
+        }
+
+        var self = this;
+        function size(key) {
+            return key == self.pressed ? 1 : (key == self.hovered || key == self.selected) ? 2 : 0;
+        }
+        function showSize(cell, key) {
+            for (var k = 0; k < cell.outlines.length; ++k) {
+                cell.outlines[k].visible = k == size(key);
+            }
+        }
+
+        for (var i = 0; i < this.payloadCells.length; ++i) {
+            var pcell = this.payloadCells[i];
+            showSize(pcell, n + i);
+            var payloadColor = (i === active.payload && payloadTraced) ||
+                i === payloadTarget ? greenColor : fgColor;
+            pcell.indexLabel.setSpans([{ text: String(i), color: payloadColor }]);
+        }
+
+        for (var i = 0; i < n; ++i) {
+            var cell = this.cells[i];
+            showSize(cell, i);
 
             var spans = [{ text: "(" }];
             for (var k = 0; k < 3; ++k) {
-                spans.push({ text: String(cell.links[k]), color: i == active ? colors[k] : undefined });
+                var linkColor = i == active.node || traceLinks[i] === k ? colors[k] : undefined;
+                spans.push({ text: String(cell.links[k]), color: linkColor });
                 spans.push({ text: k < 2 ? "," : ")" });
             }
             cell.triad.setSpans(spans);
 
-            // A cell two links point to, like the root, which is its own parent
-            // and next, is split diagonally between their colors. The later
-            // link, which is next for the root, takes the top right, where its
-            // arrow comes in, and the earlier one the bottom left.
             var indexColors = [];
             for (var k = 0; k < 3; ++k) {
-                if (targets[k] === i) {
+                if (targets[k] === i || traced[i] === k) {
                     indexColors.push(colors[k]);
                 }
             }
-            if (indexColors.length > 1) {
-                cell.indexLabel.setSpans([{ text: String(i), color: indexColors[1] }],
-                    { color: indexColors[0], normal: [-1, -1] });
-            } else {
-                cell.indexLabel.setSpans([{ text: String(i), color: indexColors[0] || fgColor }]);
-            }
+            colorIndex(cell.indexLabel, i, indexColors);
         }
         this._drawArrows();
         this.sceneActor.invalidate();
@@ -408,8 +557,8 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
             old.geometry.dispose();
         }
 
-        var active = this.hovered >= 0 ? this.hovered : this.selected;
-        if (active < 0) {
+        var active = this._active();
+        if (active.node < 0 && active.payload < 0) {
             return;
         }
 
@@ -426,6 +575,16 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
             return new THREE.Vector2(
                 cell.position.x + x * cell.scale.x,
                 cell.position.y + y * cell.scale.y);
+        }
+
+        // The same for a payload cell, which sits in the scaled payload row.
+        var payload = this.payload;
+        var payloadCells = this.payloadCells;
+        function payloadAt(i, x, y) {
+            var pcell = payloadCells[i];
+            return new THREE.Vector2(
+                payload.position.x + (pcell.position.x + x) * payload.scale.x,
+                payload.position.y + (pcell.position.y + y) * payload.scale.y);
         }
 
         // The left edge, center and right edge of each link in the triad.
@@ -492,9 +651,7 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
 
         var right = new THREE.Vector2(1, 0);
         var down = new THREE.Vector2(0, 1);
-        var cell = cells[active];
-        var spans = linkSpans(cell);
-        var scale = cell.scale.x;
+        var up = down.clone().negate();
         function valid(i) {
             return typeof i === "number" && i < cells.length;
         }
@@ -503,7 +660,6 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
         // other when the child is below, as in tree order, and the other way
         // round when it is above, as it can be in index order. Either way the
         // arrow crosses the parent's own cell.
-        var up = down.clone().negate();
         function parentToChild(fromBottom, fromTop, toTop, toBottom, scale, material) {
             if (toTop.y > fromBottom.y) {
                 arrow(fromBottom, down, toTop, down, scale, material);
@@ -512,37 +668,66 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
             }
         }
 
-        // From the parent's index onto the parent link.
-        var parent = cell.links[0];
-        if (valid(parent)) {
-            parentToChild(indexBottom(parent), indexTop(parent),
-                at(cell, spans[0].center, -glyphHalf - pad),
-                at(cell, spans[0].center, glyphHalf + pad),
-                scale, parentArrowMaterial);
+        // From node i's child link onto the child's index, or for a leaf onto
+        // the index of its payload.
+        function childArrow(i, material) {
+            var cell = cells[i];
+            var spans = linkSpans(cell);
+            var child = cell.links[1];
+            var fromBottom = at(cell, spans[1].center, glyphHalf + pad);
+            var fromTop = at(cell, spans[1].center, -glyphHalf - pad);
+            if (!cell.isLeaf && valid(child)) {
+                parentToChild(fromBottom, fromTop, indexTop(child), indexBottom(child),
+                    cells[child].scale.x, material);
+            } else if (cell.isLeaf && typeof child === "number" && child < payloadCells.length) {
+                parentToChild(fromBottom, fromTop,
+                    payloadAt(child, 0, indexY - glyphHalf - pad),
+                    payloadAt(child, 0, indexY + glyphHalf + pad),
+                    payload.scale.x, material);
+            }
         }
 
-        // From the child link onto the child's index. A leaf's child is not a
-        // node, so leaves have none.
-        var child = cell.links[1];
-        if (!cell.isLeaf && valid(child)) {
-            parentToChild(at(cell, spans[1].center, glyphHalf + pad),
-                at(cell, spans[1].center, -glyphHalf - pad),
-                indexTop(child), indexBottom(child),
-                cells[child].scale.x, childArrowMaterial);
-        }
-
-        // Out past the end of the triad, into the next cell's index from the
-        // left, or from the right when the index is back to the left of where
-        // the arrow starts. That includes the root, which is its own next.
-        var next = cell.links[2];
-        if (valid(next)) {
-            var start = at(cell, spans.textRight + pad, 0);
+        // Out past the end of node i's triad, into the next cell's index from
+        // the left, or from the right when the index is back to the left of
+        // where the arrow starts. That includes the root, which is its own next.
+        function nextArrow(i, material) {
+            var cell = cells[i];
+            var next = cell.links[2];
+            if (!valid(next)) {
+                return;
+            }
+            var start = at(cell, linkSpans(cell).textRight + pad, 0);
             var fromRight = indexLeft(next).x < start.x;
             arrow(start, right,
                 fromRight ? indexRight(next) : indexLeft(next),
                 fromRight ? right.clone().negate() : right,
-                cells[next].scale.x, nextArrowMaterial);
+                cells[next].scale.x, material);
         }
+
+        if (active.payload >= 0) {
+            var steps = this._trace(active.payload);
+            for (var s = 0; s < steps.length; ++s) {
+                if (steps[s].link == 1) {
+                    childArrow(steps[s].from, childArrowMaterial);
+                } else {
+                    nextArrow(steps[s].from, nextArrowMaterial);
+                }
+            }
+            return;
+        }
+
+        // From the parent's index onto the parent link.
+        var cell = cells[active.node];
+        var parent = cell.links[0];
+        if (valid(parent)) {
+            var spans = linkSpans(cell);
+            parentToChild(indexBottom(parent), indexTop(parent),
+                at(cell, spans[0].center, -glyphHalf - pad),
+                at(cell, spans[0].center, glyphHalf + pad),
+                cell.scale.x, parentArrowMaterial);
+        }
+        childArrow(active.node, childArrowMaterial);
+        nextArrow(active.node, nextArrowMaterial);
     }
 
     // Put every cell where the current order wants it. immediate snaps there,
@@ -573,6 +758,26 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
         var right = tree ? this.treeRight : this.colX(this.cols - 1) + this.cellWidth * 0.5;
         var top = -0.9 - 0.25;
         var bottom = tree ? this.treeBottom : Math.max(0, this.indexRows - 1) * rowPitch + 0.5;
+
+        // The payload row goes under the nodes, centered on them, with room
+        // for its index digits. The view stays centered on the nodes, so the
+        // row label hangs off to the left on its own.
+        var count = this.payloadCells.length;
+        var ps = this.payloadScale;
+        var center = (left + right) * 0.5;
+        this.payload.targetX = center;
+        this.payload.targetY = bottom + this.payloadGap;
+        if (immediate) {
+            this.payload.position.set(this.payload.targetX, this.payload.targetY, 0);
+        }
+        if (count > 0) {
+            var reach = (count * this.payloadWidth * 0.5 + this.payloadLabelGap +
+                this.payloadLabelWidth) * ps;
+            var halfWidth = Math.max((right - left) * 0.5, reach);
+            left = center - halfWidth;
+            right = center + halfWidth;
+            bottom = this.payload.targetY + 0.5 * ps;
+        }
 
         this.targetX = -(left + right) * 0.5;
         this.targetY = -(top + bottom) * 0.5;
@@ -625,6 +830,7 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
         // The two orders have different extents, so the diagram recenters as
         // the cells move.
         approach(this.object, this.targetX, this.targetY);
+        approach(this.payload, this.payload.targetX, this.payload.targetY);
 
         if (!settled) {
             this._drawArrows();
