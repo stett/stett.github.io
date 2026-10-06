@@ -207,7 +207,7 @@ In index order the nodes are laid out in array order. In tree order they are lai
 <div class="container-3js" id="{{ page.title | slugify }}-quadtree-nodes"></div>
 
 <div class="diagram-controls">
-    <button type="button" id="{{ page.title | slugify }}-quadtree-nodes-order">index order</button>
+    <button type="button" id="{{ page.title | slugify }}-quadtree-nodes-order">tree order</button>
 </div>
 
 Each Morton key contains enough information to reconstruct the bounds of each node of the quadtree, down to the corresponding leaf. For intermediate nodes, a subset of the bits of the Morton key are needed. For a quadtree, each pair of bits corresponds to a bounds. The most significant two bits will be the outermost bounds, and the least significant two bits will be the innermost bounds - every pair of bits in between is a level in the quadtree. The first bit in a pair is the x-axis, in our case - zero means left half, one means right half. The second bit indicates bottom or top. Every pair of bits is the subdivision of the previous pair's bounds.
@@ -337,6 +337,7 @@ $(document).ready(function() {
         var scene = new SceneActor(container, 3, false, diagramSceneOptions);
         DRAMA.add(scene);
         quadtreeNodesActor = new QuadtreeNodesActor(scene);
+        quadtreeNodesActor.set_order(true);
         DRAMA.add(quadtreeNodesActor);
 
         $("#{{ page.title | slugify }}-quadtree-nodes-order").click(function() {
