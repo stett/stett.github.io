@@ -251,6 +251,7 @@ var RadixTreeSplitActor = RadixTreeSplitActor || class extends DRAMA.Actor {
             ((right - left) * 0.5 + 0.5) / this.sceneActor.aspect);
 
         this.arrowsStale = true;
+        this.sceneActor.invalidate();
         if (immediate) {
             this._buildArrows();
         } else {
@@ -294,6 +295,7 @@ var RadixTreeSplitActor = RadixTreeSplitActor || class extends DRAMA.Actor {
 
         arrows.visible = true;
         this.arrowsStale = false;
+        this.sceneActor.invalidate();
     }
 
     update() {
@@ -327,6 +329,10 @@ var RadixTreeSplitActor = RadixTreeSplitActor || class extends DRAMA.Actor {
         } else {
             this.object.position.x = this.targetX;
             this.object.position.y = this.targetY;
+        }
+
+        if (!settled) {
+            this.sceneActor.invalidate();
         }
 
         if (settled && this.arrowsStale) {

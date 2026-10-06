@@ -110,5 +110,6 @@ var QuadtreeBoundsActor = QuadtreeBoundsActor || class extends DRAMA.Actor {
         }
         this.object = makeQuadtreeBounds(particles, this.size);
         this.sceneActor.scene.add(this.object);
+        this.sceneActor.invalidate();
     }
 }

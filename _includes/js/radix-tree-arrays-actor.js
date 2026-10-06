@@ -88,6 +88,7 @@ var RadixTreeArraysActor = RadixTreeArraysActor || class extends DRAMA.Actor {
         this.object.position.set(-(left + right) * 0.5, -(top + bottom) * 0.5, 0);
         this.contentHeight = bottom - top;
         this.sceneActor.scene.add(this.object);
+        this.sceneActor.invalidate();
 
         this.sceneActor.cameraHeightTarget = Math.max(
             this.contentHeight * 0.5 + 0.15,

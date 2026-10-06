@@ -88,6 +88,10 @@ var interactUpdateParticles;
 // Shared between the excerpt, which creates it, and the rest of the post,
 // which wires it to the diagrams.
 var particleGridActor;
+
+// The diagrams only change on a click, so they render on demand rather than
+// every frame, which lets them render at the screen's full resolution.
+var diagramSceneOptions = { onDemand: true, pixelRatio: window.devicePixelRatio || 1 };
 </script>
 
 The purpose of this post is to interactively demonstrate the construction of an octree structure using purely parallel methods. This is largely based on the classic [Karras 2012](https://dl.acm.org/doi/10.5555/2383795.2383801) paper. I've modified it slightly to accommodate a particular octree data format which works well for faster traversal, with the ultimate goal of fully parallelizing [my n-body implementation]({% post_url 2025-02-24-nbody-262k %}).
@@ -113,7 +117,7 @@ In order to check my understanding of each stage of the algorithm, I made this l
 
 $(document).ready(function() {
     var container = $("#{{ page.title | slugify }}-particle-grid");
-    var scene = new SceneActor(container, 5);
+    var scene = new SceneActor(container, 5, false, diagramSceneOptions);
     DRAMA.add(scene);
     particleGridActor = new ParticleGridActor(scene, 8, function(particles) {
         if (interactUpdateParticles) {
@@ -272,7 +276,7 @@ $(document).ready(function() {
 
     {
         var container = $("#{{ page.title | slugify }}-particle-array");
-        var scene = new SceneActor(container, 2);
+        var scene = new SceneActor(container, 2, false, diagramSceneOptions);
         DRAMA.add(scene);
         particleArrayActor = new ParticleArrayActor(scene);
         DRAMA.add(particleArrayActor);
@@ -280,7 +284,7 @@ $(document).ready(function() {
 
     {
         var container = $("#{{ page.title | slugify }}-sorted-keys");
-        var scene = new SceneActor(container, 2);
+        var scene = new SceneActor(container, 2, false, diagramSceneOptions);
         DRAMA.add(scene);
         sortedKeysActor = new SortedKeysActor(scene);
         DRAMA.add(sortedKeysActor);
@@ -288,7 +292,7 @@ $(document).ready(function() {
 
     {
         var container = $("#{{ page.title | slugify }}-radix-tree-split");
-        var scene = new SceneActor(container, 5.9);
+        var scene = new SceneActor(container, 5.9, false, diagramSceneOptions);
         DRAMA.add(scene);
         radixTreeSplitActor = new RadixTreeSplitActor(scene);
         DRAMA.add(radixTreeSplitActor);
@@ -302,7 +306,7 @@ $(document).ready(function() {
 
     {
         var container = $("#{{ page.title | slugify }}-radix-tree-arrays");
-        var scene = new SceneActor(container, 2);
+        var scene = new SceneActor(container, 2, false, diagramSceneOptions);
         DRAMA.add(scene);
         radixTreeArraysActor = new RadixTreeArraysActor(scene);
         DRAMA.add(radixTreeArraysActor);
@@ -310,7 +314,7 @@ $(document).ready(function() {
 
     {
         var container = $("#{{ page.title | slugify }}-octree-allocations");
-        var scene = new SceneActor(container, 2.2);
+        var scene = new SceneActor(container, 2.2, false, diagramSceneOptions);
         DRAMA.add(scene);
         octreeAllocationsActor = new OctreeAllocationsActor(scene);
         DRAMA.add(octreeAllocationsActor);
@@ -318,7 +322,7 @@ $(document).ready(function() {
 
     {
         var container = $("#{{ page.title | slugify }}-leaf-parents");
-        var scene = new SceneActor(container, 1);
+        var scene = new SceneActor(container, 1, false, diagramSceneOptions);
         DRAMA.add(scene);
         leafParentsActor = new LeafParentsActor(scene);
         DRAMA.add(leafParentsActor);
@@ -326,7 +330,7 @@ $(document).ready(function() {
 
     {
         var container = $("#{{ page.title | slugify }}-quadtree-nodes");
-        var scene = new SceneActor(container, 3);
+        var scene = new SceneActor(container, 3, false, diagramSceneOptions);
         DRAMA.add(scene);
         quadtreeNodesActor = new QuadtreeNodesActor(scene);
         DRAMA.add(quadtreeNodesActor);
@@ -338,7 +342,7 @@ $(document).ready(function() {
 
     {
         var container = $("#{{ page.title | slugify }}-quadtree-bounds");
-        var scene = new SceneActor(container, 5);
+        var scene = new SceneActor(container, 5, false, diagramSceneOptions);
         DRAMA.add(scene);
         quadtreeBoundsActor = new QuadtreeBoundsActor(scene);
         DRAMA.add(quadtreeBoundsActor);

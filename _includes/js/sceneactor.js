@@ -3,8 +3,14 @@
 //
 
 var SceneActor = SceneActor || class extends DRAMA.Actor {
-    constructor(container, height=5, perspective=false) {
+    // options.onDemand renders only after invalidate() or while the camera is
+    // still easing, for diagrams that sit still most of the time. Their actors
+    // have to call invalidate() whenever they change the scene.
+    // options.pixelRatio renders at that many device pixels per CSS pixel.
+    constructor(container, height=5, perspective=false, options={}) {
         super();
+        this.onDemand = !!options.onDemand;
+        this.dirty = true;
         this.container = container;
         var containerWidth = container.width();
         var containerHeight = container.height();
@@ -20,6 +26,7 @@ var SceneActor = SceneActor || class extends DRAMA.Actor {
         }
 
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setPixelRatio(options.pixelRatio || 1);
         this.renderer.setSize( containerWidth, containerHeight );
         this.camera.position.z = 50;
         container.get(0).appendChild( this.renderer.domElement );
@@ -35,8 +42,25 @@ var SceneActor = SceneActor || class extends DRAMA.Actor {
         }
     }
 
+    invalidate() {
+        this.dirty = true;
+    }
+
     update() {
-        this.cameraHeight += (this.cameraHeightTarget - this.cameraHeight) * 0.1;
+        var dh = this.cameraHeightTarget - this.cameraHeight;
+        if (!this.onDemand) {
+            this.cameraHeight += dh * 0.1;
+        } else if (Math.abs(dh) >= 0.0005) {
+            this.cameraHeight += dh * 0.1;
+            this.dirty = false;
+        } else if (dh != 0 || this.dirty) {
+            // Snap the last sliver of the ease, so the camera settles exactly
+            // and the scene can stop rendering.
+            this.cameraHeight = this.cameraHeightTarget;
+            this.dirty = false;
+        } else {
+            return;
+        }
         this.camera.left = -this.cameraHeight * this.aspect;
         this.camera.right = this.cameraHeight * this.aspect;
         this.camera.top = -this.cameraHeight;

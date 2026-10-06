@@ -74,6 +74,7 @@ if (typeof themeWatched === "undefined") {
         for (var i = 0; i < themedScenes.length; ++i) {
             var sceneActor = themedScenes[i];
             sceneActor.renderer.setClearColor(bgColor(), 1);
+            sceneActor.invalidate();
             sceneActor.scene.traverse(function(node) {
                 if (node.refreshColors) {
                     node.refreshColors();
@@ -84,8 +85,10 @@ if (typeof themeWatched === "undefined") {
 }
 
 // Canvas pixels per scene unit. High enough that glyphs are drawn large and
-// minified on screen, rather than magnified and blurry.
-var TEXT_RESOLUTION = 512;
+// minified on screen, rather than magnified and blurry, even on a high DPI
+// screen. Every label is its own texture and the diagrams rebuild all of them
+// on each click, so this is also most of what a click costs.
+var TEXT_RESOLUTION = 128;
 
 function nextPowerOfTwo(value) {
     var pot = 1;
@@ -166,7 +169,29 @@ function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
 // Rebuilt diagrams have to free their own GPU resources: three.js holds onto
 // geometries and textures until they are disposed. Shared materials (the ones
 // without a canvas texture of their own) are left alone.
+//
+// Disposal waits until the replacement has been drawn. Disposing every text
+// material at once releases the shader program they share, and the
+// replacements would then recompile it in every renderer on the next frame.
+var pendingDisposals = pendingDisposals || [];
+
 function disposeObject(object) {
+    if (pendingDisposals.length == 0) {
+        requestAnimationFrame(function() {
+            requestAnimationFrame(disposePending);
+        });
+    }
+    pendingDisposals.push(object);
+}
+
+function disposePending() {
+    var objects = pendingDisposals.splice(0);
+    for (var i = 0; i < objects.length; ++i) {
+        disposeNow(objects[i]);
+    }
+}
+
+function disposeNow(object) {
     object.traverse(function(node) {
         if (node.geometry) {
             node.geometry.dispose();

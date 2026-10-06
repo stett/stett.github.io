@@ -20,6 +20,7 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
         this.size = size;
         this.onchange = onchange;
         this.max = Math.min(max, size * size);
+        this.sceneActor = sceneActor;
         this.scene = sceneActor.scene;
         this.camera = sceneActor.camera;
         this.canvas = sceneActor.renderer.domElement;
@@ -82,6 +83,7 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
         }
         this.tree = makeQuadtreeBounds(particles, this.size);
         this.object.add(this.tree);
+        this.sceneActor.invalidate();
     }
 
     _x(col) { return col - (this.size - 1) * 0.5; }
@@ -111,6 +113,9 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
     _hover(event) {
         var cell = this._pick(event);
         if (cell) {
+            if (!this.hover.visible || !this.hover.position.equals(cell.position)) {
+                this.sceneActor.invalidate();
+            }
             this.hover.position.copy(cell.position);
             this.hover.visible = true;
             this.canvas.style.cursor = "pointer";
@@ -120,6 +125,9 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
     }
 
     _unhover() {
+        if (this.hover.visible) {
+            this.sceneActor.invalidate();
+        }
         this.hover.visible = false;
         this.canvas.style.cursor = "";
     }

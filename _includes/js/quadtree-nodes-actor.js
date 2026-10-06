@@ -275,6 +275,7 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
         // The links are drawn where the tree order puts the cells, so they wait
         // for the cells to get there and are hidden while anything moves.
         this.links.visible = immediate && tree;
+        this.sceneActor.invalidate();
 
         // Center everything in the view, from the top of the first row's index
         // digits and the left of the leftmost cell to the bottom of the last row.
@@ -337,8 +338,11 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
 
         // The links move with the object rather than the cells, so the whole
         // diagram recentering doesn't have to finish before they show.
-        if (settled && this.tree_order) {
+        if (!settled) {
+            this.sceneActor.invalidate();
+        } else if (this.tree_order && !this.links.visible) {
             this.links.visible = true;
+            this.sceneActor.invalidate();
         }
     }
 }

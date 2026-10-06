@@ -63,6 +63,7 @@ var SortedKeysActor = SortedKeysActor || class extends DRAMA.Actor {
         this.object.position.y = -(top + bottom) * 0.5;
         this.contentHeight = bottom - top;
         this.sceneActor.scene.add(this.object);
+        this.sceneActor.invalidate();
 
         // Fit the whole row in view.
         var halfWidth = entries.length * this.cellWidth * 0.5 + 0.5;
