@@ -222,7 +222,7 @@ While building the n-body simulation, I've gone through many iterations and comp
 
 Besides just optimization of memory access, DFS ordering of the quadtree/octree could potentially allow removal of the `parent` and `child` indices since the first child of a node would always immediately follow its parent in memory. A bottom-up traversal would be a scan from right to left, and a top-down traversal would be a scan from left to right. This would be a significant savings in memory usage, while further improving cache friendliness.
 
-I'm currently exploring adding another parallel sort step into this algorithm which will produce a DFS-ordered structure, which would enable these optimizations. Careful profiling and attention to memory layout are essential to check my assumptions on how the changes I described will actually affect performance.
+I'm currently exploring adding another parallel sort step into this algorithm that will produce a DFS-ordered structure, which would enable these optimizations. Careful profiling and attention to memory layout are essential to check my assumptions on how the changes I described will actually affect performance.
 
 In the meantime, building these diagrams has helped me understand these algorithms and visualize the memory layout of the radix tree and quadtree data structures. Hopefully if you've stumbled upon this page after reading Karras, you've found these visualizations a helpful supplement.
 
