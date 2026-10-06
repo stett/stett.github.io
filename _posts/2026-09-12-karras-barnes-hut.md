@@ -126,8 +126,12 @@ $(document).ready(function() {
     });
     DRAMA.add(particleGridActor);
 
-    // Start with a few particles already placed.
-    particleGridActor.randomize(5, 1);
+    // Start with a layout that shows off the awkward cases. The quadtree is
+    // not in DFS order: the root's children sit at nodes 8, 9 and 1, so its
+    // last child comes first in memory. (0,6) and (1,7) share a cell two levels
+    // down, which makes a chain of single child nodes, and the bottom left
+    // quadrant has all four of its children.
+    particleGridActor.place([[1, 7], [6, 0], [1, 2], [3, 3], [1, 1], [3, 2], [2, 0], [0, 6]]);
 });
 
 </script>

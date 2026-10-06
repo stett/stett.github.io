@@ -1,16 +1,6 @@
 {% include js/particle-quad-common.js %}
 {% include js/quadtree-bounds-actor.js %}
 
-// Small seeded PRNG returning floats in [0, 1), a stand-in for Math.random.
-function mulberry32(seed) {
-    return function() {
-        seed = (seed + 0x6D2B79F5) | 0;
-        var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-}
-
 // The input grid, where clicking a cell toggles a particle in it. Rather than
 // the cells, it draws the quadtree built from the particles, as in the final
 // bounds diagram, with the particles numbered by their order in the input.
@@ -132,13 +122,11 @@ var ParticleGridActor = ParticleGridActor || class extends DRAMA.Actor {
         this.canvas.style.cursor = "";
     }
 
-    // Occupy count distinct random cells, in random order. Passing a seed
-    // makes the layout repeatable across page loads.
-    randomize(count, seed) {
-        var random = seed === undefined ? Math.random : mulberry32(seed);
-        count = Math.min(count, this.max);
-        while (this.order.length < count) {
-            var id = Math.floor(random() * this.size * this.size);
+    // Replace the particles with the given [x, y] cells, in that order.
+    place(cells) {
+        this.order = [];
+        for (var i = 0; i < cells.length && this.order.length < this.max; ++i) {
+            var id = cells[i][0] + cells[i][1] * this.size;
             if (this.order.indexOf(id) < 0) {
                 this.order.push(id);
             }
