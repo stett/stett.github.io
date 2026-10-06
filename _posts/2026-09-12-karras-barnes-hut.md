@@ -52,7 +52,7 @@ div.container-3js canvas {
 }
 
 #{{ page.title | slugify }}-quadtree-nodes {
-    height: 380px;
+    height: 460px;
 }
 
 #{{ page.title | slugify }}-quadtree-bounds {
@@ -204,11 +204,15 @@ The quadtree nodes themselves. The array is as long as the `total` from step 3, 
 
 In index order the nodes are laid out in array order. In tree order they are laid out one row per depth, with each group of siblings kept together beneath its parent. Leaf nodes are drawn with a dashed outline.
 
+Click on a node to see how it relates to other nodes - arrows will be drawn from the selected node's parent, to its child, and to its "next" node. The row of cells at the bottom are leaf-node payload data. Select a leaf payload cell to see arrows representing a full traversal through the tree from root to leaf payload.
+
 <div class="container-3js" id="{{ page.title | slugify }}-quadtree-nodes"></div>
 
 <div class="diagram-controls">
     <button type="button" id="{{ page.title | slugify }}-quadtree-nodes-order">tree order</button>
 </div>
+
+If you select a leaf data cell, and switch to "index order" (the toggle under the chart), it is often quite obvious that we are not traversing memory in order. For trees that do happen to be in depth-first search (DFS) order, a traversal through the tree in the index order view should look like an arrow hopping from left to right and down, in a cache-friendly way. A future optimization to this algorithm will add an intermediate step to ensure that the tree produced is in DFS order.
 
 Each Morton key contains enough information to reconstruct the bounds of each node of the quadtree, down to the corresponding leaf. For intermediate nodes, a subset of the bits of the Morton key are needed. For a quadtree, each pair of bits corresponds to a bounds. The most significant two bits will be the outermost bounds, and the least significant two bits will be the innermost bounds - every pair of bits in between is a level in the quadtree. The first bit in a pair is the x-axis, in our case - zero means left half, one means right half. The second bit indicates bottom or top. Every pair of bits is the subdivision of the previous pair's bounds.
 
