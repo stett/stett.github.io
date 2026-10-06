@@ -24,6 +24,7 @@ function bgColor() { return cssColor("--content-bg", "#FCFAF7"); }
 function redColor() { return cssColor("--accent-red", "#cc0000"); }
 function greenColor() { return cssColor("--accent-green", "#00aa00"); }
 function blueColor() { return cssColor("--accent-blue", "#00ADDF"); }
+function yellowColor() { return cssColor("--accent-yellow", "#C08F00"); }
 
 function resolveColor(color) {
     return typeof color === "function" ? color() : color;
@@ -178,15 +179,21 @@ function getTextAtlas() {
 
 // A label, centered on its origin. fontHeight is in scene units; width and
 // height are the size of the cell it sits in. Call quad.setText() for one
-// color, or quad.setSpans([{ text, color }, ...]) for several.
+// color, or quad.setSpans([{ text, color }, ...]) for several. setSpans takes
+// an optional split, { color, normal: [x, y] }, which recolors everything on
+// the normal's side of a line through the label's center, cutting any glyph
+// the line crosses. +y is the top of the text.
 function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
     var atlas = getTextAtlas();
     var quad = new THREE.Mesh(new THREE.BufferGeometry(), atlas.material);
     quad.renderOrder = 1;
     quad.scale.set(0.9, -0.9, 1);
     var lastSpans = null;
-    quad.setSpans = function(spans) {
+    var lastSplit = null;
+    quad.setSpans = function(spans, split) {
         lastSpans = spans;
+        lastSplit = split;
+        var splitColor = split ? new THREE.Color(resolveColor(split.color)) : null;
 
         var text = "";
         var colors = [];
@@ -227,14 +234,56 @@ function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
             var v1 = v0 - ch / ah;
             var left = x0 + (i * atlas.advance - ATLAS_PAD) * unit;
             var right = left + cw * unit;
+            var corners = [[left, top], [right, top], [right, -top], [left, -top]];
 
-            var base = positions.length / 3;
-            positions.push(left, top, 0, right, top, 0, left, -top, 0, right, -top, 0);
-            uvs.push(u0, v0, u1, v0, u0, v1, u1, v1);
-            for (var k = 0; k < 4; ++k) {
-                vertexColors.push(colors[i].r, colors[i].g, colors[i].b);
+            if (!split) {
+                pushPolygon(corners, colors[i]);
+            } else {
+                pushPolygon(clip(corners, 1), splitColor);
+                pushPolygon(clip(corners, -1), colors[i]);
             }
-            indices.push(base, base + 2, base + 1, base + 2, base + 3, base + 1);
+        }
+
+        // The part of a polygon on one side of the split line, side 1 being
+        // the normal's side and -1 the other.
+        function clip(points, side) {
+            var nx = split.normal[0] * side;
+            var ny = split.normal[1] * side;
+            var kept = [];
+            for (var k = 0; k < points.length; ++k) {
+                var a = points[k];
+                var b = points[(k + 1) % points.length];
+                var da = a[0] * nx + a[1] * ny;
+                var db = b[0] * nx + b[1] * ny;
+                if (da >= 0) {
+                    kept.push(a);
+                }
+                if ((da < 0) != (db < 0)) {
+                    var t = da / (da - db);
+                    kept.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+                }
+            }
+            return kept;
+        }
+
+        // A convex polygon within the current glyph, as a fan of triangles,
+        // its uvs found from where each point sits in the glyph.
+        function pushPolygon(points, glyphColor) {
+            if (points.length < 3) {
+                return;
+            }
+            var base = positions.length / 3;
+            for (var k = 0; k < points.length; ++k) {
+                var x = points[k][0];
+                var y = points[k][1];
+                positions.push(x, y, 0);
+                uvs.push(u0 + (u1 - u0) * (x - left) / (right - left),
+                    v0 + (v1 - v0) * (top - y) / (2 * top));
+                vertexColors.push(glyphColor.r, glyphColor.g, glyphColor.b);
+            }
+            for (var k = 2; k < points.length; ++k) {
+                indices.push(base, base + k - 1, base + k);
+            }
         }
 
         var geometry = new THREE.BufferGeometry();
@@ -256,7 +305,7 @@ function makeTextQuad(color, width=1, height=1, fontHeight=0.5) {
     quad.refreshColors = function() {
         if (lastSpans) {
             var wasVisible = quad.visible;
-            quad.setSpans(lastSpans);
+            quad.setSpans(lastSpans, lastSplit);
             quad.visible = wasVisible;
         }
     };

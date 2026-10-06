@@ -13,6 +13,10 @@
     --accent-red: #cc0000;
     --accent-green: #00aa00;
 
+    // The third link highlighted in the quadtree nodes diagram. A dark gold,
+    // since a true yellow washes out on the light panel.
+    --accent-yellow: #C08F00;
+
     // For text sitting on the blue body background rather than on the content
     // panel. Deliberately not overridden in dark mode - the body stays blue, so
     // this stays light.
@@ -34,6 +38,7 @@
         // than the red to read at the same weight.
         --accent-red: #E63939;
         --accent-green: #3CBA3C;
+        --accent-yellow: #F2C230;
     }
 }
 
