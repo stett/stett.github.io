@@ -103,9 +103,9 @@ function excerptUpdateParticles(particles) {
 var diagramSceneOptions = { onDemand: true, pixelRatio: window.devicePixelRatio || 1 };
 </script>
 
-The purpose of this post is to interactively demonstrate the construction of an octree structure using purely parallel methods. This is largely based on the classic [Karras 2012](https://dl.acm.org/doi/10.5555/2383795.2383801) paper. I've modified it slightly to accommodate a particular octree data format which works well for fast top-down traversal, with the application in mind of an n-body simulation.
+The purpose of this post is to interactively demonstrate the construction of a quadtree structure using purely parallel methods. This is largely based on the classic [Karras 2012](https://dl.acm.org/doi/10.5555/2383795.2383801) paper. I've modified it slightly to accommodate a particular quadtree data format which works well for fast top-down traversal, with the application in mind of an n-body simulation.
 
-I present this as a tool for allowing manipulation of the original input data, visualization of the output octree structure, and perhaps most usefully, visualization of memory through every stage of the algorithm.
+This is a tool to visualize the structural and memory layout of the quadtree that results from the tree construction process.
 
 This article, the algorithm it describes, and the [C++ implementation](https://github.com/stett/nbody) are all still a work in progress.
 
@@ -157,7 +157,7 @@ $(document).ready(function() {
 
 </script>
 
-The following diagram illustrates the structure of the quadtree which stores the hierarchy of bounds in the spatial grid above. Each cell is a tree node, containing a triad of indices: `(parent, child, next)`. Click on a node to highlight its relationship to other nodes, or click on a leaf-data payload element to see how traversal through the tree would look in order to reach that element.
+The following diagram illustrates the structure of the quadtree which stores the hierarchy of bounds in the spatial grid above. Each node contains a triad of indices: `(parent, child, next)`. Click on a node to highlight its relationship to other nodes, or click on a leaf-data payload element to see how traversal through the tree would look in order to reach that element.
 
 <div class="container-3js" id="{{ page.title | slugify }}-quadtree-nodes"></div>
 
@@ -173,7 +173,7 @@ Changes to the occupied cells using this widget will be reflected in the memory 
 
 In Karras' paper, the octree construction phase is packed into two paragraphs. In order to really understand the entire tree construction process - from Morton encoding to radix tree construction and building the final octree - I found myself writing up many 8x8 plots of points in order to think through edge cases on paper.
 
-My hope is that this tool will help the reader (and myself!) to think through the fast, parallel tree construction process in a more intuitive, visual way. This article does not claim to explain each step in algorithmic detail (although you can inspec the javascript if you wish! I warn you, it's a little messy). Instead it describes each stage in English, and illustrates its results.
+My hope is that this tool will help the reader (and myself!) to think through the fast, parallel tree construction process in a more intuitive, visual way. This article does not claim to explain each step in algorithmic detail (although you can inspect the javascript if you wish! I warn you, it's a little messy). Instead it describes each stage in English, and illustrates its results.
 
 <h3>The Explanation</h3>
 
@@ -235,7 +235,7 @@ The quadtree nodes themselves. The array is as long as the `total` from step 3, 
 
 `next` is referred to as the escape index because a node's `next` is used to escape a branch of the tree when a traversal decides not to go any deeper. For example when a node's mass approximation is "good enough" in a Barnes-Hut implementation, the `next` pointer can be used to jump to the next branch and skip the whole subtree.
 
-This brings us to the octree widget which opened the article - here it is again, to save you a trip to the top of the page:
+This brings us to the quadtree widget which opened the article - here it is again, to save you a trip to the top of the page:
 
 <div class="container-3js" id="{{ page.title | slugify }}-quadtree-nodes-step5"></div>
 
@@ -243,7 +243,7 @@ This brings us to the octree widget which opened the article - here it is again,
     <button type="button" id="{{ page.title | slugify }}-quadtree-nodes-step5-order">tree order</button>
 </div>
 
-If you select a leaf data cell, and switch to "index order", it is quite obvious in many cases that memory is _not_ traversed in order. For trees that do happen to be in depth-first search (DFS) order, a traversal through the tree in the index order view should look like an arrow hopping from left to right and down, in a cache-friendly way. A future optimization to this algorithm will add an intermediate step to ensure that the tree produced is in DFS order.
+If you select a leaf data cell, and switch to "index order", it is quite obvious in many cases that memory is _not_ traversed in order. For trees that do happen to be in depth-first search (DFS) order, a traversal through the tree in the index order view should look like an arrow hopping from left to right and down, in a cache-friendly way.
 
 Each Morton key contains enough information to reconstruct the bounds of each node of the quadtree, down to the corresponding leaf. For intermediate nodes, a subset of the bits of the Morton key are needed. For a quadtree, each pair of bits corresponds to a bounds. The most significant two bits will be the outermost bounds, and the least significant two bits will be the innermost bounds - every pair of bits in between is a level in the quadtree. The first bit in a pair is the x-axis, in our case - zero means left half, one means right half. The second bit indicates bottom or top. Every pair of bits is the subdivision of the previous pair's bounds.
 
@@ -251,15 +251,13 @@ These node bounds are not shown in the memory diagram above, but they're compute
 
 Finally, we've produced the quadtree of bounds that was rendered at the top of this article. Each internal node is split into its four quadrants, and each leaf is outlined with a dashed line. Particles are indicated by their circled indices into the original particle array.
 
-There are many subtleties in the implementation of this algorithm which aren't covered here, but every step of this quadtree construction can be easily generalized to three dimensions, and can be executed in parallel. Below is a video of an octree being constructed from scratch every frame at around 60hz for a quarter of a million particles. Tree construction performance approximately doubled in comparison to [serial tree construction]({{ site.baseurl }}{% link _posts/2025-02-24-nbody-262k.md %}).
+There are many subtleties in the implementation of this algorithm which aren't covered here, but every step of this quadtree construction can be easily generalized to three dimensions, and can be executed in parallel. Below is a video of an octree being constructed from scratch every frame for a pair of colliding galaxies. Tree construction performance approximately doubled in comparison to [serial tree construction]({{ site.baseurl }}{% link _posts/2025-02-24-nbody-262k.md %}).
 
 <video width="100%" controls>
   <source src="{{ '/assets/video/parallel-octree.mp4' | relative_url }}" type="video/mp4">
 </video>
 
 <h4>Final Notes</h4>
-
-In this article I described each part of the algorithm in English, and purposefully avoided getting into the weeds on implementation subtleties. I wrote this originally as an aid to myself to help debug edge cases while writing the implementation which I used to generate the n-body simulation which is shown in the video at the front of the article.
 
 *This algorithm is not fully complete yet* - as can be seen from the index/tree orderings in the final construction of the quadtree, the escape-pointer quadtree structure is not optimal. A regular traversal can cause cache misses because the nodes are not sorted into depth-first-search (DFS) order, which is the order that this structure typically benefits the most from.
 
