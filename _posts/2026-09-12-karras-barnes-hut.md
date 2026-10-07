@@ -51,12 +51,9 @@ div.container-3js canvas {
     height: 220px;
 }
 
-#{{ page.title | slugify }}-quadtree-nodes {
+#{{ page.title | slugify }}-quadtree-nodes,
+#{{ page.title | slugify }}-quadtree-nodes-step5 {
     height: 460px;
-}
-
-#{{ page.title | slugify }}-quadtree-bounds {
-    height: 350px;
 }
 
 div.diagram-controls {
@@ -88,42 +85,66 @@ var interactUpdateParticles;
 // Shared between the excerpt, which creates it, and the rest of the post,
 // which wires it to the diagrams.
 var particleGridActor;
+var excerptQuadtreeNodesActor;
+
+// Keeps the excerpt's diagrams in step with the grid, and passes the change on
+// to the rest of the post once it has defined interactUpdateParticles.
+function excerptUpdateParticles(particles) {
+    excerptQuadtreeNodesActor.set_keys(sortedMortonKeys(particles).map(function(entry) {
+        return entry.key;
+    }));
+    if (interactUpdateParticles) {
+        interactUpdateParticles(particles);
+    }
+}
 
 // The diagrams only change on a click, so they render on demand rather than
 // every frame, which lets them render at the screen's full resolution.
 var diagramSceneOptions = { onDemand: true, pixelRatio: window.devicePixelRatio || 1 };
 </script>
 
-The purpose of this post is to interactively demonstrate the construction of an octree structure using purely parallel methods. This is largely based on the classic [Karras 2012](https://dl.acm.org/doi/10.5555/2383795.2383801) paper. I've modified it slightly to accommodate a particular octree data format which works well for faster traversal, with the ultimate goal of fully parallelizing [my n-body implementation]({% post_url 2025-02-24-nbody-262k %}).
+The purpose of this post is to interactively demonstrate the construction of an octree structure using purely parallel methods. This is largely based on the classic [Karras 2012](https://dl.acm.org/doi/10.5555/2383795.2383801) paper. I've modified it slightly to accommodate a particular octree data format which works well for fast top-down traversal, with the application in mind of an n-body simulation.
 
-<video width="100%" controls>
-  <source src="{{ '/assets/video/parallel-octree.mp4' | relative_url }}" type="video/mp4">
-</video>
+I present this as a tool for allowing manipulation of the original input data, visualization of the output octree structure, and perhaps most usefully, visualization of memory through every stage of the algorithm.
 
-In Karras' paper, the octree construction phase is packed into two paragraphs. In order to really clearly understand the entire tree construction process - from Morton encoding to radix tree construction and building the final octree - I found myself writing up many 8x8 plots of points which I expected to exhibit edge cases and stepping through the algorithm and its memory transformations on paper.
+This article, the algorithm it describes, and the [C++ implementation](https://github.com/stett/nbody) are all still a work in progress.
 
-In order to check my understanding of each stage of the algorithm, I made this little interactive reference implementation of a parallelizable quadtree builder. This demonstrates construction of a quadtree, but the extension of the concept to octrees in three dimensions doesn't significantly change the algorithm in any way.
+<h3>The Tool</h3>
+
+Click on cells in the grid below to mark them as occupied or unoccupied. A quadtree structure will be generated around the occupied cells. This widget supports up to 10 particles, so if you add an 11th, the oldest particle will be removed and all indices will be updated.
 
 <div class="container-3js" id="{{ page.title | slugify }}-particle-grid"></div>
 
 <script type="text/javascript">
 
-// The grid is part of the excerpt, so it has to set itself up: the script at
-// the bottom of the post is not included on the home page. It forwards changes
-// to interactUpdateParticles once the rest of the post has defined it.
+// The grid and the quadtree nodes diagram are part of the excerpt, so they
+// have to set themselves up: the script at the bottom of the post is not
+// included on the home page.
 
 {% include js/sceneactor.js %}
 {% include js/particle-grid-actor.js %}
+{% include js/quadtree-nodes-actor.js %}
 
 $(document).ready(function() {
+    // The nodes diagram is created first so that it exists when the grid
+    // places its starting particles.
+    {
+        var container = $("#{{ page.title | slugify }}-quadtree-nodes");
+        var scene = new SceneActor(container, 3, false, diagramSceneOptions);
+        DRAMA.add(scene);
+        excerptQuadtreeNodesActor = new QuadtreeNodesActor(scene);
+        excerptQuadtreeNodesActor.set_order(true);
+        DRAMA.add(excerptQuadtreeNodesActor);
+
+        $("#{{ page.title | slugify }}-quadtree-nodes-order").click(function() {
+            $(this).text(excerptQuadtreeNodesActor.toggle_order() ? "tree order" : "index order");
+        });
+    }
+
     var container = $("#{{ page.title | slugify }}-particle-grid");
     var scene = new SceneActor(container, 5, false, diagramSceneOptions);
     DRAMA.add(scene);
-    particleGridActor = new ParticleGridActor(scene, 8, function(particles) {
-        if (interactUpdateParticles) {
-            interactUpdateParticles(particles);
-        }
-    });
+    particleGridActor = new ParticleGridActor(scene, 8, excerptUpdateParticles);
     DRAMA.add(particleGridActor);
 
     // Start with a layout that shows off the awkward cases. The quadtree is
@@ -136,17 +157,29 @@ $(document).ready(function() {
 
 </script>
 
+The following diagram illustrates the structure of the quadtree which stores the hierarchy of bounds in the spatial grid above. Each cell is a tree node, containing a triad of indices: `(parent, child, next)`. Click on a node to highlight its relationship to other nodes, or click on a leaf-data payload element to see how traversal through the tree would look in order to reach that element.
+
+<div class="container-3js" id="{{ page.title | slugify }}-quadtree-nodes"></div>
+
+<div class="diagram-controls">
+    <button type="button" id="{{ page.title | slugify }}-quadtree-nodes-order">tree order</button>
+</div>
+
+The tree/index order toggle reorders nodes to show the hierarchical structure or the actual order in which the nodes of the tree are stored in memory.
+
 <!-- excerpt -->
 
-The square above is a region of space, sparsely populated by particles in any order. Each cell is a point in space which is most finely representable given a certain number of bits. In this case we limit ourselves to just 3 bits for simplicity, so the x and y coordinates are each integers in the range $[0,8)$.
+Changes to the occupied cells using this widget will be reflected in the memory diagrams throughout this article, illustrating how buffers are populated at every step of the construction of a quadtree. Crucially, each step of this algorithm can be executed in parallel. Some of them lend themselves well to the use of SIMD primitives, but any of them can be done using SIMT (i.e., GPU kernels).
 
-Click anywhere to add or remove a particle from a point in space. This widget supports up to 10 particles, so if you add an 11th, the oldest particle will be removed and all indices will be updated. You should see the quadtree structure update in real time, demonstrating the algorithm which this article will describe in the following steps.
+In Karras' paper, the octree construction phase is packed into two paragraphs. In order to really understand the entire tree construction process - from Morton encoding to radix tree construction and building the final octree - I found myself writing up many 8x8 plots of points in order to think through edge cases on paper.
 
-Changes made above will be reflected in the memory diagrams below, illustrating how memory transforms through every step of the construction of a quadtree. Crucially, each step of this algorithm can be executed in parallel. Some of them lend themselves well to the use of SIMD primitives, but any of them can be done using SIMT (i.e., GPU kernels).
+My hope is that this tool will help the reader (and myself!) to think through the fast, parallel tree construction process in a more intuitive, visual way. This article does not claim to explain each step in algorithmic detail (although you can inspec the javascript if you wish! I warn you, it's a little messy). Instead it describes each stage in English, and illustrates its results.
 
-This article, the algorithm it describes, and the [C++ implementation](https://github.com/stett/nbody) are all still a work in progress.
+<h3>The Explanation</h3>
 
 <h4>Step 0: Morton Encoding</h4>
+
+The square in the first chart above is a region of space, sparsely populated by particles in any order. Each cell is a point in space which is most finely representable given a certain number of bits. In this case we limit ourselves to just 3 bits for simplicity, so the x and y coordinates are each integers in the range $[0,8)$.
 
 The array containing particle positions is our input vector. For each entry, a Morton key will be generated by interleaving the bits of the binary representation for the $x$ and $y$ coordinates.
 
@@ -202,17 +235,15 @@ The quadtree nodes themselves. The array is as long as the `total` from step 3, 
 
 `next` is referred to as the escape index because a node's `next` is used to escape a branch of the tree when a traversal decides not to go any deeper. For example when a node's mass approximation is "good enough" in a Barnes-Hut implementation, the `next` pointer can be used to jump to the next branch and skip the whole subtree.
 
-In index order the nodes are laid out in array order. In tree order they are laid out one row per depth, with each group of siblings kept together beneath its parent. Leaf nodes are drawn with a dashed outline.
+This brings us to the octree widget which opened the article - here it is again, to save you a trip to the top of the page:
 
-Click on a node to see how it relates to other nodes - arrows will be drawn from the selected node's parent, to its child, and to its "next" node. The row of cells at the bottom are leaf-node payload data. Select a leaf payload cell to see arrows representing a full traversal through the tree from root to leaf payload.
-
-<div class="container-3js" id="{{ page.title | slugify }}-quadtree-nodes"></div>
+<div class="container-3js" id="{{ page.title | slugify }}-quadtree-nodes-step5"></div>
 
 <div class="diagram-controls">
-    <button type="button" id="{{ page.title | slugify }}-quadtree-nodes-order">tree order</button>
+    <button type="button" id="{{ page.title | slugify }}-quadtree-nodes-step5-order">tree order</button>
 </div>
 
-If you select a leaf data cell, and switch to "index order" (the toggle under the chart), it is often quite obvious that we are not traversing memory in order. For trees that do happen to be in depth-first search (DFS) order, a traversal through the tree in the index order view should look like an arrow hopping from left to right and down, in a cache-friendly way. A future optimization to this algorithm will add an intermediate step to ensure that the tree produced is in DFS order.
+If you select a leaf data cell, and switch to "index order", it is quite obvious in many cases that memory is _not_ traversed in order. For trees that do happen to be in depth-first search (DFS) order, a traversal through the tree in the index order view should look like an arrow hopping from left to right and down, in a cache-friendly way. A future optimization to this algorithm will add an intermediate step to ensure that the tree produced is in DFS order.
 
 Each Morton key contains enough information to reconstruct the bounds of each node of the quadtree, down to the corresponding leaf. For intermediate nodes, a subset of the bits of the Morton key are needed. For a quadtree, each pair of bits corresponds to a bounds. The most significant two bits will be the outermost bounds, and the least significant two bits will be the innermost bounds - every pair of bits in between is a level in the quadtree. The first bit in a pair is the x-axis, in our case - zero means left half, one means right half. The second bit indicates bottom or top. Every pair of bits is the subdivision of the previous pair's bounds.
 
@@ -220,9 +251,11 @@ These node bounds are not shown in the memory diagram above, but they're compute
 
 Finally, we've produced the quadtree of bounds that was rendered at the top of this article. Each internal node is split into its four quadrants, and each leaf is outlined with a dashed line. Particles are indicated by their circled indices into the original particle array.
 
-<div class="container-3js" id="{{ page.title | slugify }}-quadtree-bounds"></div>
+There are many subtleties in the implementation of this algorithm which aren't covered here, but every step of this quadtree construction can be easily generalized to three dimensions, and can be executed in parallel. Below is a video of an octree being constructed from scratch every frame at around 60hz for a quarter of a million particles. Tree construction performance approximately doubled in comparison to [serial tree construction]({{ site.baseurl }}{% link _posts/2025-02-24-nbody-262k.md %}).
 
-Though complex and subtle in its implementation, every step of this quadtree/octree construction can be done in parallel.
+<video width="100%" controls>
+  <source src="{{ '/assets/video/parallel-octree.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 <h4>Final Notes</h4>
 
@@ -249,7 +282,6 @@ In the meantime, building these diagrams has helped me understand these algorith
 {% include js/octree-allocations-actor.js %}
 {% include js/leaf-parents-actor.js %}
 {% include js/quadtree-nodes-actor.js %}
-{% include js/quadtree-bounds-actor.js %}
 
 $(document).ready(function() {
 
@@ -261,7 +293,6 @@ $(document).ready(function() {
     var octreeAllocationsActor;
     var leafParentsActor;
     var quadtreeNodesActor;
-    var quadtreeBoundsActor;
 
     //
     // Interaction callbacks
@@ -275,7 +306,6 @@ $(document).ready(function() {
         octreeAllocationsActor.set_keys(sortedKeysActor.keys);
         leafParentsActor.set_keys(sortedKeysActor.keys);
         quadtreeNodesActor.set_keys(sortedKeysActor.keys);
-        quadtreeBoundsActor.set_particles(particles);
     }
 
     //
@@ -337,24 +367,16 @@ $(document).ready(function() {
     }
 
     {
-        var container = $("#{{ page.title | slugify }}-quadtree-nodes");
+        var container = $("#{{ page.title | slugify }}-quadtree-nodes-step5");
         var scene = new SceneActor(container, 3, false, diagramSceneOptions);
         DRAMA.add(scene);
         quadtreeNodesActor = new QuadtreeNodesActor(scene);
         quadtreeNodesActor.set_order(true);
         DRAMA.add(quadtreeNodesActor);
 
-        $("#{{ page.title | slugify }}-quadtree-nodes-order").click(function() {
+        $("#{{ page.title | slugify }}-quadtree-nodes-step5-order").click(function() {
             $(this).text(quadtreeNodesActor.toggle_order() ? "tree order" : "index order");
         });
-    }
-
-    {
-        var container = $("#{{ page.title | slugify }}-quadtree-bounds");
-        var scene = new SceneActor(container, 5, false, diagramSceneOptions);
-        DRAMA.add(scene);
-        quadtreeBoundsActor = new QuadtreeBoundsActor(scene);
-        DRAMA.add(quadtreeBoundsActor);
     }
 
     // The grid placed its starting particles before this ran, so catch the
