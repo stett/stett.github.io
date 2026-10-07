@@ -107,8 +107,6 @@ The purpose of this post is to interactively demonstrate the construction of a q
 
 This is a tool to visualize the structural and memory layout of the quadtree that results from the tree construction process.
 
-This article, the algorithm it describes, and the [C++ implementation](https://github.com/stett/nbody) are all still a work in progress.
-
 <h3>The Tool</h3>
 
 Click on cells in the grid below to mark them as occupied or unoccupied. A quadtree structure will be generated around the occupied cells. This widget supports up to 10 particles, so if you add an 11th, the oldest particle will be removed and all indices will be updated.
@@ -168,6 +166,8 @@ The following diagram illustrates the structure of the quadtree which stores the
 The tree/index order toggle reorders nodes to show the hierarchical structure or the actual order in which the nodes of the tree are stored in memory.
 
 <!-- excerpt -->
+
+This article, the algorithm it describes, and the [C++ implementation](https://github.com/stett/nbody) are all still a work in progress.
 
 Changes to the occupied cells using this widget will be reflected in the memory diagrams throughout this article, illustrating how buffers are populated at every step of the construction of a quadtree. Crucially, each step of this algorithm can be executed in parallel. Some of them lend themselves well to the use of SIMD primitives, but any of them can be done using SIMT (i.e., GPU kernels).
 
