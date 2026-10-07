@@ -743,3 +743,8 @@ new IntersectionObserver(function(entries) {
   visible = entries[entries.length - 1].isIntersecting;
   updateRunning();
 }).observe(canvas);
+
+// let an embedding page know it can send its settings now
+if (window.parent !== window) {
+  window.parent.postMessage({ type: 'particle-life-ready' }, '*');
+}

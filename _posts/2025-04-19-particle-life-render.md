@@ -92,9 +92,10 @@ I spent a part of this weekend on my own little WebGL implementation of the [Par
     iframe.contentWindow.postMessage({ type: 'particle-life-clear-buffer', clearBuffer: clearEl.checked }, '*');
     updateLink();
   });
-  pauseEl.addEventListener('change', function() {
+  function sendPause() {
     iframe.contentWindow.postMessage({ type: 'particle-life-pause', paused: pauseEl.checked }, '*');
-  });
+  }
+  pauseEl.addEventListener('change', sendPause);
   updateLink();
   // Match the simulation background to the post's content background, which
   // changes with the light/dark color scheme.
@@ -109,8 +110,18 @@ I spent a part of this weekend on my own little WebGL implementation of the [Par
   function sendBg() {
     iframe.contentWindow.postMessage({ type: 'particle-life-bg', bgColor: contentBg() }, '*');
   }
-  iframe.addEventListener('load', sendBg);
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', sendBg);
+
+  // The simulation says when it's ready for settings. It may already be
+  // running by now, so send them straight away as well.
+  window.addEventListener('message', function(e) {
+    if (e.source === iframe.contentWindow && e.data && e.data.type === 'particle-life-ready') {
+      sendBg();
+      sendPause();
+    }
+  });
+  sendBg();
+  sendPause();
 })();
 </script>
 
