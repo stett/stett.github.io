@@ -103,6 +103,10 @@ function excerptUpdateParticles(particles) {
 var diagramSceneOptions = { onDemand: true, pixelRatio: window.devicePixelRatio || 1 };
 </script>
 
+<video width="100%" controls>
+  <source src="{{ '/assets/video/galaxy-collision.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 The purpose of this post is to interactively demonstrate the construction of a quadtree structure using purely parallel methods. This is largely based on the classic [Karras 2012](https://dl.acm.org/doi/10.5555/2383795.2383801) paper. I've modified it slightly to accommodate a particular quadtree data format which works well for fast top-down traversal, with the application in mind of an n-body simulation.
 
 This is a tool to visualize the structural and memory layout of the quadtree that results from the tree construction process.
@@ -253,13 +257,13 @@ Finally, we've produced the quadtree of bounds that was rendered at the top of t
 
 There are many subtleties in the implementation of this algorithm which aren't covered here, but every step of this quadtree construction can be easily generalized to three dimensions, and can be executed in parallel. Below is a video of an octree being constructed from scratch every frame for a pair of colliding galaxies. Tree construction performance approximately doubled in comparison to [serial tree construction]({{ site.baseurl }}{% link _posts/2025-02-24-nbody-262k.md %}).
 
-<video width="100%" controls>
-  <source src="{{ '/assets/video/parallel-octree.mp4' | relative_url }}" type="video/mp4">
-</video>
+The following image is what the octree looks like which contains all of the stars in the colliding galaxy simulation from the video at the top of the article.
+
+![octree for galactic collision]({{ site.url }}/assets/octree-construction.png)
 
 <h4>Final Notes</h4>
 
-*This algorithm is not fully complete yet* - as can be seen from the index/tree orderings in the final construction of the quadtree, the escape-pointer quadtree structure is not optimal. A regular traversal can cause cache misses because the nodes are not sorted into depth-first-search (DFS) order, which is the order that this structure typically benefits the most from.
+*This algorithm is not fully cowmplete yet* - as can be seen from the index/tree orderings in the final construction of the quadtree, the escape-pointer quadtree structure is not optimal. A regular traversal can cause cache misses because the nodes are not sorted into depth-first-search (DFS) order, which is the order that this structure typically benefits the most from.
 
 While building the n-body simulation, I've gone through many iterations and compared profiles. Putting the tree construction into this form benefits massively from parallelization and use of SIMD, but the cost of traversal increases significantly due to the loss of DFS ordering in the final structure.
 
