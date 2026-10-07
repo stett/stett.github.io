@@ -667,7 +667,24 @@ function step(new_time)
   swap_index1 = (swap_index1 + 1) % 2;
 
   // next step
-  requestAnimationFrame(step);
+  if (running) frame = requestAnimationFrame(step);
+}
+
+// paint the whole canvas with the background color, for when clear_buffer is
+// off and nothing else would replace what's already drawn
+function clearCanvas()
+{
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.clearColor(bg_color[0], bg_color[1], bg_color[2], 1);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+}
+
+// repaint the canvas, drawing the particles where they are if the loop isn't
+// running to do it
+function redraw()
+{
+  clearCanvas();
+  if (!running) draw();
 }
 
 // listen for config changes from parent page
@@ -679,12 +696,18 @@ window.addEventListener('message', function(e) {
       e.data.numColors !== undefined ? e.data.numColors : 15,
       e.data.shapeSize !== undefined ? e.data.shapeSize : 80
     );
+    redraw();
   }
   if (e.data && e.data.type === 'particle-life-clear-buffer') {
     clear_buffer = e.data.clearBuffer;
   }
   if (e.data && e.data.type === 'particle-life-bg') {
     bg_color = e.data.bgColor;
+    redraw();
+  }
+  if (e.data && e.data.type === 'particle-life-pause') {
+    paused = e.data.paused;
+    updateRunning();
   }
 });
 
@@ -699,4 +722,24 @@ init(
   parseInt(params.get('colors')) || 15,
   parseInt(params.get('shape')) || 80
 );
-step(document.timeline.currentTime);
+
+// only simulate while the canvas is on screen and not paused. when embedded in
+// an iframe, on screen is measured against the parent page's viewport.
+var running = false;
+var visible = false;
+var paused = false;
+var frame = null;
+function updateRunning()
+{
+  var should_run = visible && !paused;
+  if (should_run && !running) {
+    frame = requestAnimationFrame(step);
+  } else if (!should_run && running) {
+    cancelAnimationFrame(frame);
+  }
+  running = should_run;
+}
+new IntersectionObserver(function(entries) {
+  visible = entries[entries.length - 1].isIntersecting;
+  updateRunning();
+}).observe(canvas);

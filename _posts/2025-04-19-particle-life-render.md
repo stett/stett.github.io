@@ -44,7 +44,7 @@ comments: true
 I spent a part of this weekend on my own little WebGL implementation of the [Particle Life](https://particle-life.com/) algorithm by Jeffrey Ventrella. While this algorithm needs no new implementations (there are many!) I decided to use it as an exercise in WebGL programming.
 
 <div class="particle-life-embed">
-    <iframe id="particle-life-iframe" src="{{ site.url }}/render-particle-life"></iframe>
+    <iframe id="particle-life-iframe" src="{{ site.url }}/render-particle-life?clear=0"></iframe>
 </div>
 
 <div style="text-align: center;">
@@ -52,7 +52,8 @@ I spent a part of this weekend on my own little WebGL implementation of the [Par
 <label><span class="pl-label">Seed</span><input type="range" id="pl-seed" min="0" max="100" value="42"><span id="pl-seed-val" class="pl-val">42</span></label>
 <label><span class="pl-label">Colors</span><input type="range" id="pl-colors" min="1" max="20" value="10"><span id="pl-colors-val" class="pl-val">10</span></label>
 <label><span class="pl-label">sqrt(Particles)</span><input type="range" id="pl-shape" min="8" max="200" value="80"><span id="pl-shape-val" class="pl-val">80</span></label>
-<label><span class="pl-label">Clear buffer</span><input type="checkbox" id="pl-clear" checked></label>
+<label><span class="pl-label">Clear buffer</span><input type="checkbox" id="pl-clear"></label>
+<label><span class="pl-label">Pause</span><input type="checkbox" id="pl-pause"></label>
 </div>
 </div>
 
@@ -65,6 +66,7 @@ I spent a part of this weekend on my own little WebGL implementation of the [Par
   var colorsEl = document.getElementById('pl-colors');
   var shapeEl = document.getElementById('pl-shape');
   var clearEl = document.getElementById('pl-clear');
+  var pauseEl = document.getElementById('pl-pause');
   var fullscreenLink = document.getElementById('pl-fullscreen');
   function send() {
     document.getElementById('pl-seed-val').textContent = seedEl.value;
@@ -90,11 +92,25 @@ I spent a part of this weekend on my own little WebGL implementation of the [Par
     iframe.contentWindow.postMessage({ type: 'particle-life-clear-buffer', clearBuffer: clearEl.checked }, '*');
     updateLink();
   });
-  updateLink();
-  var iframeEl = document.getElementById('particle-life-iframe');
-  iframeEl.addEventListener('load', function() {
-    iframeEl.contentWindow.postMessage({ type: 'particle-life-bg', bgColor: [252/255, 250/255, 247/255] }, '*');
+  pauseEl.addEventListener('change', function() {
+    iframe.contentWindow.postMessage({ type: 'particle-life-pause', paused: pauseEl.checked }, '*');
   });
+  updateLink();
+  // Match the simulation background to the post's content background, which
+  // changes with the light/dark color scheme.
+  function contentBg() {
+    var probe = document.createElement('div');
+    probe.style.color = 'var(--content-bg)';
+    document.body.appendChild(probe);
+    var rgb = getComputedStyle(probe).color.match(/[\d.]+/g);
+    probe.remove();
+    return [rgb[0] / 255, rgb[1] / 255, rgb[2] / 255];
+  }
+  function sendBg() {
+    iframe.contentWindow.postMessage({ type: 'particle-life-bg', bgColor: contentBg() }, '*');
+  }
+  iframe.addEventListener('load', sendBg);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', sendBg);
 })();
 </script>
 
