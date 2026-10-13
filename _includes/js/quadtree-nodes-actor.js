@@ -59,7 +59,7 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
         this.set_keys([]);
 
         this.camera = sceneActor.camera;
-        this.canvas = sceneActor.renderer.domElement;
+        this.canvas = sceneActor.canvas;
         this.raycaster = new THREE.Raycaster();
         var self = this;
         this.canvas.addEventListener("mousedown", function(event) { self._click(event); });

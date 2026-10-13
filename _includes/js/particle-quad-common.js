@@ -68,7 +68,7 @@ function registerThemedScene(sceneActor) {
 function repaintThemedScenes() {
     for (var i = 0; i < themedScenes.length; ++i) {
         var sceneActor = themedScenes[i];
-        sceneActor.renderer.setClearColor(bgColor(), 1);
+        sceneActor.setClearColor(bgColor());
         sceneActor.invalidate();
         sceneActor.scene.traverse(function(node) {
             if (node.refreshColors) {

@@ -100,7 +100,7 @@ function excerptUpdateParticles(particles) {
 
 // The diagrams only change on a click, so they render on demand rather than
 // every frame, which lets them render at the screen's full resolution.
-var diagramSceneOptions = { onDemand: true, pixelRatio: window.devicePixelRatio || 1 };
+var diagramSceneOptions = { onDemand: true, pixelRatio: window.devicePixelRatio || 1, shared: true };
 </script>
 
 <video width="100%" controls>
