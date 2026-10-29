@@ -59,6 +59,8 @@ div.container-3js canvas {
 div.diagram-controls {
     text-align: center;
     margin-top: 4px;
+    font-family: 'Ubuntu Mono';
+    font-size: 11pt;
 }
 
 div.diagram-controls button {
@@ -75,6 +77,16 @@ div.diagram-controls button {
 div.diagram-controls button:hover {
     color: var(--accent-blue);
     border-color: var(--accent-blue);
+}
+
+div.diagram-controls button.selected {
+    border-style: solid;
+    border-color: var(--content-fg);
+    cursor: default;
+}
+
+div.diagram-controls button.selected:hover {
+    color: var(--content-fg);
 }
 </style>
 
@@ -101,6 +113,18 @@ function excerptUpdateParticles(particles) {
 // The diagrams only change on a click, so they render on demand rather than
 // every frame, which lets them render at the screen's full resolution.
 var diagramSceneOptions = { onDemand: true, pixelRatio: window.devicePixelRatio || 1, shared: true };
+
+// Wires an "order by [index] [tree]" pair of buttons to an actor's set_order.
+// The selected button, outlined solid, is the order on screen.
+function bindOrderButtons(selector, actor) {
+    var buttons = $(selector + " button");
+    buttons.click(function() {
+        var treeOrder = actor.set_order($(this).data("tree-order"));
+        buttons.each(function() {
+            $(this).toggleClass("selected", $(this).data("tree-order") == treeOrder);
+        });
+    });
+}
 </script>
 
 <video width="100%" controls>
@@ -138,9 +162,7 @@ $(document).ready(function() {
         excerptQuadtreeNodesActor.set_order(true);
         DRAMA.add(excerptQuadtreeNodesActor);
 
-        $("#{{ page.title | slugify }}-quadtree-nodes-order").click(function() {
-            $(this).text(excerptQuadtreeNodesActor.toggle_order() ? "tree order" : "index order");
-        });
+        bindOrderButtons("#{{ page.title | slugify }}-quadtree-nodes-order", excerptQuadtreeNodesActor);
     }
 
     var container = $("#{{ page.title | slugify }}-particle-grid");
@@ -164,7 +186,11 @@ The following diagram illustrates the structure of the quadtree which stores the
 <div class="container-3js" id="{{ page.title | slugify }}-quadtree-nodes"></div>
 
 <div class="diagram-controls">
-    <button type="button" id="{{ page.title | slugify }}-quadtree-nodes-order">tree order</button>
+    <span id="{{ page.title | slugify }}-quadtree-nodes-order">
+        order by
+        <button type="button" data-tree-order="false">index</button>
+        <button type="button" class="selected" data-tree-order="true">tree</button>
+    </span>
 </div>
 
 The tree/index order toggle reorders nodes to show the hierarchical structure or the actual order in which the nodes of the tree are stored in memory.
@@ -208,7 +234,11 @@ The node splitting pattern is illustrated in the following diagram. The first ro
 <div class="container-3js" id="{{ page.title | slugify }}-radix-tree-split"></div>
 
 <div class="diagram-controls">
-    <button type="button" id="{{ page.title | slugify }}-radix-tree-split-order">index order</button>
+    <span id="{{ page.title | slugify }}-radix-tree-split-order">
+        order by
+        <button type="button" class="selected" data-tree-order="false">index</button>
+        <button type="button" data-tree-order="true">tree</button>
+    </span>
 </div>
 
 The following arrays are the radix node data, which will be fed into the next step for construction of the quadtree structure. Internal node indices are prefixed with an `*`. Other indices refer to leaves (the sorted Morton key array).
@@ -244,7 +274,11 @@ This brings us to the quadtree widget which opened the article - here it is agai
 <div class="container-3js" id="{{ page.title | slugify }}-quadtree-nodes-step5"></div>
 
 <div class="diagram-controls">
-    <button type="button" id="{{ page.title | slugify }}-quadtree-nodes-step5-order">tree order</button>
+    <span id="{{ page.title | slugify }}-quadtree-nodes-step5-order">
+        order by
+        <button type="button" data-tree-order="false">index</button>
+        <button type="button" class="selected" data-tree-order="true">tree</button>
+    </span>
 </div>
 
 If you select a leaf data cell, and switch to "index order", it is quite obvious in many cases that memory is _not_ traversed in order. For trees that do happen to be in depth-first search (DFS) order, a traversal through the tree in the index order view should look like an arrow hopping from left to right and down, in a cache-friendly way.
@@ -337,11 +371,7 @@ $(document).ready(function() {
         radixTreeSplitActor = new RadixTreeSplitActor(scene);
         DRAMA.add(radixTreeSplitActor);
 
-        // The button reads as the order currently on screen, not the one a
-        // click would switch to.
-        $("#{{ page.title | slugify }}-radix-tree-split-order").click(function() {
-            $(this).text(radixTreeSplitActor.toggle_order() ? "tree order" : "index order");
-        });
+        bindOrderButtons("#{{ page.title | slugify }}-radix-tree-split-order", radixTreeSplitActor);
     }
 
     {
@@ -376,9 +406,7 @@ $(document).ready(function() {
         quadtreeNodesActor.set_order(true);
         DRAMA.add(quadtreeNodesActor);
 
-        $("#{{ page.title | slugify }}-quadtree-nodes-step5-order").click(function() {
-            $(this).text(quadtreeNodesActor.toggle_order() ? "tree order" : "index order");
-        });
+        bindOrderButtons("#{{ page.title | slugify }}-quadtree-nodes-step5-order", quadtreeNodesActor);
     }
 
     // The grid placed its starting particles before this ran, so catch the
