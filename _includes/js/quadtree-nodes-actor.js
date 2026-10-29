@@ -16,7 +16,9 @@
 // Hovering or selecting a payload cell traces the traversal from the root down
 // to it, following child into the subtree holding its leaf and next past every
 // other subtree, in the same green and yellow. Each index it passes is colored
-// by the link it arrives by, and the root by the link it leaves by.
+// by the link it arrives by, and the root by the link it leaves by. A step back
+// to a lower index, up or left in index order, breaks depth first order, and
+// its arrow is outlined in red.
 // The hovered and selected cells are drawn a size larger than the rest, and a
 // cell is drawn halfway between the two sizes while the mouse is held down on it.
 //
@@ -36,6 +38,15 @@ function arrowMaterial(color) {
 var parentArrowMaterial = parentArrowMaterial || arrowMaterial(blueColor);
 var childArrowMaterial = childArrowMaterial || arrowMaterial(greenColor);
 var nextArrowMaterial = nextArrowMaterial || arrowMaterial(yellowColor);
+
+// GL lines are only ever a pixel wide, so an outlined arrow is drawn again as
+// strips of triangles, a wide red one under a narrower one in its own color.
+function ribbonMaterial(color) {
+    return themedMaterial(new THREE.MeshBasicMaterial({ depthTest: false, side: THREE.DoubleSide }), color);
+}
+var outlineRibbonMaterial = outlineRibbonMaterial || ribbonMaterial(redColor);
+childArrowMaterial.ribbon = childArrowMaterial.ribbon || ribbonMaterial(greenColor);
+nextArrowMaterial.ribbon = nextArrowMaterial.ribbon || ribbonMaterial(yellowColor);
 
 var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
     constructor(sceneActor, cellWidth=2.4, rowPitch=2.2, cols=4, shrink=0.85, treeGap=0.6) {
@@ -618,10 +629,41 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
             return at(cells[i], 0, indexY + glyphHalf + pad);
         }
 
-        // A cubic from p0 leaving along d0 to p3 arriving along d3, with a head
-        // at p3. The y-flipped camera puts +y down on screen.
+        // One CSS pixel in the diagram's units, for sizing the outlines. Taken
+        // from where the camera is headed, since the arrows aren't redrawn
+        // while only the camera moves.
+        var pixel = 2 * this.sceneActor.cameraHeightTarget / (this.canvas.clientHeight || 1);
+
+        // A strip of quads along each of a LineSegments' segments, each run past
+        // both ends by half its width so the joins and the arrowhead's tip
+        // close up.
         var arrows = this.arrows;
-        function arrow(p0, d0, p3, d3, scale, material) {
+        function ribbon(vertices, width, material, renderOrder) {
+            var geometry = new THREE.Geometry();
+            for (var k = 0; k + 1 < vertices.length; k += 2) {
+                var along = vertices[k + 1].clone().sub(vertices[k]);
+                if (along.lengthSq() == 0) {
+                    continue;
+                }
+                along.setLength(width * 0.5);
+                var across = new THREE.Vector3(-along.y, along.x, 0);
+                var a = vertices[k].clone().sub(along);
+                var b = vertices[k + 1].clone().add(along);
+                var base = geometry.vertices.length;
+                geometry.vertices.push(a.clone().add(across), a.clone().sub(across),
+                    b.clone().sub(across), b.clone().add(across));
+                geometry.faces.push(new THREE.Face3(base, base + 1, base + 2),
+                    new THREE.Face3(base, base + 2, base + 3));
+            }
+            var mesh = new THREE.Mesh(geometry, material);
+            mesh.renderOrder = renderOrder;
+            arrows.add(mesh);
+        }
+
+        // A cubic from p0 leaving along d0 to p3 arriving along d3, with a head
+        // at p3. The y-flipped camera puts +y down on screen. An outlined arrow
+        // gets its ribbons drawn under the line.
+        function arrow(p0, d0, p3, d3, scale, material, outlined) {
             // An end that has to double back, like a child above its parent in
             // index order, gets a short reach so its loop stays in the view.
             var span = p3.clone().sub(p0);
@@ -647,6 +689,10 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
             var line = new THREE.LineSegments(geometry, material);
             line.renderOrder = 0.5;
             arrows.add(line);
+            if (outlined) {
+                ribbon(geometry.vertices, 4.5 * pixel, outlineRibbonMaterial, 0.3);
+                ribbon(geometry.vertices, 1.5 * pixel, material.ribbon, 0.4);
+            }
         }
 
         var right = new THREE.Vector2(1, 0);
@@ -660,17 +706,17 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
         // other when the child is below, as in tree order, and the other way
         // round when it is above, as it can be in index order. Either way the
         // arrow crosses the parent's own cell.
-        function parentToChild(fromBottom, fromTop, toTop, toBottom, scale, material) {
+        function parentToChild(fromBottom, fromTop, toTop, toBottom, scale, material, outlined) {
             if (toTop.y > fromBottom.y) {
-                arrow(fromBottom, down, toTop, down, scale, material);
+                arrow(fromBottom, down, toTop, down, scale, material, outlined);
             } else {
-                arrow(fromTop, up, toBottom, up, scale, material);
+                arrow(fromTop, up, toBottom, up, scale, material, outlined);
             }
         }
 
         // From node i's child link onto the child's index, or for a leaf onto
         // the index of its payload.
-        function childArrow(i, material) {
+        function childArrow(i, material, outlined) {
             var cell = cells[i];
             var spans = linkSpans(cell);
             var child = cell.links[1];
@@ -678,7 +724,7 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
             var fromTop = at(cell, spans[1].center, -glyphHalf - pad);
             if (!cell.isLeaf && valid(child)) {
                 parentToChild(fromBottom, fromTop, indexTop(child), indexBottom(child),
-                    cells[child].scale.x, material);
+                    cells[child].scale.x, material, outlined);
             } else if (cell.isLeaf && typeof child === "number" && child < payloadCells.length) {
                 parentToChild(fromBottom, fromTop,
                     payloadAt(child, 0, indexY - glyphHalf - pad),
@@ -690,7 +736,7 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
         // Out past the end of node i's triad, into the next cell's index from
         // the left, or from the right when the index is back to the left of
         // where the arrow starts. That includes the root, which is its own next.
-        function nextArrow(i, material) {
+        function nextArrow(i, material, outlined) {
             var cell = cells[i];
             var next = cell.links[2];
             if (!valid(next)) {
@@ -701,16 +747,19 @@ var QuadtreeNodesActor = QuadtreeNodesActor || class extends DRAMA.Actor {
             arrow(start, right,
                 fromRight ? indexRight(next) : indexLeft(next),
                 fromRight ? right.clone().negate() : right,
-                cells[next].scale.x, material);
+                cells[next].scale.x, material, outlined);
         }
 
+        // A step back to a lower index is out of depth first order. The last
+        // step, onto the payload, has no node to compare.
         if (active.payload >= 0) {
             var steps = this._trace(active.payload);
             for (var s = 0; s < steps.length; ++s) {
+                var backward = steps[s].to !== undefined && steps[s].to < steps[s].from;
                 if (steps[s].link == 1) {
-                    childArrow(steps[s].from, childArrowMaterial);
+                    childArrow(steps[s].from, childArrowMaterial, backward);
                 } else {
-                    nextArrow(steps[s].from, nextArrowMaterial);
+                    nextArrow(steps[s].from, nextArrowMaterial, backward);
                 }
             }
             return;

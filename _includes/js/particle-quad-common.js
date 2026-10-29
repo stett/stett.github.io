@@ -24,7 +24,7 @@ function bgColor() { return cssColor("--content-bg", "#FCFAF7"); }
 function redColor() { return cssColor("--accent-red", "#cc0000"); }
 function greenColor() { return cssColor("--accent-green", "#00aa00"); }
 function blueColor() { return cssColor("--accent-blue", "#00ADDF"); }
-function yellowColor() { return cssColor("--accent-yellow", "#C08F00"); }
+function yellowColor() { return cssColor("--accent-yellow", "#FFA600"); }
 
 function resolveColor(color) {
     return typeof color === "function" ? color() : color;
